@@ -67,7 +67,7 @@ var possessives = map[string]interface{}{
 	"message0": "%1 %2",
 	"args0": []Options{
 		{
-			"name": "Possessives",
+			"name": "POSSESSIVES",
 			"type": "field_dropdown",
 			"options": []stringPair{
 				{"is a", "IsA"},
@@ -78,12 +78,12 @@ var possessives = map[string]interface{}{
 			},
 		},
 		{
-			"check": "Class",
-			"name":  "Class",
+			"check": "class",
+			"name":  "CLASS",
 			"type":  "input_value",
 		},
 	},
-	"previousStatement": "NounAssertion",
-	"nextStatement":     "NounAssertion",
-	"type":              "NounAssertion",
+	"previousStatement": "noun_assertion",
+	"nextStatement":     "noun_assertion",
+	"type":              "noun_assertion",
 }
