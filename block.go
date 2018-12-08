@@ -33,15 +33,17 @@ func (b *Block) InitSvg() {
 	b.Call("initSvg")
 }
 
-// Dispose removes the block from the workspace
-// healStack if true, will connect connect the previous block to the next block;
-// if false will dispose the children of the block.
-func (b *Block) Dispose(healStack bool) {
-	b.Call("dispose", healStack)
+// Dispose removes the block from the workspace.
+// To prevent child blocks from *also* being disposed, Unplug() the block first.
+func (b *Block) Dispose() {
+	b.Call("dispose")
 }
 
 //func (b* Block)initModel  ()  { b.Call("initModel") }
-//func (b* Block)unplug  (opt_healStack)  { b.Call("unplug") }
+func (b *Block) Unplug(healStack bool) {
+	b.Call("unplug", healStack)
+}
+
 //func (b* Block)lastConnectionInStack  ()  { b.Call("lastConnectionInStack") }
 func (b *Block) GetParent() (ret *Block) {
 	if obj := b.Call("getParent"); obj.Bool() {
@@ -124,13 +126,21 @@ func (b *Block) SetColour(colour string) {
 }
 
 //func (b* Block)setOnChange  (onchangeFn)  { b.Call("setOnChange") }
-//func (b* Block)getField  (name)  { b.Call("getField") }
+func (b *Block) GetField(name string) (ret *Field) {
+	if obj := b.Call("getField", name); obj.Bool() {
+		ret = &Field{Object: obj}
+	}
+	return
+}
+
 //func (b* Block)getVars  ()  { b.Call("getVars") }
 //func (b* Block)getVarModels  ()  { b.Call("getVarModels") }
 //func (b* Block)updateVarName  (variable)  { b.Call("updateVarName") }
 //func (b* Block)renameVarById  (oldId, newId)  { b.Call("renameVarById") }
+
 //func (b* Block)getFieldValue  (name)  { b.Call("getFieldValue") }
 //func (b* Block)setFieldValue  (newValue, name)  { b.Call("setFieldValue") }
+
 //func (b* Block)setPreviousStatement  (newBoolean, opt_check)  { b.Call("setPreviousStatement") }
 //func (b* Block)setNextStatement  (newBoolean, opt_check)  { b.Call("setNextStatement") }
 //func (b* Block)setOutput  (newBoolean, opt_check)  { b.Call("setOutput") }

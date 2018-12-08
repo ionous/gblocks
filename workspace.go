@@ -57,17 +57,24 @@ func NewWorkspace(elementId, mediaPath string, reg *Registry) *Workspace {
 
 // GetDataById custom function to get go-lang mirror
 func (ws *Workspace) GetDataById(id string) (ret interface{}) {
-	if val, ok := ws.dataPtrs[id]; ok {
+	if val := ws.dataById(id); val.IsValid() {
 		ret = val.Interface()
+	}
+	return
+}
+
+// returns pointer to element
+func (ws *Workspace) dataById(id string) (ret r.Value) {
+	if val, ok := ws.dataPtrs[id]; ok {
+		ret = val
 	} else if b := ws.GetBlockById(id); b != nil {
 		if t, ok := ws.reg.types[b.Type]; !ok {
 			e := errutil.New("unknown type", b.Object)
 			panic(e.Error())
 		} else {
-			// create new data
 			val := r.New(t)
 			ws.dataPtrs[id] = val
-			ret = val.Interface()
+			ret = val
 		}
 	}
 	return
@@ -228,24 +235,58 @@ func (ws *Workspace) mirror(evt interface{}) {
 		}
 
 	case *BlockDelete:
+		// ids is an array of js strings
 		for i := 0; i < evt.Ids.Length(); i++ {
 			obj := evt.Ids.Index(i)
 			delete(ws.dataPtrs, obj.String())
 		}
 
 	case *BlockChange:
+		//println("block change", evt.Object)
 		if evt.Element == "field" {
-			valPtr := ws.dataPtrs[evt.BlockId]
+			valPtr := ws.dataById(evt.BlockId)
 			dst := valPtr.Elem().FieldByName(toFieldName(evt.Name))
-			dst.Set(r.ValueOf(evt.NewValue.Interface()))
+
+			switch v := evt.NewValue; dst.Kind() {
+			case r.Bool:
+				var v bool = v.Bool()
+				dst.Set(r.ValueOf(v))
+			case r.Int:
+				var v int = v.Int()
+				dst.Set(r.ValueOf(v))
+			case r.Int8, r.Int16, r.Int32:
+				var v int = v.Int()
+				dst.Set(r.ValueOf(v).Convert(dst.Type()))
+			case r.Int64:
+				var v int64 = v.Int64()
+				dst.Set(r.ValueOf(v))
+			case r.Uint, r.Uint8, r.Uint16, r.Uint32:
+				var v uint64 = v.Uint64()
+				dst.Set(r.ValueOf(v).Convert(dst.Type()))
+			case r.Uint64:
+				var v uint64 = v.Uint64()
+				dst.Set(r.ValueOf(v))
+			case r.Float32:
+				var v float64 = v.Float()
+				dst.Set(r.ValueOf(float32(v)))
+			case r.Float64:
+				var v float64 = v.Float()
+				dst.Set(r.ValueOf(v))
+			case r.String:
+				var v string = v.String()
+				dst.Set(r.ValueOf(v))
+			default:
+				e := errutil.New("unknown destination in block change", dst.Kind())
+				panic(e.Error())
+			}
 		}
 
 	case *BlockMove:
-		valPtr := ws.dataPtrs[evt.BlockId]
+		valPtr := ws.dataById(evt.BlockId)
 
 		// disconnect the block from the parent; and the parent from the block
 		if pid := evt.OldParentId(); len(pid) > 0 {
-			oldParent := ws.dataPtrs[pid]
+			oldParent := ws.dataById(pid)
 			in := evt.OldInputName()
 			if len(in) != 0 {
 				in = toFieldName(in)
@@ -265,7 +306,7 @@ func (ws *Workspace) mirror(evt interface{}) {
 
 		// connect the block to the parent; and the parent to the block
 		if pid := evt.NewParentId(); len(pid) > 0 {
-			newParent := ws.dataPtrs[pid]
+			newParent := ws.dataById(pid)
 			in := evt.NewInputName()
 			// a blank input means a vertical (next/prev) connection
 			if len(in) != 0 {

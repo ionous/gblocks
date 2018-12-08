@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// PascalCase -> pascal_case
+// PascalCase -> under_score
 func toTypeName(t r.Type) string {
 	split := camelcase.Split(t.Name())
 	for i, s := range split {
@@ -15,7 +15,7 @@ func toTypeName(t r.Type) string {
 	return strings.Join(split, "_")
 }
 
-// CAPITAL_NAME -> CapitalName
+// CAPITAL_NAME -> PascalCase
 func toFieldName(s string) string {
 	split := strings.Split(s, "_")
 	for i, s := range split {
