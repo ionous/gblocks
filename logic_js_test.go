@@ -73,27 +73,6 @@ package gblocks
 
 // // DomToMutation -- reserve data for this node.
 
-// // Prepare the mutator's dialog with this block's components.
-// func decompose(workspace *Workspace, mutation Mutation) *Block {
-// 	// ask for the type used for the head block
-// 	mutationType := mutation.MutationForType(nil)
-// 	// turn that into a block
-// 	containerBlock := workspace.NewBlock(mutationType)
-// 	headBlock.InitSvG()
-// 	connection := firstConnection(containerBlock)
-
-// 	for i, cnt := 0, m.NumElements(); i < cnt; i++ {
-// 		element := m.Element(i)
-// 		mutationType := m.MutationForType(element)
-// 		block := workspace.NewBlock(mutationType)
-// 		block.InitSvg()
-// 		connection.Connect(block.PreviousConnection)
-// 		connection = block.NextConnection
-// 	}
-
-// 	return containerBlock
-// }
-
 // // re/create the workspace blocks from the mutation dialog ui
 // func (b *Block) Compose(containerBlock *Block) {
 // 	restore := make(map[string]*Connection)

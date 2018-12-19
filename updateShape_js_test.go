@@ -30,7 +30,17 @@ func (m *ShapeMutation) Elements() r.Value {
 }
 
 // MutationForType - given the passed data type; what block type is needed
-func (m *ShapeMutation) MutationForType(dataType interface{}) (ret interface{}) {
+func (m *ShapeMutation) MutationForType(t r.Type) (ret r.Type) {
+	switch t {
+	case nil:
+		ret = r.TypeOf((*MutationElStart)(nil)).Elem()
+
+	case r.TypeOf((*MutationEl)(nil)).Elem():
+		ret = r.TypeOf((*MutationElControl)(nil)).Elem()
+
+	case r.TypeOf((*MutationAlt)(nil)).Elem():
+		ret = r.TypeOf((*MutationAltControl)(nil)).Elem()
+	}
 	return
 }
 
@@ -101,6 +111,9 @@ func testShape(t *testing.T, fn func(*Workspace)) {
 		(*ShapeTest)(nil),
 		(*MutationEl)(nil),
 		(*MutationAlt)(nil),
+		(*MutationElStart)(nil),
+		(*MutationElControl)(nil),
+		(*MutationAltControl)(nil),
 	))
 	ws := NewBlankWorkspace(&reg)
 	// replace timed event queue with direct event queue

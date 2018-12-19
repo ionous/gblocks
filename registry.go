@@ -73,7 +73,7 @@ func (reg *Registry) registerBlock(structName string, structType r.Type, opt Opt
 	if reg.types == nil {
 		reg.types = make(map[string]r.Type)
 	} else if _, exists := reg.types[structName]; exists {
-		panic("type already exists")
+		panic("type already exists " + structName)
 	}
 	if opt == nil {
 		opt = make(Options)

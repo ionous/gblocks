@@ -9,7 +9,7 @@ type Mutation interface {
 	// return the value of the internal array
 	// this relieves the user from implementing element access ( num, set, get )
 	Elements() r.Value
-	MutationForType(dataType interface{}) interface{}
+	MutationForType(r.Type) r.Type
 }
 
 func reconnect(connectionChild *Connection, block *Block, inputName string) (okay bool) {

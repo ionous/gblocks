@@ -33,7 +33,10 @@ type Block struct {
 // feels like this should have been asynchronous, hidden
 // so that its called after initialiation automatically rather than the caller/creator deciding when its a good time. [ it gets littered after newBlock() and is illegal in "headless" builds ]
 func (b *Block) InitSvg() {
-	b.Call("initSvg")
+	// missing in headless version
+	if b.Object.Get("initSvg").Bool() {
+		b.Call("initSvg")
+	}
 }
 
 // Dispose removes the block from the workspace.
