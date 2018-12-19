@@ -11,7 +11,7 @@ const (
 	opt_type              = "type"
 	opt_check             = "check"
 	opt_options           = "options"
-	opt_via               = "via" // custom for type mutation
+	opt_mutation          = "mutation" // custom for type mutation
 
 	opt_value     = "value"
 	opt_min       = "min"

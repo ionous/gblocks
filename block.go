@@ -20,11 +20,14 @@ type Block struct {
 	Tooltip      string     `js:"tooltip"`
 	ContextMenu  bool       `js:"contextMenu"`
 	Comment      string     `js:"comment"`
-	Workspace    *Workspace `js:"workspace"`
 	IsInFlyout   bool       `js:"isInFlyout"`
 	IsInMutator  bool       `js:"isInMutator"`
 	Rtl          bool       `js:"RTL"`
 	InputsInline bool       `js:"inputsInline"`
+	// without internalizing the registry and data pointers
+	// this workspace pointer wont point to the extended workspace,
+	// so best just to keep it hidden and obtain the workspace pointer elsewhere.
+	// Workspace    *Workspace `js:"workspace"`
 }
 
 // feels like this should have been asynchronous, hidden
@@ -54,7 +57,14 @@ func (b *Block) GetParent() (ret *Block) {
 
 //func (b* Block)getInputWithBlock  (block)  { b.Call("getInputWithBlock") }
 //func (b* Block)getSurroundParent  ()  { b.Call("getSurroundParent") }
-//func (b* Block)getNextBlock  ()  { b.Call("getNextBlock") }
+
+func (b *Block) GetNextBlock() (ret *Block) {
+	if next := b.NextConnection; next != nil {
+		ret = next.TargetBlock()
+	}
+	return
+}
+
 //func (b* Block)getPreviousBlock  ()  { b.Call("getPreviousBlock") }
 
 // Return the connection on the first statement input
@@ -189,20 +199,36 @@ func (b *Block) JsonInit(opt Options) (err error) {
 }
 
 //func (b* Block)mixin  (mixinObj, opt_disableCheck)  { b.Call("mixin") }
+func (b *Block) interpolate(msg string, args []Options) {
+	b.Call("interpolate_", msg, args)
+}
+
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }
-//func (b* Block)moveNumberedInputBefore  (
-//func (b* Block)removeInput  (name, opt_quiet)  { b.Call("removeInput") }
+//func (b* Block)moveNumberedIxpnputBefore  (
+
+func (b *Block) RemoveInput(name string) {
+	noExceptionIfMissing := false // default in blockly raises exception
+	b.Call("removeInput", name, noExceptionIfMissing)
+}
 
 func (b *Block) NumInputs() int {
 	return b.inputList.Length()
 }
 
-func (b *Block) GetInput(i int) *Input {
+func (b *Block) Input(i int) *Input {
+	if cnt := b.inputList.Length(); i < 0 || i >= cnt {
+		println(i, "of", cnt)
+		panic("out of range")
+	}
 	in := b.inputList.Index(i)
 	return &Input{Object: in}
 }
 
-func (b *Block) GetInputByName(str string) *Input {
+func (b *Block) setInput(i int, in *Input) {
+	b.inputList.SetIndex(i, in.Object)
+}
+
+func (b *Block) GetInput(str string) *Input {
 	input := b.Call("getInput", str)
 	return &Input{Object: input}
 }

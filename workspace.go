@@ -24,7 +24,8 @@ type Workspace struct {
 	ToolboxPosition  ToolboxPosition `js:"toolboxPosition"`
 	Rendered         bool            `js:"rendered"`
 	IsClearing       bool            `js:"isClearing"`
-	//
+
+	// custom fields
 	reg      *Registry
 	dataPtrs ptrMap // stores pointer to values
 }
@@ -34,11 +35,7 @@ type ptrMap map[string]r.Value
 func NewBlankWorkspace(reg *Registry) *Workspace {
 	//workspace = new Blockly.Workspace();
 	obj := js.Global.Get("Blockly").Get("Workspace").New()
-	ws := &Workspace{Object: obj}
-	ws.AddChangeListener(ws.mirror)
-	ws.reg = reg
-	ws.dataPtrs = make(ptrMap)
-	return ws
+	return initWorkspace(obj, reg)
 }
 
 func NewWorkspace(elementId, mediaPath string, reg *Registry) *Workspace {
@@ -48,6 +45,10 @@ func NewWorkspace(elementId, mediaPath string, reg *Registry) *Workspace {
 		"media":   mediaPath,
 		"toolbox": div,
 	})
+	return initWorkspace(obj, reg)
+}
+
+func initWorkspace(obj *js.Object, reg *Registry) *Workspace {
 	ws := &Workspace{Object: obj}
 	ws.AddChangeListener(ws.mirror)
 	ws.reg = reg
@@ -57,14 +58,14 @@ func NewWorkspace(elementId, mediaPath string, reg *Registry) *Workspace {
 
 // GetDataById custom function to get go-lang mirror
 func (ws *Workspace) GetDataById(id string) (ret interface{}) {
-	if val := ws.dataById(id); val.IsValid() {
+	if val := ws.dataPointerById(id); val.IsValid() {
 		ret = val.Interface()
 	}
 	return
 }
 
 // returns pointer to element
-func (ws *Workspace) dataById(id string) (ret r.Value) {
+func (ws *Workspace) dataPointerById(id string) (ret r.Value) {
 	if val, ok := ws.dataPtrs[id]; ok {
 		ret = val
 	} else if b := ws.GetBlockById(id); b != nil {
@@ -244,8 +245,8 @@ func (ws *Workspace) mirror(evt interface{}) {
 	case *BlockChange:
 		//println("block change", evt.Object)
 		if evt.Element == "field" {
-			valPtr := ws.dataById(evt.BlockId)
-			dst := valPtr.Elem().FieldByName(toFieldName(evt.Name))
+			valPtr := ws.dataPointerById(evt.BlockId)
+			dst := valPtr.Elem().FieldByName(underscoreToPascal(evt.Name))
 
 			switch v := evt.NewValue; dst.Kind() {
 			case r.Bool:
@@ -282,14 +283,14 @@ func (ws *Workspace) mirror(evt interface{}) {
 		}
 
 	case *BlockMove:
-		valPtr := ws.dataById(evt.BlockId)
+		valPtr := ws.dataPointerById(evt.BlockId)
 
 		// disconnect the block from the parent; and the parent from the block
 		if pid := evt.OldParentId(); len(pid) > 0 {
-			oldParent := ws.dataById(pid)
+			oldParent := ws.dataPointerById(pid)
 			in := evt.OldInputName()
 			if len(in) != 0 {
-				in = toFieldName(in)
+				in = underscoreToPascal(in)
 			} else {
 				in = nextStatement
 				// fix up the block's previous input to point to nothing
@@ -306,11 +307,11 @@ func (ws *Workspace) mirror(evt interface{}) {
 
 		// connect the block to the parent; and the parent to the block
 		if pid := evt.NewParentId(); len(pid) > 0 {
-			newParent := ws.dataById(pid)
+			newParent := ws.dataPointerById(pid)
 			in := evt.NewInputName()
 			// a blank input means a vertical (next/prev) connection
 			if len(in) != 0 {
-				in = toFieldName(in)
+				in = underscoreToPascal(in)
 			} else {
 				in = nextStatement
 				// fix up the block's previous to point to the parent

@@ -9,7 +9,6 @@ import (
 
 type Possessives int
 
-//go:generate stringer -type=Possessives
 const (
 	IsA Possessives = iota
 	// for plural nouns

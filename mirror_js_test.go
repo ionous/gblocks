@@ -51,8 +51,8 @@ func TestJsonStackBlock(t *testing.T) {
 	opts := make(Options)
 	require.NoError(t, reg.RegisterBlock((*StackBlock)(nil), opts), "register stack")
 	expected := Options{
-		"type":              "stack_block",
-		"message0":          "",
+		"type": "stack_block",
+		//	"message0":          "",
 		"previousStatement": nil,
 		"nextStatement":     nil,
 	}
@@ -84,7 +84,7 @@ func TestJsonFieldBlock(t *testing.T) {
 	expected := Options{
 		"type":     "field_block",
 		"message0": "%1",
-		"args": []Options{{
+		"args0": []Options{{
 			"name": "NUMBER",
 			"type": "field_number",
 		}},
@@ -222,12 +222,12 @@ func TestMirrorRowCreate(t *testing.T) {
 			block[i] = ws.NewBlock((*RowBlock)(nil))
 		}
 
-		block[0].GetInput(0).Connection.Connect(block[1].OutputConnection)
+		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
 		p1 := block[1].GetParent()
 		require.NotNil(t, p1, "connected 1")
 		require.Equal(t, block[0].Id, p1.Id, "connected 1<-0")
 
-		block[1].GetInput(0).Connection.Connect(block[2].OutputConnection)
+		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
 		p2 := block[2].GetParent()
 		require.NotNil(t, p2, "connected 2")
 		require.Equal(t, block[1].Id, p2.Id, "connected 2<-1")
@@ -244,8 +244,8 @@ func TestMirrorRowConnect(t *testing.T) {
 			block[i] = ws.NewBlock((*RowBlock)(nil))
 			data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
 		}
-		block[0].GetInput(0).Connection.Connect(block[1].OutputConnection)
-		block[1].GetInput(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
+		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
 
 		require.Equal(t, data[0].Input, data[1], "mirrored 0->1")
 		require.Equal(t, data[1].Input, data[2], "mirrored 1->2")
@@ -264,8 +264,8 @@ func TestMirrorRowDisconnectHeal(t *testing.T) {
 			block[i] = ws.NewBlock((*RowBlock)(nil))
 			data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
 		}
-		block[0].GetInput(0).Connection.Connect(block[1].OutputConnection)
-		block[1].GetInput(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
+		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
 
 		// heal the rift
 		block[1].Unplug(true)
@@ -291,8 +291,8 @@ func TestMirrorRowDisconnectBreak(t *testing.T) {
 		for i := 0; i < len(block); i++ {
 			block[i] = ws.NewBlock((*RowBlock)(nil))
 		}
-		block[0].GetInput(0).Connection.Connect(block[1].OutputConnection)
-		block[1].GetInput(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
+		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
 
 		require.NotNil(t, ws.GetDataById(block[1].Id), "data exists 1")
 		require.NotNil(t, ws.GetDataById(block[2].Id), "data exists 2")
