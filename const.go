@@ -35,8 +35,12 @@ const (
 	field_input    = "field_input"  // text input options['spellcheck''],
 	field_variable = "field_variable"
 
-	previousStatement = "PreviousStatement"
-	nextStatement     = "NextStatement"
+	PreviousStatementField = "PreviousStatement"
+	NextStatementField     = "NextStatement"
+	OutputMethod           = "Output"
+
+	PREVIOUS_STATEMENT InputName = "PREVIOUS_STATEMENT"
+	NEXT_STATEMENT     InputName = "NEXT_STATEMENT"
 
 	// colour            = "colour"
 	// helpUrl           = "helpUrl"

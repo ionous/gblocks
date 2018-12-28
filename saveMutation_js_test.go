@@ -5,12 +5,13 @@ import (
 	"testing"
 )
 
-func TestShapeSave(t *testing.T) {
+func TestShapeDomSave(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
-		b := ws.NewBlock((*ShapeTest)(nil))
+		b, e := ws.NewBlock((*ShapeTest)(nil))
+		require.NoError(t, e)
 		//
 		d := ws.GetDataById(b.Id).(*ShapeTest)
-		d.Mutant.els = append(d.Mutant.els, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
+		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		el := b.mutationToDom(ws)
 		text := `<mutation><input name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></mutation>`
@@ -18,12 +19,13 @@ func TestShapeSave(t *testing.T) {
 	})
 }
 
-func TestShapeRestore(t *testing.T) {
+func TestShapeDomRestore(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
-		b := ws.NewBlock((*ShapeTest)(nil))
+		b, e := ws.NewBlock((*ShapeTest)(nil))
+		require.NoError(t, e)
 		//
 		d := ws.GetDataById(b.Id).(*ShapeTest)
-		d.Mutant.els = append(d.Mutant.els, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
+		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		el := b.mutationToDom(ws)
 		text := `<mutation><input name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></mutation>`

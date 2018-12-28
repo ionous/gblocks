@@ -113,17 +113,17 @@ func (evt *BlockMove) OldParentId() (ret string) {
 }
 
 // Input in new parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) NewInputName() (ret string) {
+func (evt *BlockMove) NewInputName() (ret InputName) {
 	if p := evt.Get("newInputName"); p.Bool() {
-		ret = p.String()
+		ret = InputName(p.String())
 	}
 	return
 }
 
 // Input in old parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) OldInputName() (ret string) {
+func (evt *BlockMove) OldInputName() (ret InputName) {
 	if p := evt.Get("oldInputName"); p.Bool() {
-		ret = p.String()
+		ret = InputName(p.String())
 	}
 	return
 }

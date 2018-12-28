@@ -26,11 +26,9 @@ type Workspace struct {
 	IsClearing       bool            `js:"isClearing"`
 
 	// custom fields
-	reg      *Registry
-	dataPtrs ptrMap // stores pointer to values
+	reg     *Registry
+	context map[string]*Context // blockId-> context
 }
-
-type ptrMap map[string]r.Value
 
 func NewBlankWorkspace(reg *Registry) *Workspace {
 	//workspace = new Blockly.Workspace();
@@ -52,31 +50,26 @@ func initWorkspace(obj *js.Object, reg *Registry) *Workspace {
 	ws := &Workspace{Object: obj}
 	ws.AddChangeListener(ws.mirror)
 	ws.reg = reg
-	ws.dataPtrs = make(ptrMap)
+	ws.context = make(map[string]*Context)
 	return ws
 }
 
 // GetDataById custom function to get go-lang mirror
 func (ws *Workspace) GetDataById(id string) (ret interface{}) {
-	if val := ws.dataPointerById(id); val.IsValid() {
-		ret = val.Interface()
+	if ctx := ws.Context(id); ctx != nil {
+		ret = ctx.Ptr().Interface()
 	}
 	return
 }
 
 // returns pointer to element
-func (ws *Workspace) dataPointerById(id string) (ret r.Value) {
-	if val, ok := ws.dataPtrs[id]; ok {
-		ret = val
+func (ws *Workspace) Context(id string) (ret *Context) {
+	if ctx, ok := ws.context[id]; ok {
+		ret = ctx
 	} else if b := ws.GetBlockById(id); b != nil {
-		if t, ok := ws.reg.types[b.Type]; !ok {
-			e := errutil.New("unknown type", b.Object)
-			panic(e.Error())
-		} else {
-			val := r.New(t)
-			ws.dataPtrs[id] = val
-			ret = val
-		}
+		ctx := &Context{ws: ws, block: b}
+		ws.context[id] = ctx
+		ret = ctx
 	}
 	return
 }
@@ -142,24 +135,36 @@ func (ws *Workspace) Dispose() {
 // func (ws* Workspace) getWidth () {
 //  return ws.Call("getWidth")
 // }
-func (ws *Workspace) NewBlock(t interface{}) *Block {
+
+// where t is either a TypeName, string, or pointer to type.
+func (ws *Workspace) NewBlock(t interface{}) (*Block, error) {
 	return ws.NewBlockWithId(t, "")
 }
 
-func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block) {
-	var prototypeName string
+func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, err error) {
+	var prototypeName TypeName
 	switch t := t.(type) {
+	case TypeName:
+		prototypeName = t
+	case string:
+		prototypeName = TypeName(t)
 	case r.Type:
 		prototypeName = toTypeName(t)
-	case string:
-		prototypeName = t
 	default:
 		prototypeName = toTypeName(r.TypeOf(t).Elem())
 	}
-	if _, ok := ws.reg.types[prototypeName]; ok {
-		if obj := ws.Call("newBlock", prototypeName, opt_id); obj != nil {
-			ret = &Block{Object: obj}
+	// pattern for handling thrown errors
+	defer func() {
+		if e := recover(); e != nil {
+			if e, ok := e.(*js.Error); ok {
+				err = e
+			} else {
+				panic(e)
+			}
 		}
+	}()
+	if obj := ws.Call("newBlock", prototypeName, opt_id); obj != nil {
+		ret = &Block{Object: obj}
 	}
 	return
 }
@@ -223,30 +228,19 @@ func (ws *Workspace) ClearUndo() {
 
 // listen to changes in the workspace, reflect them into the go-data.
 func (ws *Workspace) mirror(evt interface{}) {
-	//println("mirroring", r.TypeOf(evt).Elem().Name(), evt)
-
 	switch evt := evt.(type) {
-	case *BlockCreate:
-		if b := ws.GetBlockById(evt.BlockId); b == nil {
-			panic(evt.BlockId)
-		} else if valPtr, e := ws.reg.New(b.Type); e != nil {
-			panic(e)
-		} else {
-			ws.dataPtrs[evt.BlockId] = valPtr
-		}
-
 	case *BlockDelete:
 		// ids is an array of js strings
 		for i := 0; i < evt.Ids.Length(); i++ {
-			obj := evt.Ids.Index(i)
-			delete(ws.dataPtrs, obj.String())
+			key := evt.Ids.Index(i).String()
+			delete(ws.context, key)
 		}
 
 	case *BlockChange:
 		//println("block change", evt.Object)
 		if evt.Element == "field" {
-			valPtr := ws.dataPointerById(evt.BlockId)
-			dst := valPtr.Elem().FieldByName(underscoreToPascal(evt.Name))
+			name := InputName(evt.Name)
+			dst := ws.Context(evt.BlockId).Elem().FieldByName(name.FieldName())
 
 			switch v := evt.NewValue; dst.Kind() {
 			case r.Bool:
@@ -283,48 +277,46 @@ func (ws *Workspace) mirror(evt interface{}) {
 		}
 
 	case *BlockMove:
-		valPtr := ws.dataPointerById(evt.BlockId)
+		ctx := ws.Context(evt.BlockId)
 
 		// disconnect the block from the parent; and the parent from the block
 		if pid := evt.OldParentId(); len(pid) > 0 {
-			oldParent := ws.dataPointerById(pid)
-			in := evt.OldInputName()
-			if len(in) != 0 {
-				in = underscoreToPascal(in)
-			} else {
-				in = nextStatement
+			oldParent := ws.Context(pid).Elem()
+
+			in := evt.OldInputName().FieldName()
+			if len(in) == 0 {
+				in = NextStatementField
 				// fix up the block's previous input to point to nothing
-				if prev := valPtr.Elem().FieldByName(previousStatement); !prev.IsValid() {
+				if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
 					panic("missing previous statement")
 				} else {
 					prev.Set(r.Zero(prev.Type()))
 				}
 			}
 			// fix up the parent's input to point to nothing
-			dst := oldParent.Elem().FieldByName(in)
+			dst := oldParent.FieldByName(in)
 			dst.Set(r.Zero(dst.Type()))
 		}
 
 		// connect the block to the parent; and the parent to the block
 		if pid := evt.NewParentId(); len(pid) > 0 {
-			newParent := ws.dataPointerById(pid)
-			in := evt.NewInputName()
+			newParent := ws.Context(pid).Elem()
+			in := evt.NewInputName().FieldName()
 			// a blank input means a vertical (next/prev) connection
-			if len(in) != 0 {
-				in = underscoreToPascal(in)
-			} else {
-				in = nextStatement
+			if len(in) == 0 {
+				in = NextStatementField
 				// fix up the block's previous to point to the parent
-				if prev := valPtr.Elem().FieldByName(previousStatement); !prev.IsValid() {
+				if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
 					panic("missing previous statement")
 				} else {
-					prev.Set(newParent)
+					prev.Set(newParent.Addr())
 				}
 			}
 			// fix up the parent's input to point to this block
-			if dst := newParent.Elem().FieldByName(in); !dst.IsValid() {
-				panic("missing field")
+			if dst := newParent.FieldByName(in); !dst.IsValid() {
+				panic("missing field " + in)
 			} else {
+				valPtr := ctx.Ptr()
 				dst.Set(valPtr)
 			}
 		}

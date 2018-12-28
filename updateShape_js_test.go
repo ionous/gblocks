@@ -3,13 +3,12 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/stretchr/testify/require"
-	r "reflect"
 	"testing"
 )
 
 type ShapeTest struct {
 	Input  *ShapeTest
-	Mutant ShapeMutation
+	Mutant []interface{} `mutation:"TestMutation"`
 	Field  string
 }
 
@@ -21,42 +20,27 @@ type MutationAlt struct {
 	SubField string
 }
 
-type ShapeMutation struct {
-	els []interface{}
-}
-
-func (m *ShapeMutation) Elements() r.Value {
-	return r.ValueOf(m.els)
-}
-
-// MutationForType - given the passed data type; what block type is needed
-func (m *ShapeMutation) MutationForType(t r.Type) (ret r.Type) {
-	switch t {
-	case nil:
-		ret = r.TypeOf((*MutationElStart)(nil)).Elem()
-
-	case r.TypeOf((*MutationEl)(nil)).Elem():
-		ret = r.TypeOf((*MutationElControl)(nil)).Elem()
-
-	case r.TypeOf((*MutationAlt)(nil)).Elem():
-		ret = r.TypeOf((*MutationAltControl)(nil)).Elem()
-	}
-	return
-}
-
 type Verify struct {
-	Name      string
+	Name      InputName
 	Type      InputType
 	Mutations int
 }
 
 func reduce(b *Block) (ret []Verify) {
+	mutations := func(in *Input) (ret int) {
+		if m := in.Mutation(); m != nil {
+			ret = m.TotalInputs()
+		} else {
+			ret = -1
+		}
+		return
+	}
 	for i := 0; i < b.NumInputs(); i++ {
 		in := b.Input(i)
 		ret = append(ret, Verify{
 			Name:      in.Name,
 			Type:      in.Type,
-			Mutations: in.mutations,
+			Mutations: mutations(in),
 		})
 	}
 	return
@@ -64,7 +48,8 @@ func reduce(b *Block) (ret []Verify) {
 
 func TestShapeChangeless(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
-		b := ws.NewBlock((*ShapeTest)(nil))
+		b, e := ws.NewBlock((*ShapeTest)(nil))
+		require.NoError(t, e)
 		a1 := reduce(b)
 		require.NoError(t, b.updateShape(ws))
 		a2 := reduce(b)
@@ -76,29 +61,33 @@ func TestShapeChangeless(t *testing.T) {
 }
 
 func TestShapeUpdate(t *testing.T) {
-	subInput := Verify{"SUB_INPUT", InputValue, 0}
-	none := []Verify{{"INPUT", InputValue, 0}, {"MUTANT", DummyInput, -1}, {"", DummyInput, 0}}
+	subInput := Verify{"SUB_INPUT", InputValue, -1}
+	//
+	none := []Verify{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 0}, {"", DummyInput, -1}}
+	//
 	v := [][]Verify{
-		{{"INPUT", InputValue, 0}, {"MUTANT", DummyInput, 1}, subInput, {"", DummyInput, 0}},
-		{{"INPUT", InputValue, 0}, {"MUTANT", DummyInput, 2}, subInput, subInput, {"", DummyInput, 0}},
-		{{"INPUT", InputValue, 0}, {"MUTANT", DummyInput, 3}, subInput, subInput, subInput, {"", DummyInput, 0}},
-		{{"INPUT", InputValue, 0}, {"MUTANT", DummyInput, 4}, subInput, subInput, subInput, subInput, {"", DummyInput, 0}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 1}, subInput, {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 2}, subInput, subInput, {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 3}, subInput, subInput, subInput, {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 4}, subInput, subInput, subInput, subInput, {"", DummyInput, -1}},
 	}
 
 	testShape(t, func(ws *Workspace) {
-		b := ws.NewBlock((*ShapeTest)(nil))
+		b, e := ws.NewBlock((*ShapeTest)(nil))
+		require.NoError(t, e)
+		// println(b)
 		require.Equalf(t, none, reduce(b), "initially empty")
 		// grow data which should grow the number of inputs.
 		d := ws.GetDataById(b.Id).(*ShapeTest)
 		for i := 0; i < 3; i++ {
 			t.Log("adding element", i)
-			d.Mutant.els = append(d.Mutant.els, &MutationEl{})
+			d.Mutant = append(d.Mutant, &MutationEl{})
 			require.NoErrorf(t, b.updateShape(ws), "element %d", i)
 			require.Equalf(t, v[i], reduce(b), "element %d", i)
 		}
 
 		// reset data ( and inputs ) back to zero
-		d.Mutant.els = nil
+		d.Mutant = nil
 		require.NoError(t, b.updateShape(ws))
 		require.Equalf(t, none, reduce(b), "ends empty")
 	})
@@ -107,6 +96,12 @@ func TestShapeUpdate(t *testing.T) {
 func testShape(t *testing.T, fn func(*Workspace)) {
 	var reg Registry
 	// field has unknown type Mutant gblocks.ShapeMutation
+	require.NoError(t, reg.RegisterMutation("TestMutation",
+		// the nil entry matches the first input.
+		nil, (*MutationElStart)(nil),
+		(*MutationEl)(nil), (*MutationElControl)(nil),
+		(*MutationAlt)(nil), (*MutationAltControl)(nil),
+	), "register mutations")
 	require.NoError(t, reg.RegisterBlocks(nil,
 		(*ShapeTest)(nil),
 		(*MutationEl)(nil),
@@ -114,7 +109,7 @@ func testShape(t *testing.T, fn func(*Workspace)) {
 		(*MutationElStart)(nil),
 		(*MutationElControl)(nil),
 		(*MutationAltControl)(nil),
-	))
+	), "register blocks")
 	ws := NewBlankWorkspace(&reg)
 	// replace timed event queue with direct event queue
 	events := &Events{Object: js.Global.Get("Blockly").Get("Events")}
@@ -123,6 +118,6 @@ func testShape(t *testing.T, fn func(*Workspace)) {
 		return nil
 	}))
 	//
-	fn(ws)
+	// fn(ws)
 	ws.Dispose()
 }

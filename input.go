@@ -24,17 +24,27 @@ const (
 	AlignRight
 )
 
+type InputName string
+
+func (n InputName) FieldName() string {
+	return underscoreToPascal(n.String())
+}
+
+func (n InputName) String() (ret string) {
+	if len(n) > 0 {
+		ret = string(n)
+	}
+	return
+}
+
 type Input struct {
-	*js.Object               // Blockly.Input
-	Type       InputType     `js:"type"`
-	Name       string        `js:"name"`
-	Align      InputAlign    `js:"align"`
-	FieldRow   []interface{} `js:"fieldRow"`   // array of Blockly.Field
-	Connection *Connection   `js:"connection"` // Blockly.Connection
-	// custom field to count the number of following inputs resulting from a mutation
-	// 0 ( the default ) means, this input will never have mutations;
-	// -1 means it can have mutations, but currently does not
-	mutations int `js:"mutations_"`
+	*js.Object                // Blockly.Input
+	Type       InputType      `js:"type"`
+	Name       InputName      `js:"name"`
+	Align      InputAlign     `js:"align"`
+	FieldRow   []interface{}  `js:"fieldRow"`   // array of Blockly.Field
+	Connection *Connection    `js:"connection"` // Blockly.Connection
+	mutation_  *InputMutation `js:"mutation_"`  // custom storage data
 }
 
 // blockly's append field allows field to be a string, and then to pass an optional name
@@ -59,22 +69,31 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 	return false
 })
 
-func (in *Input) ForceMutation() {
+func (in *Input) ForceMutation(name string) {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
-	in.mutations = -1
+	m := &InputMutation{Object: new(js.Object)}
+	m.name = name
+	in.mutation_ = m
 }
 
-func (in *Input) SetCheck(compatibleType string) (err error) {
-	var ar []string
+func (in *Input) Mutation() (ret *InputMutation) {
+	if m := in.mutation_; m.Object != js.Undefined {
+		ret = in.mutation_
+	}
+	return
+}
+
+func (in *Input) SetCheck(compatibleType TypeName) (err error) {
+	var ar []TypeName
 	if compatibleType != "" {
-		ar = []string{compatibleType}
+		ar = append(ar, compatibleType)
 	}
 	return in.SetChecks(ar)
 }
 
-func (in *Input) SetChecks(compatibleTypes []string) (err error) {
-	// handle thrown errors for missing connections, etc.
+func (in *Input) SetChecks(compatibleTypes []TypeName) (err error) {
+	// pattern for handling thrown errors
 	defer func() {
 		if e := recover(); e != nil {
 			if e, ok := e.(*js.Error); ok {

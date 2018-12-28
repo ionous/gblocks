@@ -25,6 +25,7 @@ func (d *Options) add(key string, value interface{}) (ret interface{}) {
 	return
 }
 
+// make options map from tags
 // from https://golang.org/pkg/reflect/#StructTag.Get
 func parseTags(tag string) Options {
 	tags := make(Options)

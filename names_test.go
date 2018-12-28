@@ -8,4 +8,5 @@ import (
 func TestNames(t *testing.T) {
 	require.Equal(t, "Number", underscoreToPascal("NUMBER"), "CAPITALS -> Capitals")
 	require.Equal(t, "PascalCased", underscoreToPascal("PASCAL_CASED"), "CAPITAL_NAME -> CapitalName")
+	require.Equal(t, "", underscoreToPascal(""), "blank")
 }

@@ -4,10 +4,23 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
+type TypeName string
+
+func (n TypeName) StructName() string {
+	return underscoreToPascal(n.String())
+}
+
+func (n TypeName) String() (ret string) {
+	if len(n) > 0 {
+		ret = string(n)
+	}
+	return
+}
+
 type Block struct {
-	*js.Object        // Blockly.Block
-	Id         string `js:"id"`
-	Type       string `js:"type"`
+	*js.Object          // Blockly.Block
+	Id         string   `js:"id"`
+	Type       TypeName `js:"type"`
 	// left side puzzle connector
 	OutputConnection *Connection `js:"outputConnection"`
 	// connection to a piece in the following line
@@ -15,15 +28,16 @@ type Block struct {
 	// connection to a piece in the preceeding line
 	PreviousConnection *Connection `js:"previousConnection"`
 
-	inputList    *js.Object `js:"inputList"`
-	Disabled     bool       `js:"disabled"`
-	Tooltip      string     `js:"tooltip"`
-	ContextMenu  bool       `js:"contextMenu"`
-	Comment      string     `js:"comment"`
-	IsInFlyout   bool       `js:"isInFlyout"`
-	IsInMutator  bool       `js:"isInMutator"`
-	Rtl          bool       `js:"RTL"`
-	InputsInline bool       `js:"inputsInline"`
+	inputList    *js.Object       `js:"inputList"`
+	Disabled     bool             `js:"disabled"`
+	Tooltip      string           `js:"tooltip"`
+	ContextMenu  bool             `js:"contextMenu"`
+	Comment      string           `js:"comment"`
+	IsInFlyout   bool             `js:"isInFlyout"`
+	IsInMutator  bool             `js:"isInMutator"`
+	Rtl          bool             `js:"RTL"`
+	InputsInline bool             `js:"inputsInline"`
+	store        *ConnectionStore `js:"store_"`
 	// without internalizing the registry and data pointers
 	// this workspace pointer wont point to the extended workspace,
 	// so best just to keep it hidden and obtain the workspace pointer elsewhere.
@@ -176,24 +190,24 @@ func (b *Block) IsCollapsed() bool {
 //func (b* Block)toString  (opt_maxLength, opt_emptyToken)  { b.Call("toString") }
 
 // AppendValueInput for blocks with output.
-func (b *Block) AppendValueInput(name string) (ret *Input, err error) {
+func (b *Block) AppendValueInput(name InputName) (ret *Input) {
 	return b.appendInput(InputValue, name)
 }
 
 // AppendStatementInput for blocks with previous statements.
 // statements give a c-shape; they are slices
-func (b *Block) AppendStatementInput(name string) (ret *Input, err error) {
+func (b *Block) AppendStatementInput(name InputName) (ret *Input) {
 	return b.appendInput(NextStatement, name)
 }
 
 // AppendDummyInput for standalone fields.
-func (b *Block) AppendDummyInput(name string) (ret *Input, err error) {
+func (b *Block) AppendDummyInput(name InputName) (ret *Input) {
 	return b.appendInput(NextStatement, name)
 }
 
-func (b *Block) appendInput(inputType InputType, name string) (ret *Input, err error) {
+func (b *Block) appendInput(inputType InputType, name InputName) (ret *Input) {
 	newInput := b.Call("appendInput_", inputType, name)
-	return &Input{Object: newInput}, nil
+	return &Input{Object: newInput}
 }
 
 func (b *Block) JsonInit(opt Options) (err error) {
@@ -209,7 +223,7 @@ func (b *Block) interpolate(msg string, args []Options) {
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }
 //func (b* Block)moveNumberedIxpnputBefore  (
 
-func (b *Block) RemoveInput(name string) {
+func (b *Block) RemoveInput(name InputName) {
 	noExceptionIfMissing := false // default in blockly raises exception
 	b.Call("removeInput", name, noExceptionIfMissing)
 }
@@ -231,9 +245,18 @@ func (b *Block) setInput(i int, in *Input) {
 	b.inputList.SetIndex(i, in.Object)
 }
 
-func (b *Block) GetInput(str string) *Input {
-	input := b.Call("getInput", str)
-	return &Input{Object: input}
+func (b *Block) InputByName(str InputName) (retInput *Input, retIndex int) {
+	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
+		if in := b.Input(i); in.Name == str {
+			retInput, retIndex = in, i
+			break
+		}
+	}
+	return
+}
+
+func (b *Block) MutationType() TypeName {
+	return b.Type + "$mutation"
 }
 
 //func (b* Block)getInputTargetBlock  (name)  { b.Call("getInputTargetBlock") }

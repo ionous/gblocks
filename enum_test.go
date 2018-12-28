@@ -77,12 +77,12 @@ var possessives = map[string]interface{}{
 			},
 		},
 		{
-			"check": "class",
+			"check": TypeName("class"),
 			"name":  "CLASS",
 			"type":  "input_value",
 		},
 	},
-	"previousStatement": "noun_assertion",
-	"nextStatement":     "noun_assertion",
-	"type":              "noun_assertion",
+	"previousStatement": TypeName("noun_assertion"),
+	"nextStatement":     TypeName("noun_assertion"),
+	"type":              TypeName("noun_assertion"),
 }

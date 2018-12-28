@@ -6,34 +6,32 @@ import (
 
 func (b *Block) updateShape(ws *Workspace) (err error) {
 	// collapse all dynamic inputs
-	var mutations []int // track which are mutations
+	var indexOfMutations []int // track which are indexOfMutations
 	for i, collapse := 0, 0; i < b.NumInputs(); {
 		in := b.Input(i)
 		if collapse > 0 {
 			b.RemoveInput(in.Name)
 			collapse--
 		} else {
-			if in.mutations != 0 {
-				mutations = append(mutations, i)
-				collapse = in.mutations
-				in.mutations = -1
+			if m := in.Mutation(); m != nil {
+				indexOfMutations = append(indexOfMutations, i)
+				collapse = m.Reset() // collapse equals the total number of inputs used by this mutation
 			}
-			i++ // note: we dont update the index for removed elements
+			i++
 		}
 	}
-
 	// rebuild the block
-	data := ws.BlockData(b)
+	ctx := ws.Context(b.Id)
 	// for each mutable input
 	offset := 0 // adjust the input position to account for input array growth
-	for _, index := range mutations {
+	for _, index := range indexOfMutations {
 		in := b.Input(index + offset)
-		if els, ok := data.Elements(in); !ok {
-			err = errutil.Append(err, errutil.New("bad input", in.Name))
-		} else if n := els.Len(); n > 0 {
+		els := ctx.Elem().FieldByName(in.Name.FieldName())
+		if n := els.Len(); n > 0 {
 			oldLen := b.NumInputs()
+
 			// expand each element of the mutation into its own set of inputs.
-			for i := 0; i < n; i++ {
+			for i, prevLen := 0, oldLen; i < n; i++ {
 				iface := els.Index(i)
 				ptr := iface.Elem()
 				el := ptr.Elem()
@@ -41,13 +39,19 @@ func (b *Block) updateShape(ws *Workspace) (err error) {
 				if msg, args, _, e := ws.reg.makeArgs(t); e != nil {
 					err = e
 					break
+				} else if m := in.Mutation(); m == nil {
+					err = errutil.New("missing mutation", in.Name)
+					break
 				} else {
 					b.interpolate(msg, args)
+					newLen := b.NumInputs()
+					m.AddSubBlock(newLen - prevLen)
+					prevLen = newLen
 				}
 			}
 			// swap appended inputs into their correct spot
 			newLen := b.NumInputs()
-			if addedElements := newLen - oldLen; addedElements > 0 {
+			if addedInputs := newLen - oldLen; addedInputs > 0 {
 				scratch := make([]*Input, 0, newLen)
 				// mutation element, all new elements go directly after this
 				el := index + offset
@@ -60,8 +64,7 @@ func (b *Block) updateShape(ws *Workspace) (err error) {
 				for i, in := range scratch {
 					b.setInput(i, in)
 				}
-				offset += addedElements
-				in.mutations = addedElements
+				offset += addedInputs
 			}
 		}
 	}

@@ -51,8 +51,7 @@ func TestJsonStackBlock(t *testing.T) {
 	opts := make(Options)
 	require.NoError(t, reg.RegisterBlock((*StackBlock)(nil), opts), "register stack")
 	expected := Options{
-		"type": "stack_block",
-		//	"message0":          "",
+		"type":              TypeName("stack_block"),
 		"previousStatement": nil,
 		"nextStatement":     nil,
 	}
@@ -65,7 +64,7 @@ func TestJsonRowBlock(t *testing.T) {
 	opts := make(Options)
 	require.NoError(t, reg.RegisterBlock((*RowBlock)(nil), opts), "register row")
 	expected := Options{
-		"type":     "row_block",
+		"type":     TypeName("row_block"),
 		"message0": "%1",
 		"args0": []Options{{
 			"type": "input_value",
@@ -82,7 +81,7 @@ func TestJsonFieldBlock(t *testing.T) {
 	opts := make(Options)
 	require.NoError(t, reg.RegisterBlock((*FieldBlock)(nil), opts), "register stack")
 	expected := Options{
-		"type":     "field_block",
+		"type":     TypeName("field_block"),
 		"message0": "%1",
 		"args0": []Options{{
 			"name": "NUMBER",
@@ -96,7 +95,8 @@ func TestJsonFieldBlock(t *testing.T) {
 // verify appropriate gblock data created/destroyed for an appropriate block
 func TestMirrorStackCreate(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
-		blockA := ws.NewBlock((*StackBlock)(nil))
+		blockA, e := ws.NewBlock((*StackBlock)(nil))
+		require.NoError(t, e)
 		require.NotNil(t, blockA, "first block")
 		//
 		data := ws.GetDataById(blockA.Id)
@@ -115,8 +115,11 @@ func TestMirrorStackConnect(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
 		var block [3](*Block)
 		var data [3](*StackBlock)
+
+		t.Log("building block data")
 		for i := 0; i < len(block); i++ {
-			b := ws.NewBlock((*StackBlock)(nil))
+			b, e := ws.NewBlock((*StackBlock)(nil))
+			require.NoError(t, e)
 			require.NotNilf(t, b, "new block %d", i)
 			block[i] = b
 			d := ws.GetDataById(b.Id).(*StackBlock)
@@ -126,19 +129,22 @@ func TestMirrorStackConnect(t *testing.T) {
 			data[i] = d
 		}
 
-		// a->b->c
+		//
+		t.Log("connecting a->b->c")
 		block[0].NextConnection.Connect(block[1].PreviousConnection)
 		block[1].NextConnection.Connect(block[2].PreviousConnection)
 
 		prev := [3]interface{}{nil, data[0], data[1]}
 		next := [3]interface{}{data[1], data[2], nil}
 
+		t.Log("testing connections")
 		for i := 0; i < len(data); i++ {
 			d, p, n := data[i], prev[i], next[i]
 			require.Equalf(t, p, d.PreviousStatement, "data prev %d", i)
 			require.Equalf(t, n, d.NextStatement, "data next %d", i)
 		}
 
+		t.Log("verifying data")
 		for i := 0; i < len(block); i++ {
 			d := ws.GetDataById(block[i].Id).(*StackBlock)
 			require.Truef(t, d == data[i], "get again %d")
@@ -154,7 +160,8 @@ func TestMirrorStackDisconnectHeal(t *testing.T) {
 		var block [3](*Block)
 		var data [3](*StackBlock)
 		for i := 0; i < len(block); i++ {
-			b := ws.NewBlock((*StackBlock)(nil))
+			b, e := ws.NewBlock((*StackBlock)(nil))
+			require.NoError(t, e)
 			data[i] = ws.GetDataById(b.Id).(*StackBlock)
 			block[i] = b
 		}
@@ -188,7 +195,11 @@ func TestMirrorStackDisconnectBreak(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
 		var block [3](*Block)
 		for i := 0; i < len(block); i++ {
-			block[i] = ws.NewBlock((*StackBlock)(nil))
+			if b, e := ws.NewBlock((*StackBlock)(nil)); e != nil {
+				require.NoError(t, e)
+			} else {
+				block[i] = b
+			}
 		}
 
 		// a->b->c
@@ -219,7 +230,11 @@ func TestMirrorRowCreate(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
 		var block [3](*Block)
 		for i := 0; i < len(block); i++ {
-			block[i] = ws.NewBlock((*RowBlock)(nil))
+			if b, e := ws.NewBlock((*RowBlock)(nil)); e != nil {
+				require.NoError(t, e)
+			} else {
+				block[i] = b
+			}
 		}
 
 		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
@@ -241,8 +256,12 @@ func TestMirrorRowConnect(t *testing.T) {
 		var block [3](*Block)
 		var data [3](*RowBlock)
 		for i := 0; i < len(block); i++ {
-			block[i] = ws.NewBlock((*RowBlock)(nil))
-			data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
+			if b, e := ws.NewBlock((*RowBlock)(nil)); e != nil {
+				require.NoError(t, e)
+			} else {
+				block[i] = b
+				data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
+			}
 		}
 		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
 		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
@@ -261,8 +280,13 @@ func TestMirrorRowDisconnectHeal(t *testing.T) {
 		var block [3](*Block)
 		var data [3](*RowBlock)
 		for i := 0; i < len(block); i++ {
-			block[i] = ws.NewBlock((*RowBlock)(nil))
-			data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
+			if b, e := ws.NewBlock((*RowBlock)(nil)); e != nil {
+				require.NoError(t, e)
+			} else {
+				block[i] = b
+				data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
+			}
+
 		}
 		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
 		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
@@ -289,7 +313,11 @@ func TestMirrorRowDisconnectBreak(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
 		var block [3](*Block)
 		for i := 0; i < len(block); i++ {
-			block[i] = ws.NewBlock((*RowBlock)(nil))
+			if b, e := ws.NewBlock((*RowBlock)(nil)); e != nil {
+				require.NoError(t, e)
+			} else {
+				block[i] = b
+			}
 		}
 		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
 		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
@@ -315,7 +343,8 @@ func TestMirrorRowDisconnectBreak(t *testing.T) {
 // verify that setting fields in a block mirrors values in go.
 func TestMirrorFields(t *testing.T) {
 	testMirror(t, func(ws *Workspace) {
-		block := ws.NewBlock((*FieldBlock)(nil))
+		block, e := ws.NewBlock((*FieldBlock)(nil))
+		require.NoError(t, e)
 		f := block.GetField("NUMBER")
 		require.NotNil(t, f, "get field")
 		f.SetText("42")

@@ -12,12 +12,32 @@ import (
 )
 
 type Registry struct {
-	types map[string]r.Type
+	types map[TypeName]r.Type
 	// given a golang type, find the corresponding blockly field
 	// ex. FieldInput	 -> field_input', Blockly.FieldTextInput);
-	fields map[r.Type]string
-	enums  map[r.Type]enumInfo
+	fields    map[r.Type]string
+	enums     map[r.Type]enumInfo
+	mutations map[string]mutationMap
 }
+
+type MutationField struct {
+	name  string
+	input InputName
+	check TypeName // fix, can this be an array.
+}
+
+//
+type mutationMap map[TypeName]r.Type
+
+// func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
+// 	for k, v := range *mm {
+// 		if toTypeName(v) == t {
+// 			ret = k
+// 			break
+// 		}
+// 	}
+// 	return
+// }
 
 type stringPair [2]string // display, uniquifier
 type enumInfo struct {
@@ -35,7 +55,7 @@ func (reg *Registry) RegisterField(name string, f interface{}) {
 }
 
 // New - returns a pointer to passed type name
-func (reg *Registry) New(name string) (ret r.Value, err error) {
+func (reg *Registry) New(name TypeName) (ret r.Value, err error) {
 	if t, ok := reg.types[name]; !ok {
 		err = errutil.New("unknown type", name)
 	} else {
@@ -47,16 +67,47 @@ func (reg *Registry) New(name string) (ret r.Value, err error) {
 func (reg *Registry) RegisterBlocks(opt Options, blocks ...interface{}) (err error) {
 	for _, b := range blocks {
 		structType := r.TypeOf(b).Elem()
-		structName := toTypeName(structType)
+		typeName := toTypeName(structType)
 		var sub Options
-		if opt, ok := opt[structName]; ok {
+		if opt, ok := opt[string(typeName)]; ok {
 			if opt, ok := opt.(Options); ok {
 				sub = opt
 			}
 		}
-		if e := reg.registerBlock(structName, structType, sub); e != nil {
-			e := errutil.New("error registering", structName, e)
+		if e := reg.registerBlock(typeName, structType, sub); e != nil {
+			e := errutil.New("error registering", typeName, e)
 			err = errutil.Append(err, e)
+		}
+	}
+	return
+}
+
+// register a mapping of workspace block type to mutation ui block type.
+// name is the struct tag; it describes a mutation input
+func (reg *Registry) RegisterMutation(name string, pairs ...interface{}) (err error) {
+	if isEven := len(pairs)%1 == 0; !isEven {
+		err = errutil.New("expected pairs of types; found", len(pairs))
+	} else {
+		if reg.mutations == nil {
+			reg.mutations = make(map[string]mutationMap)
+		} else if _, exists := reg.mutations[name]; exists {
+			err = errutil.New("mutation already exists")
+		}
+		if err == nil {
+			mutationTypes := make(mutationMap)
+			for i := 0; i < len(pairs); i += 2 {
+				var n TypeName
+				p1, p2 := r.TypeOf(pairs[i]), r.TypeOf(pairs[i+1])
+				if p1 != nil {
+					n = toTypeName(p1.Elem())
+				}
+				if was, exists := mutationTypes[n]; exists {
+					err = errutil.New("type mapping already exists", n, was)
+					break
+				}
+				mutationTypes[n] = p2.Elem()
+			}
+			reg.mutations[name] = mutationTypes
 		}
 	}
 	return
@@ -64,50 +115,61 @@ func (reg *Registry) RegisterBlocks(opt Options, blocks ...interface{}) (err err
 
 func (reg *Registry) RegisterBlock(b interface{}, opt Options) (err error) {
 	structType := r.TypeOf(b).Elem()
-	structName := toTypeName(structType)
-	return reg.registerBlock(structName, structType, opt)
+	typeName := toTypeName(structType)
+	return reg.registerBlock(typeName, structType, opt)
 
 }
-func (reg *Registry) registerBlock(structName string, structType r.Type, opt Options) (err error) {
+func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Options) (err error) {
 	//
 	if reg.types == nil {
-		reg.types = make(map[string]r.Type)
-	} else if _, exists := reg.types[structName]; exists {
-		panic("type already exists " + structName)
+		reg.types = make(map[TypeName]r.Type)
+	} else if _, exists := reg.types[typeName]; exists {
+		panic("type already exists " + typeName)
 	}
 	if opt == nil {
 		opt = make(Options)
 	}
 	// delay the json initialization, so enums, etc. can all be registered first?
 	// useful though to get options out.
-	if e := reg.initJson(structType, opt); e != nil {
+	if mfs, e := reg.initJson(structType, opt); e != nil {
 		err = e
-	} else {
+	} else if blocks := js.Global.Get("Blockly").Get("Blocks"); blocks.Bool() {
+		// the ui system has "blocks" -- mapping type names to prototypes; standalone tests do not
 		fns := Options{
 			"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
 				b := &Block{Object: obj}
-
 				if e := b.JsonInit(opt); e != nil {
 					// hmmm...
 				} else {
-					// ideally, there'd be a custom input type for mutations;
-					// but there's not.
-					if ms, ok := opt[opt_mutation]; ok {
-						for _, name := range ms.([]string) {
-							in := b.GetInput(name)
-							in.ForceMutation()
+					// ideally, there'd be a custom input type for mutations; but there's not.
+					for _, mf := range mfs {
+						if in, index := b.InputByName(mf.input); index >= 0 {
+							in.ForceMutation(mf.name)
+						} else {
+							panic("what")
 						}
 					}
 				}
 				return // init has no return
 			}),
 		}
-		reg.types[structName] = structType
+		// register things to blockly.
+		reg.types[typeName] = structType
+		blocks.Set(string(typeName), fns)
 
-		// the ui system has a mapping of block type names to block prototypes
-		// standalone tests do not
-		if blocks := js.Global.Get("Blockly").Get("Blocks"); blocks.Bool() {
-			blocks.Set(structName, fns)
+		// create custom mutation block
+		if len(mfs) > 0 {
+			fns := Options{
+				"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+					b := &Block{Object: obj}
+					for _, mf := range mfs {
+						in := b.AppendStatementInput(mf.input)
+						in.SetCheck(mf.check)
+					}
+					return
+				}),
+			}
+			blocks.Set(string(typeName)+"$mutation", fns)
 		}
 	}
 	return
@@ -146,7 +208,7 @@ func (reg *Registry) RegisterEnum(n interface{}) (ret []stringPair, err error) {
 }
 
 // note: perhaps anonymous structs could be used to separate into args blocks
-func (reg *Registry) initJson(t r.Type, opt Options) (err error) {
+func (reg *Registry) initJson(t r.Type, opt Options) (ret []MutationField, err error) {
 	name := toTypeName(t)
 	if _, ok := opt[opt_type]; !ok {
 		opt[opt_type] = name
@@ -154,20 +216,17 @@ func (reg *Registry) initJson(t r.Type, opt Options) (err error) {
 	if msg, args, mutations, e := reg.makeArgs(t); e != nil {
 		err = errutil.Append(err, e)
 	} else {
-		// stores the names of all mutations
-		if len(mutations) > 0 {
-			opt[opt_mutation] = mutations
-		}
 		if len(msg) > 0 && !opt.contains(opt_message0) {
 			opt[opt_message0] = msg
 		}
 		if len(args) > 0 && !opt.contains(opt_args0) {
 			opt[opt_args0] = args
 		}
+		ret = mutations
 	}
 	hasPrev, hasNext := opt.contains(opt_previousStatement), opt.contains(opt_nextStatement)
 	if !hasPrev {
-		if f, ok := t.FieldByName(previousStatement); ok {
+		if f, ok := t.FieldByName(PreviousStatementField); ok {
 			if c, e := constraintsForField(f); e != nil {
 				err = errutil.Append(err, e)
 			} else {
@@ -177,7 +236,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (err error) {
 		}
 	}
 	if !hasNext {
-		if f, ok := t.FieldByName(nextStatement); ok {
+		if f, ok := t.FieldByName(NextStatementField); ok {
 			if c, e := constraintsForField(f); e != nil {
 				err = errutil.Append(err, e)
 			} else {
@@ -189,7 +248,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (err error) {
 	// block can have prev statement or have output
 	hasOutput := opt.contains(opt_output)
 	if !hasPrev && !hasOutput {
-		if m, ok := r.PtrTo(t).MethodByName("Output"); ok {
+		if m, ok := r.PtrTo(t).MethodByName(OutputMethod); ok {
 			if cnt := m.Type.NumOut(); cnt != 1 {
 				err = errutil.Append(err, errutil.New("unexpected output count", cnt))
 			} else if out := m.Type.Out(0); out.Kind() != r.Interface {
@@ -198,12 +257,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (err error) {
 				// basic interface is nil type.
 				opt[opt_output] = nil
 			} else {
-				outName := toTypeName(out)
-				if _, ok := reg.types[outName]; !ok {
-					err = errutil.Append(err, errutil.New("unknown output type", outName))
-				} else {
-					opt[opt_output] = outName
-				}
+				opt[opt_output] = toTypeName(out)
 			}
 		}
 	}
@@ -230,13 +284,13 @@ func constraintsForField(f r.StructField) (ret interface{}, err error) {
 
 // evaluate the fields of the passed type to generate json usable by blockly initialization
 // each field gets its own "options" Options
-func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, muts []string, err error) {
+func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []MutationField, err error) {
 	var msgs []string
 	for i := 0; i < t.NumField() && err == nil; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
 		if f := t.Field(i); len(f.PkgPath) == 0 &&
-			f.Name != previousStatement &&
-			f.Name != nextStatement {
+			f.Name != PreviousStatementField &&
+			f.Name != NextStatementField {
 
 			// there can be only one.
 			if opt, e := reg.makeOpt(f); e != nil {
@@ -244,9 +298,20 @@ func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, muts []stri
 			} else {
 				args = append(args, opt)
 				msgs = append(msgs, "%"+strconv.Itoa(len(args)))
-				// the only dummy inputs are mutations right now.
-				if opt.contains(opt_mutation) {
-					muts = append(muts, opt[opt_name].(string))
+				//.
+				if m, ok := opt[opt_mutation]; ok {
+					// ugh.
+					input := r.ValueOf(opt[opt_name]).Convert(
+						r.TypeOf(((*InputName)(nil))).Elem())
+					check := r.ValueOf(opt[opt_check]).Convert(
+						r.TypeOf(((*TypeName)(nil))).Elem())
+
+					mf := MutationField{
+						name:  m.(string),
+						input: input.Interface().(InputName),
+						check: check.Interface().(TypeName),
+					}
+					mfs = append(mfs, mf)
 				}
 			}
 		}
@@ -262,17 +327,26 @@ func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
 	name := pascalToCaps(f.Name)
 	opt.add(opt_name, name)
 
-	if r.PtrTo(f.Type).Implements(r.TypeOf((*Mutation)(nil)).Elem()) {
-		opt.add(opt_type, input_dummy)
-		opt[opt_mutation] = true
-	} else {
-		// build 'type', 'check'
-		switch k := f.Type.Kind(); k {
+	// build 'type', 'check'
+	switch k := f.Type.Kind(); k {
 
-		// slice of statements.
-		case r.Slice:
+	// slice of statements or a mutation.
+	case r.Slice:
+		if s, ok := f.Tag.Lookup("mutation"); ok {
+			opt.add(opt_type, input_dummy)
+			opt[opt_mutation] = s
+			if !opt.contains(opt_check) {
+				if types, ok := reg.mutations[s]; !ok {
+					panic("couldnt find mutation named " + s)
+				} else if inputType, ok := types[""]; !ok {
+					panic("error")
+				} else {
+					inputType := toTypeName(inputType)
+					opt.add(opt_check, inputType)
+				}
+			}
+		} else {
 			opt.add(opt_type, input_statement)
-
 			switch elType := f.Type.Elem(); elType.Kind() {
 			case r.Interface:
 				if basicInterface := r.TypeOf((interface{})(nil)); elType != basicInterface {
@@ -283,91 +357,91 @@ func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
 			default:
 				err = errutil.New(f.Name, "has unexpected type", elType)
 			}
+		}
 
-		// input containing another block.
-		case r.Ptr:
-			switch elType := f.Type.Elem(); elType.Kind() {
-			case r.Struct:
-				opt.add(opt_type, input_value)
-				opt.add(opt_check, toTypeName(elType))
-			default:
-				err = errutil.New(f.Name, "has unexpected type", elType)
-			}
-
-		// input of one or more block type
-		case r.Interface:
+	// input containing another block.
+	case r.Ptr:
+		switch elType := f.Type.Elem(); elType.Kind() {
+		case r.Struct:
 			opt.add(opt_type, input_value)
+			opt.add(opt_check, toTypeName(elType))
+		default:
+			err = errutil.New(f.Name, "has unexpected type", elType)
+		}
 
-			if !opt.contains(opt_check) {
-				// the basic interface mean no check: it accepts everything
-				if basicInterface := r.TypeOf((interface{})(nil)); f.Type != basicInterface {
-					var check []string
-					// run through all the registered types to see if they implement the interface
-					for n, t := range reg.types {
-						if t.Implements(f.Type) {
-							check = append(check, n)
-						}
+	// input of one or more block type
+	case r.Interface:
+		opt.add(opt_type, input_value)
+
+		if !opt.contains(opt_check) {
+			// the basic interface mean no check: it accepts everything
+			if basicInterface := r.TypeOf((interface{})(nil)); f.Type != basicInterface {
+				var check []TypeName
+				// run through all the registered types to see if they implement the interface
+				for n, t := range reg.types {
+					if t.Implements(f.Type) {
+						check = append(check, n)
 					}
-					if len(check) > 0 {
-						opt[opt_check] = check
-					}
+				}
+				if len(check) > 0 {
+					opt[opt_check] = check
 				}
 			}
+		}
 
-		// a field of some sort ( ex. angle, checkbox, colour, date, dropdown, image, label, number, text, variable )
-		// FIX -- how are we doing variables? always object productions ( ie. a get function )
-		default:
-			if !opt.contains(opt_type) {
-				if fieldType, ok := reg.fields[f.Type]; ok {
-					opt[opt_type] = fieldType
+	// a field of some sort ( ex. angle, checkbox, colour, date, dropdown, image, label, number, text, variable )
+	// FIX -- how are we doing variables? always object productions ( ie. a get function )
+	default:
+		if !opt.contains(opt_type) {
+			if fieldType, ok := reg.fields[f.Type]; ok {
+				opt[opt_type] = fieldType
 
-				} else if enumType, ok := reg.enums[f.Type]; ok {
-					opt[opt_type] = field_dropdown
-					opt.add(opt_options, enumType.pairs)
+			} else if enumType, ok := reg.enums[f.Type]; ok {
+				opt[opt_type] = field_dropdown
+				opt.add(opt_options, enumType.pairs)
 
-				} else {
-					switch f.Type.Kind() {
-					case r.Bool:
-						opt[opt_type] = field_checkbox
+			} else {
+				switch f.Type.Kind() {
+				case r.Bool:
+					opt[opt_type] = field_checkbox
 
-					case r.Int, r.Int8, r.Int16, r.Int32, r.Int64:
-						opt[opt_type] = field_number //setConstraints
-						opt.add(opt_precision, 1)
+				case r.Int, r.Int8, r.Int16, r.Int32, r.Int64:
+					opt[opt_type] = field_number //setConstraints
+					opt.add(opt_precision, 1)
 
-					case r.Uint, r.Uint8, r.Uint16, r.Uint32, r.Uint64:
-						opt[opt_type] = field_number
-						opt.add(opt_precision, 1)
-						opt.add(opt_min, 0)
+				case r.Uint, r.Uint8, r.Uint16, r.Uint32, r.Uint64:
+					opt[opt_type] = field_number
+					opt.add(opt_precision, 1)
+					opt.add(opt_min, 0)
 
-					case r.Float32, r.Float64:
-						opt[opt_type] = field_number
+				case r.Float32, r.Float64:
+					opt[opt_type] = field_number
 
-					case r.String:
-						if opt.contains(opt_readOnly) {
-							opt[opt_type] = field_label
-						} else {
-							opt[opt_type] = field_input
-						}
-						opt.add(opt_text, f.Name)
-
-					default:
-						switch r.PtrTo(f.Type) {
-						case r.TypeOf((*time.Time)(nil)).Elem():
-							opt[opt_type] = field_date
-						default:
-							err = errutil.New("field has unknown type", f.Name, f.Type)
-							break
-						}
+				case r.String:
+					if opt.contains(opt_readOnly) {
+						opt[opt_type] = field_label
+					} else {
+						opt[opt_type] = field_input
 					}
-					// type FieldVariable string
-					// type FieldDropdown []string
-					// type FieldImageDropdown []FieldImage
-					// type FieldImage struct {
-					// 	Width, Height int
-					// 	Src           string
-					// 	Alt           string
-					// }
+					opt.add(opt_text, f.Name)
+
+				default:
+					switch r.PtrTo(f.Type) {
+					case r.TypeOf((*time.Time)(nil)).Elem():
+						opt[opt_type] = field_date
+					default:
+						err = errutil.New("field has unknown type", f.Name, f.Type)
+						break
+					}
 				}
+				// type FieldVariable string
+				// type FieldDropdown []string
+				// type FieldImageDropdown []FieldImage
+				// type FieldImage struct {
+				// 	Width, Height int
+				// 	Src           string
+				// 	Alt           string
+				// }
 			}
 		}
 	}
