@@ -61,7 +61,7 @@ func (b *Block) domToMutation(ws *Workspace, dom *DomElement) (err error) {
 			for i := 0; i < val.Length(); i++ {
 				index := val.Index(i).Int()
 				typeName := TypeName(types[index])
-				if v, e := ws.reg.New(typeName); e != nil {
+				if v, e := TheRegistry.NewData(typeName); e != nil {
 					err = errutil.Append(err, e)
 				} else {
 					out = r.Append(out, v)

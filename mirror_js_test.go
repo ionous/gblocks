@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/stretchr/testify/require"
+	r "reflect"
 	"testing"
 )
 
@@ -29,11 +30,11 @@ func (b *RowBlock) Output() interface{} {
 }
 
 func testMirror(t *testing.T, fn func(*Workspace)) {
-	var reg Registry
-	require.NoError(t, reg.RegisterBlock((*StackBlock)(nil), nil), "register stack")
-	require.NoError(t, reg.RegisterBlock((*RowBlock)(nil), nil), "register row")
-	require.NoError(t, reg.RegisterBlock((*FieldBlock)(nil), nil), "register fields")
-	ws := NewBlankWorkspace(&reg)
+	TheRegistry = Registry{}
+	require.NoError(t, RegisterBlock((*StackBlock)(nil), nil), "register stack")
+	require.NoError(t, RegisterBlock((*RowBlock)(nil), nil), "register row")
+	require.NoError(t, RegisterBlock((*FieldBlock)(nil), nil), "register fields")
+	ws := NewBlankWorkspace()
 	// replace timed event queue with direct event queue
 	events := &Events{Object: js.Global.Get("Blockly").Get("Events")}
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
@@ -49,7 +50,10 @@ func testMirror(t *testing.T, fn func(*Workspace)) {
 func TestJsonStackBlock(t *testing.T) {
 	var reg Registry
 	opts := make(Options)
-	require.NoError(t, reg.RegisterBlock((*StackBlock)(nil), opts), "register stack")
+	structType := r.TypeOf((*StackBlock)(nil)).Elem()
+	typeName := toTypeName(structType)
+	err := reg.registerBlock(typeName, structType, opts)
+	require.NoError(t, err, "register stack")
 	expected := Options{
 		"type":              TypeName("stack_block"),
 		"previousStatement": nil,
@@ -62,7 +66,10 @@ func TestJsonStackBlock(t *testing.T) {
 func TestJsonRowBlock(t *testing.T) {
 	var reg Registry
 	opts := make(Options)
-	require.NoError(t, reg.RegisterBlock((*RowBlock)(nil), opts), "register row")
+	structType := r.TypeOf((*RowBlock)(nil)).Elem()
+	typeName := toTypeName(structType)
+	err := reg.registerBlock(typeName, structType, opts)
+	require.NoError(t, err, "register row")
 	expected := Options{
 		"type":     TypeName("row_block"),
 		"message0": "%1",
@@ -79,7 +86,10 @@ func TestJsonRowBlock(t *testing.T) {
 func TestJsonFieldBlock(t *testing.T) {
 	var reg Registry
 	opts := make(Options)
-	require.NoError(t, reg.RegisterBlock((*FieldBlock)(nil), opts), "register stack")
+	structType := r.TypeOf((*FieldBlock)(nil)).Elem()
+	typeName := toTypeName(structType)
+	err := reg.registerBlock(typeName, structType, opts)
+	require.NoError(t, err, "register stack")
 	expected := Options{
 		"type":     TypeName("field_block"),
 		"message0": "%1",
@@ -131,8 +141,8 @@ func TestMirrorStackConnect(t *testing.T) {
 
 		//
 		t.Log("connecting a->b->c")
-		block[0].NextConnection.Connect(block[1].PreviousConnection)
-		block[1].NextConnection.Connect(block[2].PreviousConnection)
+		block[0].NextConnection().Connect(block[1].PreviousConnection())
+		block[1].NextConnection().Connect(block[2].PreviousConnection())
 
 		prev := [3]interface{}{nil, data[0], data[1]}
 		next := [3]interface{}{data[1], data[2], nil}
@@ -167,8 +177,8 @@ func TestMirrorStackDisconnectHeal(t *testing.T) {
 		}
 
 		// a->b->c
-		block[0].NextConnection.Connect(block[1].PreviousConnection)
-		block[1].NextConnection.Connect(block[2].PreviousConnection)
+		block[0].NextConnection().Connect(block[1].PreviousConnection())
+		block[1].NextConnection().Connect(block[2].PreviousConnection())
 
 		// heal the rift
 		block[1].Unplug(true)
@@ -203,8 +213,8 @@ func TestMirrorStackDisconnectBreak(t *testing.T) {
 		}
 
 		// a->b->c
-		block[0].NextConnection.Connect(block[1].PreviousConnection)
-		block[1].NextConnection.Connect(block[2].PreviousConnection)
+		block[0].NextConnection().Connect(block[1].PreviousConnection())
+		block[1].NextConnection().Connect(block[2].PreviousConnection())
 
 		require.NotNil(t, ws.GetDataById(block[1].Id), "data exists 1")
 		require.NotNil(t, ws.GetDataById(block[2].Id), "data exists 2")
@@ -237,12 +247,12 @@ func TestMirrorRowCreate(t *testing.T) {
 			}
 		}
 
-		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
+		block[0].Input(0).Connection().Connect(block[1].OutputConnection())
 		p1 := block[1].GetParent()
 		require.NotNil(t, p1, "connected 1")
 		require.Equal(t, block[0].Id, p1.Id, "connected 1<-0")
 
-		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
+		block[1].Input(0).Connection().Connect(block[2].OutputConnection())
 		p2 := block[2].GetParent()
 		require.NotNil(t, p2, "connected 2")
 		require.Equal(t, block[1].Id, p2.Id, "connected 2<-1")
@@ -263,8 +273,8 @@ func TestMirrorRowConnect(t *testing.T) {
 				data[i] = ws.GetDataById(block[i].Id).(*RowBlock)
 			}
 		}
-		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
-		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection().Connect(block[1].OutputConnection())
+		block[1].Input(0).Connection().Connect(block[2].OutputConnection())
 
 		require.Equal(t, data[0].Input, data[1], "mirrored 0->1")
 		require.Equal(t, data[1].Input, data[2], "mirrored 1->2")
@@ -288,8 +298,8 @@ func TestMirrorRowDisconnectHeal(t *testing.T) {
 			}
 
 		}
-		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
-		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection().Connect(block[1].OutputConnection())
+		block[1].Input(0).Connection().Connect(block[2].OutputConnection())
 
 		// heal the rift
 		block[1].Unplug(true)
@@ -319,8 +329,8 @@ func TestMirrorRowDisconnectBreak(t *testing.T) {
 				block[i] = b
 			}
 		}
-		block[0].Input(0).Connection.Connect(block[1].OutputConnection)
-		block[1].Input(0).Connection.Connect(block[2].OutputConnection)
+		block[0].Input(0).Connection().Connect(block[1].OutputConnection())
+		block[1].Input(0).Connection().Connect(block[2].OutputConnection())
 
 		require.NotNil(t, ws.GetDataById(block[1].Id), "data exists 1")
 		require.NotNil(t, ws.GetDataById(block[2].Id), "data exists 2")

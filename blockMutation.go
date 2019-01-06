@@ -30,13 +30,13 @@ func (b *Block) updateShape(ws *Workspace) (err error) {
 		if n := els.Len(); n > 0 {
 			oldLen := b.NumInputs()
 
-			// expand each element of the mutation into its own set of inputs.
+			// append inputs for each each element of the mutation
 			for i, prevLen := 0, oldLen; i < n; i++ {
 				iface := els.Index(i)
 				ptr := iface.Elem()
 				el := ptr.Elem()
 				t := el.Type()
-				if msg, args, _, e := ws.reg.makeArgs(t); e != nil {
+				if msg, args, _, e := TheRegistry.makeArgs(t); e != nil {
 					err = e
 					break
 				} else if m := in.Mutation(); m == nil {
@@ -45,10 +45,11 @@ func (b *Block) updateShape(ws *Workspace) (err error) {
 				} else {
 					b.interpolate(msg, args)
 					newLen := b.NumInputs()
-					m.AddSubBlock(newLen - prevLen)
+					m.AddAtom(newLen - prevLen)
 					prevLen = newLen
 				}
 			}
+
 			// swap appended inputs into their correct spot
 			newLen := b.NumInputs()
 			if addedInputs := newLen - oldLen; addedInputs > 0 {

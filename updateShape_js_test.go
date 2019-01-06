@@ -2,7 +2,9 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
+	r "reflect"
 	"testing"
 )
 
@@ -75,7 +77,6 @@ func TestShapeUpdate(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
 		b, e := ws.NewBlock((*ShapeTest)(nil))
 		require.NoError(t, e)
-		// println(b)
 		require.Equalf(t, none, reduce(b), "initially empty")
 		// grow data which should grow the number of inputs.
 		d := ws.GetDataById(b.Id).(*ShapeTest)
@@ -93,31 +94,74 @@ func TestShapeUpdate(t *testing.T) {
 	})
 }
 
-func testShape(t *testing.T, fn func(*Workspace)) {
-	var reg Registry
+func TestShapeCreate(t *testing.T) {
+	TheRegistry = Registry{}
+	reg := &TheRegistry
 	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, reg.RegisterMutation("TestMutation",
-		// the nil entry matches the first input.
-		nil, (*MutationElStart)(nil),
+	require.NoError(t, RegisterMutation("TestMutation",
+		nil, (*MutationElControl)(nil),
 		(*MutationEl)(nil), (*MutationElControl)(nil),
 		(*MutationAlt)(nil), (*MutationAltControl)(nil),
 	), "register mutations")
-	require.NoError(t, reg.RegisterBlocks(nil,
+	require.NoError(t, RegisterBlocks(nil,
 		(*ShapeTest)(nil),
 		(*MutationEl)(nil),
 		(*MutationAlt)(nil),
-		(*MutationElStart)(nil),
 		(*MutationElControl)(nil),
 		(*MutationAltControl)(nil),
 	), "register blocks")
-	ws := NewBlankWorkspace(&reg)
+	//
+	var testShape = map[string]interface{}{
+		"type":     TypeName("shape_test"),
+		"message0": "%1 %2 %3",
+		"args0": []Options{
+			{
+				"name":  "INPUT",
+				"type":  "input_value",
+				"check": TypeName("shape_test"),
+			},
+			{
+				"mutation": "TestMutation",
+				"name":     "MUTANT",
+				"type":     "input_dummy",
+			},
+			{
+				"name": "FIELD",
+				"type": "field_input",
+				"text": "Field",
+			},
+		},
+	}
+	opt := make(map[string]interface{})
+	reg.initJson(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
+	if v := pretty.Diff(opt, testShape); len(v) != 0 {
+		t.Fatal(v)
+		t.Log(v)
+	}
+}
+
+func testShape(t *testing.T, fn func(*Workspace)) {
+	TheRegistry = Registry{}
+	// field has unknown type Mutant gblocks.ShapeMutation
+	require.NoError(t, RegisterMutation("TestMutation",
+		nil, (*MutationElControl)(nil),
+		(*MutationEl)(nil), (*MutationElControl)(nil),
+		(*MutationAlt)(nil), (*MutationAltControl)(nil),
+	), "register mutations")
+	require.NoError(t, RegisterBlocks(nil,
+		(*ShapeTest)(nil),
+		(*MutationEl)(nil),
+		(*MutationAlt)(nil),
+		(*MutationElControl)(nil),
+		(*MutationAltControl)(nil),
+	), "register blocks")
+	ws := NewBlankWorkspace()
 	// replace timed event queue with direct event queue
 	events := &Events{Object: js.Global.Get("Blockly").Get("Events")}
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
 		events.TestFire(args[0])
 		return nil
 	}))
-	//
-	// fn(ws)
+	fn(ws)
 	ws.Dispose()
 }

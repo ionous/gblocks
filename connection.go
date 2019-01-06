@@ -7,8 +7,8 @@ import (
 // Connection *potentially* connects to another block; it's more a "connector" than an "connection".
 type Connection struct {
 	*js.Object
-	Type             InputType   `js:"type"`
-	TargetConnection *Connection `js:"targetConnection"`
+	Type             InputType  `js:"type"`
+	targetConnection *js.Object `js:"targetConnection"`
 }
 
 func (c *Connection) GetSourceBlock() (ret *Block) {
@@ -43,6 +43,9 @@ func (c *Connection) TargetBlock() (ret *Block) {
 		ret = &Block{Object: obj}
 	}
 	return
+}
+func (c *Connection) TargetConnection() *Connection {
+	return jsConnection(c.targetConnection)
 }
 
 //func (c*Connection) setCheck(c[]string) {// array or value

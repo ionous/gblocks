@@ -44,7 +44,7 @@ type Noun struct {
 
 func TestEnumLabels(t *testing.T) {
 	var reg Registry
-	reg.RegisterEnum(map[Possessives]string{
+	reg.registerEnum(map[Possessives]string{
 		IsA:   "is a",
 		IsAn:  "is an",
 		AreAn: "are an",

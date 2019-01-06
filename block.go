@@ -18,30 +18,48 @@ func (n TypeName) String() (ret string) {
 }
 
 type Block struct {
-	*js.Object          // Blockly.Block
-	Id         string   `js:"id"`
-	Type       TypeName `js:"type"`
-	// left side puzzle connector
-	OutputConnection *Connection `js:"outputConnection"`
-	// connection to a piece in the following line
-	NextConnection *Connection `js:"nextConnection"`
-	// connection to a piece in the preceeding line
-	PreviousConnection *Connection `js:"previousConnection"`
+	*js.Object                    // Blockly.Block
+	Id                 string     `js:"id"`
+	Type               TypeName   `js:"type"`
+	outputConnection   *js.Object `js:"outputConnection"`
+	nextConnection     *js.Object `js:"nextConnection"`
+	previousConnection *js.Object `js:"previousConnection"`
 
-	inputList    *js.Object       `js:"inputList"`
-	Disabled     bool             `js:"disabled"`
-	Tooltip      string           `js:"tooltip"`
-	ContextMenu  bool             `js:"contextMenu"`
-	Comment      string           `js:"comment"`
-	IsInFlyout   bool             `js:"isInFlyout"`
-	IsInMutator  bool             `js:"isInMutator"`
-	Rtl          bool             `js:"RTL"`
-	InputsInline bool             `js:"inputsInline"`
-	store        *ConnectionStore `js:"store_"`
-	// without internalizing the registry and data pointers
-	// this workspace pointer wont point to the extended workspace,
-	// so best just to keep it hidden and obtain the workspace pointer elsewhere.
-	// Workspace    *Workspace `js:"workspace"`
+	inputList    *js.Object `js:"inputList"`
+	Disabled     bool       `js:"disabled"`
+	Tooltip      string     `js:"tooltip"`
+	ContextMenu  bool       `js:"contextMenu"`
+	Comment      string     `js:"comment"`
+	IsInFlyout   bool       `js:"isInFlyout"`
+	IsInMutator  bool       `js:"isInMutator"`
+	Rtl          bool       `js:"RTL"`
+	InputsInline bool       `js:"inputsInline"`
+
+	// note: this workspace pointer has limited value;
+	// it doesnt point to the Workspace object containing "Context" data
+	workspace_ *js.Object `js:"workspace"`
+}
+
+func jsConnection(obj *js.Object) (ret *Connection) {
+	if obj != nil && obj != js.Undefined {
+		ret = &Connection{Object: obj}
+	}
+	return
+}
+
+// left side puzzle connector
+func (b *Block) OutputConnection() *Connection {
+	return jsConnection(b.outputConnection)
+}
+
+// connection to a piece in the following line
+func (b *Block) NextConnection() *Connection {
+	return jsConnection(b.nextConnection)
+}
+
+// connection to a piece in the preceeding line
+func (b *Block) PreviousConnection() *Connection {
+	return jsConnection(b.previousConnection)
 }
 
 // feels like this should have been asynchronous, hidden
@@ -76,7 +94,7 @@ func (b *Block) GetParent() (ret *Block) {
 //func (b* Block)getSurroundParent  ()  { b.Call("getSurroundParent") }
 
 func (b *Block) GetNextBlock() (ret *Block) {
-	if next := b.NextConnection; next != nil {
+	if next := b.NextConnection(); next != nil {
 		ret = next.TargetBlock()
 	}
 	return
@@ -218,6 +236,10 @@ func (b *Block) JsonInit(opt Options) (err error) {
 //func (b* Block)mixin  (mixinObj, opt_disableCheck)  { b.Call("mixin") }
 func (b *Block) interpolate(msg string, args []Options) {
 	b.Call("interpolate_", msg, args)
+}
+
+func (b *Block) hasWorkspace() bool {
+	return b.workspace_ != nil && b.workspace_ != js.Undefined
 }
 
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }

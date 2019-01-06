@@ -15,12 +15,34 @@ type Registry struct {
 	types map[TypeName]r.Type
 	// given a golang type, find the corresponding blockly field
 	// ex. FieldInput	 -> field_input', Blockly.FieldTextInput);
-	fields    map[r.Type]string
 	enums     map[r.Type]enumInfo
 	mutations map[string]mutationMap
 }
 
-type MutationField struct {
+var TheRegistry Registry
+
+func RegisterBlocks(opt Options, blocks ...interface{}) error {
+	return TheRegistry.registerBlocks(opt, blocks...)
+}
+
+// register a mapping of workspace block type to mutation ui block type.
+// name is the struct tag; it describes a mutation input
+func RegisterMutation(name string, pairs ...interface{}) error {
+	return TheRegistry.registerMutation(name, pairs...)
+}
+
+func RegisterBlock(b interface{}, opt Options) error {
+	structType := r.TypeOf(b).Elem()
+	typeName := toTypeName(structType)
+	return TheRegistry.registerBlock(typeName, structType, opt)
+}
+
+// RegisterEnum - expects a map of intish to string
+func RegisterEnum(n interface{}) ([]stringPair, error) {
+	return TheRegistry.registerEnum(n)
+}
+
+type mutationField struct {
 	name  string
 	input InputName
 	check TypeName // fix, can this be an array.
@@ -29,15 +51,16 @@ type MutationField struct {
 //
 type mutationMap map[TypeName]r.Type
 
-// func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
-// 	for k, v := range *mm {
-// 		if toTypeName(v) == t {
-// 			ret = k
-// 			break
-// 		}
-// 	}
-// 	return
-// }
+// findWorkspaceType - what kind of block in the main workspace does the mutation elemeent represent*
+func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
+	for k, v := range *mm {
+		if toTypeName(v) == mutationType {
+			ret = k
+			break
+		}
+	}
+	return
+}
 
 type stringPair [2]string // display, uniquifier
 type enumInfo struct {
@@ -46,16 +69,8 @@ type enumInfo struct {
 
 var blockPtr = r.TypeOf((*Block)(nil))
 
-func (reg *Registry) RegisterField(name string, f interface{}) {
-	if reg.fields == nil {
-		reg.fields = make(map[r.Type]string)
-	}
-	t := r.TypeOf(f).Elem()
-	reg.fields[t] = name
-}
-
-// New - returns a pointer to passed type name
-func (reg *Registry) New(name TypeName) (ret r.Value, err error) {
+// NewData - returns a pointer to passed type name
+func (reg *Registry) NewData(name TypeName) (ret r.Value, err error) {
 	if t, ok := reg.types[name]; !ok {
 		err = errutil.New("unknown type", name)
 	} else {
@@ -64,7 +79,7 @@ func (reg *Registry) New(name TypeName) (ret r.Value, err error) {
 	return
 }
 
-func (reg *Registry) RegisterBlocks(opt Options, blocks ...interface{}) (err error) {
+func (reg *Registry) registerBlocks(opt Options, blocks ...interface{}) (err error) {
 	for _, b := range blocks {
 		structType := r.TypeOf(b).Elem()
 		typeName := toTypeName(structType)
@@ -82,9 +97,7 @@ func (reg *Registry) RegisterBlocks(opt Options, blocks ...interface{}) (err err
 	return
 }
 
-// register a mapping of workspace block type to mutation ui block type.
-// name is the struct tag; it describes a mutation input
-func (reg *Registry) RegisterMutation(name string, pairs ...interface{}) (err error) {
+func (reg *Registry) registerMutation(name string, pairs ...interface{}) (err error) {
 	if isEven := len(pairs)%1 == 0; !isEven {
 		err = errutil.New("expected pairs of types; found", len(pairs))
 	} else {
@@ -113,12 +126,6 @@ func (reg *Registry) RegisterMutation(name string, pairs ...interface{}) (err er
 	return
 }
 
-func (reg *Registry) RegisterBlock(b interface{}, opt Options) (err error) {
-	structType := r.TypeOf(b).Elem()
-	typeName := toTypeName(structType)
-	return reg.registerBlock(typeName, structType, opt)
-
-}
 func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Options) (err error) {
 	//
 	if reg.types == nil {
@@ -169,14 +176,14 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 					return
 				}),
 			}
-			blocks.Set(string(typeName)+"$mutation", fns)
+			mutationName := string(typeName) + "$mutation"
+			blocks.Set(mutationName, fns)
 		}
 	}
 	return
 }
 
-// expects a map of intish to string
-func (reg *Registry) RegisterEnum(n interface{}) (ret []stringPair, err error) {
+func (reg *Registry) registerEnum(n interface{}) (ret []stringPair, err error) {
 	var pairs []stringPair
 	if src, srcType := r.ValueOf(n), r.TypeOf(n); srcType.Kind() != r.Map {
 		err = errutil.New("invalid enum mapping")
@@ -208,7 +215,7 @@ func (reg *Registry) RegisterEnum(n interface{}) (ret []stringPair, err error) {
 }
 
 // note: perhaps anonymous structs could be used to separate into args blocks
-func (reg *Registry) initJson(t r.Type, opt Options) (ret []MutationField, err error) {
+func (reg *Registry) initJson(t r.Type, opt Options) (ret []mutationField, err error) {
 	name := toTypeName(t)
 	if _, ok := opt[opt_type]; !ok {
 		opt[opt_type] = name
@@ -267,7 +274,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (ret []MutationField, err e
 
 // return a string, string array, or nil
 func constraintsForField(f r.StructField) (ret interface{}, err error) {
-	if s, ok := f.Tag.Lookup("check"); ok {
+	if s, ok := f.Tag.Lookup(opt_check); ok {
 		ret = splitCommas(s)
 	} else {
 		switch f.Type.Kind() {
@@ -284,7 +291,7 @@ func constraintsForField(f r.StructField) (ret interface{}, err error) {
 
 // evaluate the fields of the passed type to generate json usable by blockly initialization
 // each field gets its own "options" Options
-func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []MutationField, err error) {
+func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []mutationField, err error) {
 	var msgs []string
 	for i := 0; i < t.NumField() && err == nil; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
@@ -300,16 +307,26 @@ func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []Mutat
 				msgs = append(msgs, "%"+strconv.Itoa(len(args)))
 				//.
 				if m, ok := opt[opt_mutation]; ok {
+					m := m.(string)
 					// ugh.
 					input := r.ValueOf(opt[opt_name]).Convert(
 						r.TypeOf(((*InputName)(nil))).Elem())
-					check := r.ValueOf(opt[opt_check]).Convert(
-						r.TypeOf(((*TypeName)(nil))).Elem())
 
-					mf := MutationField{
-						name:  m.(string),
+					var check TypeName
+					if c, ok := opt[opt_check]; ok {
+						check = c.(TypeName)
+					} else if types, ok := reg.mutations[m]; !ok {
+						panic("couldnt find mutation named " + m)
+					} else if inputType, ok := types[""]; !ok {
+						panic("error " + m)
+					} else {
+						check = toTypeName(inputType)
+					}
+
+					mf := mutationField{
+						name:  m,
 						input: input.Interface().(InputName),
-						check: check.Interface().(TypeName),
+						check: check,
 					}
 					mfs = append(mfs, mf)
 				}
@@ -335,16 +352,17 @@ func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
 		if s, ok := f.Tag.Lookup("mutation"); ok {
 			opt.add(opt_type, input_dummy)
 			opt[opt_mutation] = s
-			if !opt.contains(opt_check) {
-				if types, ok := reg.mutations[s]; !ok {
-					panic("couldnt find mutation named " + s)
-				} else if inputType, ok := types[""]; !ok {
-					panic("error")
-				} else {
-					inputType := toTypeName(inputType)
-					opt.add(opt_check, inputType)
-				}
-			}
+			// -- the dummy input cant have a check type
+			// if !opt.contains(opt_check) {
+			// 	if types, ok := reg.mutations[s]; !ok {
+			// 		panic("couldnt find mutation named " + s)
+			// 	} else if inputType, ok := types[""]; !ok {
+			// 		panic("error")
+			// 	} else {
+			// 		inputType := toTypeName(inputType)
+			// 		opt.add(opt_check, inputType)
+			// 	}
+			// }
 		} else {
 			opt.add(opt_type, input_statement)
 			switch elType := f.Type.Elem(); elType.Kind() {
@@ -393,10 +411,7 @@ func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
 	// FIX -- how are we doing variables? always object productions ( ie. a get function )
 	default:
 		if !opt.contains(opt_type) {
-			if fieldType, ok := reg.fields[f.Type]; ok {
-				opt[opt_type] = fieldType
-
-			} else if enumType, ok := reg.enums[f.Type]; ok {
+			if enumType, ok := reg.enums[f.Type]; ok {
 				opt[opt_type] = field_dropdown
 				opt.add(opt_options, enumType.pairs)
 
@@ -435,7 +450,6 @@ func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
 					}
 				}
 				// type FieldVariable string
-				// type FieldDropdown []string
 				// type FieldImageDropdown []FieldImage
 				// type FieldImage struct {
 				// 	Width, Height int

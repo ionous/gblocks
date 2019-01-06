@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/ionous/errutil"
 )
 
 type InputType int
@@ -38,13 +39,17 @@ func (n InputName) String() (ret string) {
 }
 
 type Input struct {
-	*js.Object                // Blockly.Input
-	Type       InputType      `js:"type"`
-	Name       InputName      `js:"name"`
-	Align      InputAlign     `js:"align"`
-	FieldRow   []interface{}  `js:"fieldRow"`   // array of Blockly.Field
-	Connection *Connection    `js:"connection"` // Blockly.Connection
-	mutation_  *InputMutation `js:"mutation_"`  // custom storage data
+	*js.Object               // Blockly.Input
+	Type       InputType     `js:"type"`
+	Name       InputName     `js:"name"`
+	Align      InputAlign    `js:"align"`
+	FieldRow   []interface{} `js:"fieldRow"`   // array of Blockly.Field
+	connection *js.Object    `js:"connection"` // Blockly.Connection
+	mutation_  *js.Object    `js:"mutation_"`  // *InputMutation
+}
+
+func (in *Input) Connection() *Connection {
+	return jsConnection(in.connection)
 }
 
 // blockly's append field allows field to be a string, and then to pass an optional name
@@ -74,12 +79,12 @@ func (in *Input) ForceMutation(name string) {
 	in.SetVisible(false)
 	m := &InputMutation{Object: new(js.Object)}
 	m.name = name
-	in.mutation_ = m
+	in.mutation_ = m.Object
 }
 
 func (in *Input) Mutation() (ret *InputMutation) {
-	if m := in.mutation_; m.Object != js.Undefined {
-		ret = in.mutation_
+	if obj := in.mutation_; obj != nil && obj != js.Undefined {
+		ret = &InputMutation{Object: in.mutation_}
 	}
 	return
 }
@@ -97,7 +102,7 @@ func (in *Input) SetChecks(compatibleTypes []TypeName) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			if e, ok := e.(*js.Error); ok {
-				err = e
+				err = errutil.New(e, in.Name, in.Type, compatibleTypes)
 			} else {
 				panic(e)
 			}

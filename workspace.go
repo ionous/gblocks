@@ -25,51 +25,55 @@ type Workspace struct {
 	Rendered         bool            `js:"rendered"`
 	IsClearing       bool            `js:"isClearing"`
 
+	// workspace svg
+	IsMutator bool `js:"isMutator"`
+
 	// custom fields
-	reg     *Registry
 	context map[string]*Context // blockId-> context
 }
 
-func NewBlankWorkspace(reg *Registry) *Workspace {
-	//workspace = new Blockly.Workspace();
+func NewBlankWorkspace() *Workspace {
 	obj := js.Global.Get("Blockly").Get("Workspace").New()
-	return initWorkspace(obj, reg)
+	return initWorkspace(obj)
 }
 
-func NewWorkspace(elementId, mediaPath string, reg *Registry) *Workspace {
+func NewWorkspace(elementId, mediaPath string) *Workspace {
 	div := js.Global.Get("document").Call("getElementById", elementId)
 	// note: toolbox can be an xml string containing the toolbox
 	obj := js.Global.Get("Blockly").Call("inject", "  blockly", map[string]interface{}{
 		"media":   mediaPath,
 		"toolbox": div,
 	})
-	return initWorkspace(obj, reg)
+	return initWorkspace(obj)
 }
 
-func initWorkspace(obj *js.Object, reg *Registry) *Workspace {
+func initWorkspace(obj *js.Object) *Workspace {
 	ws := &Workspace{Object: obj}
-	ws.AddChangeListener(ws.mirror)
-	ws.reg = reg
-	ws.context = make(map[string]*Context)
+	if !ws.IsMutator {
+		ws.AddChangeListener(ws.mirror)
+		ws.context = make(map[string]*Context)
+	}
 	return ws
 }
 
 // GetDataById custom function to get go-lang mirror
-func (ws *Workspace) GetDataById(id string) (ret interface{}) {
-	if ctx := ws.Context(id); ctx != nil {
+func (ws *Workspace) GetDataById(blockId string) (ret interface{}) {
+	if ctx := ws.Context(blockId); ctx != nil {
 		ret = ctx.Ptr().Interface()
 	}
 	return
 }
 
-// returns pointer to element
-func (ws *Workspace) Context(id string) (ret *Context) {
-	if ctx, ok := ws.context[id]; ok {
-		ret = ctx
-	} else if b := ws.GetBlockById(id); b != nil {
-		ctx := &Context{ws: ws, block: b}
-		ws.context[id] = ctx
-		ret = ctx
+// returns pointer to element; returns nil if blockId refers to a mutation block
+func (ws *Workspace) Context(blockId string) (ret *Context) {
+	if !ws.IsMutator {
+		if ctx, ok := ws.context[blockId]; ok {
+			ret = ctx
+		} else if b := ws.GetBlockById(blockId); b != nil {
+			ctx := &Context{block: b}
+			ws.context[blockId] = ctx
+			ret = ctx
+		}
 	}
 	return
 }
@@ -239,85 +243,90 @@ func (ws *Workspace) mirror(evt interface{}) {
 	case *BlockChange:
 		//println("block change", evt.Object)
 		if evt.Element == "field" {
-			name := InputName(evt.Name)
-			dst := ws.Context(evt.BlockId).Elem().FieldByName(name.FieldName())
+			if ctx := ws.Context(evt.BlockId); ctx != nil {
+				name := InputName(evt.Name)
+				dst := ctx.Elem().FieldByName(name.FieldName())
 
-			switch v := evt.NewValue; dst.Kind() {
-			case r.Bool:
-				var v bool = v.Bool()
-				dst.Set(r.ValueOf(v))
-			case r.Int:
-				var v int = v.Int()
-				dst.Set(r.ValueOf(v))
-			case r.Int8, r.Int16, r.Int32:
-				var v int = v.Int()
-				dst.Set(r.ValueOf(v).Convert(dst.Type()))
-			case r.Int64:
-				var v int64 = v.Int64()
-				dst.Set(r.ValueOf(v))
-			case r.Uint, r.Uint8, r.Uint16, r.Uint32:
-				var v uint64 = v.Uint64()
-				dst.Set(r.ValueOf(v).Convert(dst.Type()))
-			case r.Uint64:
-				var v uint64 = v.Uint64()
-				dst.Set(r.ValueOf(v))
-			case r.Float32:
-				var v float64 = v.Float()
-				dst.Set(r.ValueOf(float32(v)))
-			case r.Float64:
-				var v float64 = v.Float()
-				dst.Set(r.ValueOf(v))
-			case r.String:
-				var v string = v.String()
-				dst.Set(r.ValueOf(v))
-			default:
-				e := errutil.New("unknown destination in block change", dst.Kind())
-				panic(e.Error())
+				switch v := evt.NewValue; dst.Kind() {
+				case r.Bool:
+					var v bool = v.Bool()
+					dst.Set(r.ValueOf(v))
+				case r.Int:
+					var v int = v.Int()
+					dst.Set(r.ValueOf(v))
+				case r.Int8, r.Int16, r.Int32:
+					var v int = v.Int()
+					dst.Set(r.ValueOf(v).Convert(dst.Type()))
+				case r.Int64:
+					var v int64 = v.Int64()
+					dst.Set(r.ValueOf(v))
+				case r.Uint, r.Uint8, r.Uint16, r.Uint32:
+					var v uint64 = v.Uint64()
+					dst.Set(r.ValueOf(v).Convert(dst.Type()))
+				case r.Uint64:
+					var v uint64 = v.Uint64()
+					dst.Set(r.ValueOf(v))
+				case r.Float32:
+					var v float64 = v.Float()
+					dst.Set(r.ValueOf(float32(v)))
+				case r.Float64:
+					var v float64 = v.Float()
+					dst.Set(r.ValueOf(v))
+				case r.String:
+					var v string = v.String()
+					dst.Set(r.ValueOf(v))
+				default:
+					e := errutil.New("unknown destination in block change", dst.Kind())
+					panic(e.Error())
+				}
 			}
 		}
 
 	case *BlockMove:
-		ctx := ws.Context(evt.BlockId)
+		if ctx := ws.Context(evt.BlockId); ctx != nil {
+			// disconnect the block from the parent; and the parent from the block
+			if pid := evt.OldParentId(); len(pid) > 0 {
+				oldParent := ws.Context(pid).Elem()
 
-		// disconnect the block from the parent; and the parent from the block
-		if pid := evt.OldParentId(); len(pid) > 0 {
-			oldParent := ws.Context(pid).Elem()
-
-			in := evt.OldInputName().FieldName()
-			if len(in) == 0 {
-				in = NextStatementField
-				// fix up the block's previous input to point to nothing
-				if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
-					panic("missing previous statement")
-				} else {
-					prev.Set(r.Zero(prev.Type()))
+				in := evt.OldInputName().FieldName()
+				if len(in) == 0 {
+					in = NextStatementField
+					// fix up the block's previous input to point to nothing
+					if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
+						panic("missing previous statement")
+					} else {
+						prev.Set(r.Zero(prev.Type()))
+					}
 				}
+				// fix up the parent's input to point to nothing
+				dst := oldParent.FieldByName(in)
+				dst.Set(r.Zero(dst.Type()))
 			}
-			// fix up the parent's input to point to nothing
-			dst := oldParent.FieldByName(in)
-			dst.Set(r.Zero(dst.Type()))
-		}
 
-		// connect the block to the parent; and the parent to the block
-		if pid := evt.NewParentId(); len(pid) > 0 {
-			newParent := ws.Context(pid).Elem()
-			in := evt.NewInputName().FieldName()
-			// a blank input means a vertical (next/prev) connection
-			if len(in) == 0 {
-				in = NextStatementField
-				// fix up the block's previous to point to the parent
-				if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
-					panic("missing previous statement")
-				} else {
-					prev.Set(newParent.Addr())
+			// connect the block to the parent; and the parent to the block
+			if pid := evt.NewParentId(); len(pid) > 0 {
+				newParent := ws.Context(pid).Elem()
+				if !newParent.IsValid() {
+					panic("missing pid " + pid)
 				}
-			}
-			// fix up the parent's input to point to this block
-			if dst := newParent.FieldByName(in); !dst.IsValid() {
-				panic("missing field " + in)
-			} else {
-				valPtr := ctx.Ptr()
-				dst.Set(valPtr)
+				in := evt.NewInputName().FieldName()
+				// a blank input means a vertical (next/prev) connection
+				if len(in) == 0 {
+					in = NextStatementField
+					// fix up the block's previous to point to the parent
+					if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
+						panic("missing previous statement")
+					} else {
+						prev.Set(newParent.Addr())
+					}
+				}
+				// fix up the parent's input to point to this block
+				if dst := newParent.FieldByName(in); !dst.IsValid() {
+					panic("missing field " + in)
+				} else {
+					valPtr := ctx.Ptr()
+					dst.Set(valPtr)
+				}
 			}
 		}
 	default:
