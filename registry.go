@@ -53,9 +53,10 @@ type mutationMap map[TypeName]r.Type
 
 // findWorkspaceType - what kind of block in the main workspace does the mutation elemeent represent*
 func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
-	for k, v := range *mm {
-		if toTypeName(v) == mutationType {
-			ret = k
+	for name, t := range *mm {
+		// hmmm... skip the initial nil entry.
+		if len(name) > 0 && toTypeName(t) == mutationType {
+			ret = name
 			break
 		}
 	}
@@ -72,7 +73,7 @@ var blockPtr = r.TypeOf((*Block)(nil))
 // NewData - returns a pointer to passed type name
 func (reg *Registry) NewData(name TypeName) (ret r.Value, err error) {
 	if t, ok := reg.types[name]; !ok {
-		err = errutil.New("unknown type", name)
+		err = errutil.New("NewData for unknown type '" + name + "'")
 	} else {
 		ret = r.New(t)
 	}

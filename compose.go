@@ -147,14 +147,13 @@ func (b *Block) Compose(ws *Workspace, containerBlock *Block) {
 			for clauseBlock := c.TargetBlock(); clauseBlock != nil; {
 				// for each clause, create some data
 				typeName := mutationTypes.findWorkspaceType(clauseBlock.Type)
-				//
+				// append the data to the output array
 				if v, e := TheRegistry.NewData(typeName); e != nil {
-					//err = errutil.Append(err, e)
-					panic(e.Error())
+					panic("Composing " + clauseBlock.Type.String() + " " + e.Error())
 				} else {
 					out = r.Append(out, v)
 				}
-
+				// next clause in the mutation ui ( for this input )
 				if c := clauseBlock.NextConnection(); c != nil {
 					clauseBlock = c.TargetBlock()
 				} else {

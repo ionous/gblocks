@@ -2,7 +2,9 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 )
 
@@ -36,8 +38,8 @@ func TestMutationDecompose(t *testing.T) {
 		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		t.Log("decomposing")
-		mutationui := newMutatorLikeWorkspace()
-		containerBlock, e := b.decompose(ws, mutationui)
+		mui := newMutatorLikeWorkspace()
+		containerBlock, e := b.decompose(ws, mui)
 		require.NoError(t, e)
 		//
 		t.Log("reducing")
@@ -72,7 +74,7 @@ func reduceBlocks(block *Block) (ret []string) {
 }
 
 // new a block with data. check connections.
-func xTestMutationSaveConnections(t *testing.T) {
+func TestMutationSaveConnections(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
 		t.Log("new block")
 		b, e := ws.NewBlock((*ShapeTest)(nil))
@@ -83,8 +85,8 @@ func xTestMutationSaveConnections(t *testing.T) {
 		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		t.Log("decomposing")
-		mutationui := newMutatorLikeWorkspace()
-		containerBlock, e := b.decompose(ws, mutationui)
+		mui := newMutatorLikeWorkspace()
+		containerBlock, e := b.decompose(ws, mui)
 		require.NoError(t, e, "decomposing")
 		b.saveConnections(ws, containerBlock)
 		var connections []*Connection
@@ -109,12 +111,58 @@ func xTestMutationSaveConnections(t *testing.T) {
 	})
 }
 
+// re/create the workspace blocks from the mutation dialog ui
 func TestMutationCompose(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
-		// ShapeTest
-		// - Input  *ShapeTest
-		// - Mutant []interface{} `mutation:"TestMutation"`
-		// - Field  string
+		// create mutation blocks
+		mui := newMutatorLikeWorkspace()
+		container, err := mui.NewBlock("shape_test$mutation")
+		require.NoError(t, err)
 
+		var block [3](*Block)
+		src := [3]interface{}{
+			(*MutationElControl)(nil),
+			(*MutationAltControl)(nil),
+			(*MutationAltControl)(nil),
+		}
+
+		t.Log("building blocks")
+		for i := 0; i < len(src); i++ {
+			b, e := mui.NewBlock(src[i])
+			require.NoError(t, e)
+			require.NotNilf(t, b, "new block %d", i)
+			block[i] = b
+		}
+
+		//
+		t.Log("connecting a->b->c")
+		container.Input(0).Connection().Connect(block[0].PreviousConnection())
+		block[0].NextConnection().Connect(block[1].PreviousConnection())
+		block[1].NextConnection().Connect(block[2].PreviousConnection())
+
+		b, err := ws.NewBlock("shape_test")
+		require.NoError(t, err)
+
+		b.Compose(ws, container)
+
+		// test the composed block
+		composed := reduceInputs(b)
+		str := strings.Join(composed, ",")
+		require.Equal(t, str, "INPUT,MUTANT,SUB_INPUT,,,")
+		d := ws.GetDataById(b.Id)
+
+		// test the generated data
+		expected := &ShapeTest{
+			Mutant: []interface{}{
+				&MutationEl{},
+				&MutationAlt{},
+				&MutationAlt{},
+			},
+		}
+		v := pretty.Diff(d, expected)
+		if len(v) != 0 {
+			t.Fatal(v)
+			t.Log(v)
+		}
 	})
 }
