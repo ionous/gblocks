@@ -83,7 +83,7 @@ func (in *Input) ForceMutation(name string) {
 }
 
 func (in *Input) Mutation() (ret *InputMutation) {
-	if obj := in.mutation_; obj != nil && obj != js.Undefined {
+	if obj := in.mutation_; obj != nil && obj.Bool() {
 		ret = &InputMutation{Object: in.mutation_}
 	}
 	return

@@ -41,7 +41,7 @@ type Block struct {
 }
 
 func jsConnection(obj *js.Object) (ret *Connection) {
-	if obj != nil && obj != js.Undefined {
+	if obj != nil && obj.Bool() {
 		ret = &Connection{Object: obj}
 	}
 	return

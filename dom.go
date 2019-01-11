@@ -30,8 +30,19 @@ func NewDomElement(name string) *DomElement {
 	return &DomElement{Object: obj}
 }
 
-func (m *DomElement) AppendChild(child *DomElement) {
+func CreateDomElement(name string, attrs ...Attrs) *DomElement {
+	dom := NewDomElement(name)
+	for _, attrs := range attrs {
+		for k, v := range attrs {
+			dom.SetAttribute(k, v)
+		}
+	}
+	return dom
+}
+
+func (m *DomElement) AppendChild(child *DomElement) *DomElement {
 	m.Call("appendChild", child)
+	return child
 }
 
 func (m *DomElement) GetAttribute(k string) (ret *Attribute) {
@@ -52,6 +63,10 @@ func (m *DomElement) OuterHTML() string {
 
 func (m *DomElement) SetAttribute(k string, v interface{}) {
 	m.Call("setAttribute", k, v)
+}
+
+func (m *DomElement) SetInnerHTML(text string) {
+	m.Set("innerHTML", text)
 }
 
 func (a *HtmlCollection) Num() int {

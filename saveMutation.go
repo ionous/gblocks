@@ -8,42 +8,47 @@ import (
 
 // Create XML to record the number of user-defined input blocks.
 func (b *Block) mutationToDom(ws *Workspace) *DomElement {
-	var out mutationOutput
-	ctx := ws.Context(b.Id)
-	//
-	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
-		in := b.Input(i)
-		if m := in.Mutation(); m != nil {
-			if els := ctx.Elem().FieldByName(in.Name.FieldName()); els.IsValid() {
-				if cnt := els.Len(); cnt > 0 {
-					elements := make([]int, cnt)
-					nameToIndex := make(map[r.Type]int)
-					var typeNames []TypeName
-					for i := 0; i < cnt; i++ {
-						// note: we have to deref the element into its actual value before asking for its type.
-						iface := els.Index(i)
-						ptr := iface.Elem()
-						el := ptr.Elem()
-						t := el.Type()
-						typeIndex := len(nameToIndex)
-						if existingIndex, ok := nameToIndex[t]; ok {
-							typeIndex = existingIndex
-						} else {
-							nameToIndex[t] = typeIndex
-							typeName := toTypeName(t)
-							typeNames = append(typeNames, typeName)
-						}
-						elements[i] = typeIndex
-					}
-					el := out.newMutation()
-					el.SetAttribute("name", in.Name)
-					el.SetAttribute("types", typeNames)
-					el.SetAttribute("elements", elements)
+	out := NewDomElement("mutation")
+	if cnt := b.NumInputs(); cnt > 0 {
+		ctx := ws.Context(b.Id)
+		for i := 0; i < cnt; i++ {
+			in := b.Input(i)
+			if m := in.Mutation(); m != nil {
+				if slice := ctx.Elem().FieldByName(in.Name.FieldName()); slice.IsValid() {
+					appendMutation(in.Name.String(), slice, out)
 				}
 			}
 		}
 	}
-	return out.outer
+	return out
+}
+
+func appendMutation(name string, slice r.Value, out *DomElement) {
+	if cnt := slice.Len(); cnt > 0 {
+		elements := make([]int, cnt)
+		nameToIndex := make(map[r.Type]int)
+		var typeNames []TypeName
+		for i := 0; i < cnt; i++ {
+			// note: we have to deref the element into its actual value before asking for its type.
+			iface := slice.Index(i)
+			ptr := iface.Elem()
+			el := ptr.Elem()
+			t := el.Type()
+			typeIndex := len(nameToIndex)
+			if existingIndex, ok := nameToIndex[t]; ok {
+				typeIndex = existingIndex
+			} else {
+				nameToIndex[t] = typeIndex
+				typeName := toTypeName(t)
+				typeNames = append(typeNames, typeName)
+			}
+			elements[i] = typeIndex
+		}
+		el := out.AppendChild(NewDomElement("input"))
+		el.SetAttribute("name", name)
+		el.SetAttribute("types", typeNames)
+		el.SetAttribute("elements", elements)
+	}
 }
 
 func (b *Block) domToMutation(ws *Workspace, dom *DomElement) (err error) {
@@ -71,21 +76,4 @@ func (b *Block) domToMutation(ws *Workspace, dom *DomElement) (err error) {
 		}
 	}
 	return
-}
-
-type mutationOutput struct {
-	outer *DomElement
-}
-
-type mutationGroup struct {
-	*DomElement
-}
-
-func (o *mutationOutput) newMutation() *mutationGroup {
-	if o.outer == nil {
-		o.outer = NewDomElement("mutation")
-	}
-	child := NewDomElement("input")
-	o.outer.AppendChild(child)
-	return &mutationGroup{&DomElement{Object: child.Object}}
 }

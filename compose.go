@@ -121,7 +121,7 @@ func (cl *ConnectionList) contains(c *Connection) (ret bool) {
 }
 
 // re/create the workspace blocks from the mutation dialog ui
-func (b *Block) Compose(ws *Workspace, containerBlock *Block) {
+func (b *Block) compose(ws *Workspace, containerBlock *Block) {
 	// rebuild the block
 	ctx := ws.Context(b.Id)
 	// for each mutation in the mutator ui

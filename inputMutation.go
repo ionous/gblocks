@@ -46,7 +46,7 @@ func (m *InputMutation) AddAtom(numInputs int) {
 
 // Atoms - number of sub-blocks used by this mutation.
 func (m *InputMutation) Atoms() (ret int) {
-	if m.atoms != nil && m.atoms != js.Undefined {
+	if m.atoms != nil && m.atoms.Bool() {
 		ret = m.atoms.Length()
 	}
 	return
@@ -54,7 +54,7 @@ func (m *InputMutation) Atoms() (ret int) {
 
 // Atom - return a single element of the mutation.
 func (m *InputMutation) Atom(i int) (ret *Atom) {
-	if obj := m.atoms.Index(i); obj != nil && obj != js.Undefined {
+	if obj := m.atoms.Index(i); obj != nil && obj.Bool() {
 		ret = &Atom{Object: obj}
 	}
 	return
@@ -77,7 +77,7 @@ func (a *Atom) SaveConnection(i int, in *Input) {
 }
 
 func (a *Atom) Connection(i int) (ret *Connection) {
-	if obj := a.connections.Index(i); obj != nil && obj != js.Undefined {
+	if obj := a.connections.Index(i); obj != nil && obj.Bool() {
 		ret = &Connection{Object: obj}
 	}
 	return

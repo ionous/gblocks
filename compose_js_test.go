@@ -24,14 +24,16 @@ func newMutatorLikeWorkspace() *Workspace {
 
 func TestMutationDecompose(t *testing.T) {
 	testShape(t, func(ws *Workspace) {
-		require.False(t, ws.IsMutator)
+		require.False(t, ws.IsMutator, "is mutator")
 		//
 		t.Log("new block")
 		b, e := ws.NewBlock((*ShapeTest)(nil))
 		require.NoError(t, e)
-		ctx := ws.Context(b.Id)
-		require.NotNil(t, ctx)
-		require.False(t, ctx.IsValid())
+
+		// in response to NewBlock blocky clls Object.Blockly.Xml.blockToDom
+		// ctx := ws.Context(b.Id)
+		// require.NotNil(t, ctx)
+		// require.False(t, ctx.IsValid(), "context shouldnt be valid yet")
 
 		t.Log("data by id")
 		d := ws.GetDataById(b.Id).(*ShapeTest)
@@ -143,7 +145,7 @@ func TestMutationCompose(t *testing.T) {
 		b, err := ws.NewBlock("shape_test")
 		require.NoError(t, err)
 
-		b.Compose(ws, container)
+		b.compose(ws, container)
 
 		// test the composed block
 		composed := reduceInputs(b)

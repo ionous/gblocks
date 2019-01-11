@@ -32,9 +32,13 @@ type Workspace struct {
 	context map[string]*Context // blockId-> context
 }
 
+var TheWorkspace *Workspace
+
 func NewBlankWorkspace() *Workspace {
 	obj := js.Global.Get("Blockly").Get("Workspace").New()
-	return initWorkspace(obj)
+	ws := initWorkspace(obj)
+	TheWorkspace = ws
+	return ws
 }
 
 func NewWorkspace(elementId, mediaPath string) *Workspace {
@@ -44,7 +48,9 @@ func NewWorkspace(elementId, mediaPath string) *Workspace {
 		"media":   mediaPath,
 		"toolbox": div,
 	})
-	return initWorkspace(obj)
+	ws := initWorkspace(obj)
+	TheWorkspace = ws
+	return ws
 }
 
 func initWorkspace(obj *js.Object) *Workspace {
@@ -241,7 +247,6 @@ func (ws *Workspace) mirror(evt interface{}) {
 		}
 
 	case *BlockChange:
-		//println("block change", evt.Object)
 		if evt.Element == "field" {
 			if ctx := ws.Context(evt.BlockId); ctx != nil {
 				name := InputName(evt.Name)

@@ -127,6 +127,11 @@ func (reg *Registry) registerMutation(name string, pairs ...interface{}) (err er
 	return
 }
 
+func (reg *Registry) contains(typeName TypeName) bool {
+	_, ok := reg.types[typeName]
+	return ok
+}
+
 func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Options) (err error) {
 	//
 	if reg.types == nil {
@@ -143,24 +148,72 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 		err = e
 	} else if blocks := js.Global.Get("Blockly").Get("Blocks"); blocks.Bool() {
 		// the ui system has "blocks" -- mapping type names to prototypes; standalone tests do not
-		fns := Options{
-			"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
-				b := &Block{Object: obj}
-				if e := b.JsonInit(opt); e != nil {
-					// hmmm...
-				} else {
-					// ideally, there'd be a custom input type for mutations; but there's not.
-					for _, mf := range mfs {
-						if in, index := b.InputByName(mf.input); index >= 0 {
-							in.ForceMutation(mf.name)
-						} else {
-							panic("what")
-						}
+		init := js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+			b := &Block{Object: obj}
+			if e := b.JsonInit(opt); e != nil {
+				panic(e)
+			} else if len(mfs) > 0 {
+				// ideally, there'd be a custom input type for mutations; but there's not.
+				for _, mf := range mfs {
+					if in, index := b.InputByName(mf.input); index >= 0 {
+						in.ForceMutation(mf.name)
+					} else {
+						panic("unexpected missing input" + mf.input)
 					}
 				}
-				return // init has no return
-			}),
+			}
+			return
+		})
+		var fns Options
+		if len(mfs) == 0 {
+			fns = Options{
+				"init": init,
+			}
+		} else {
+			fns = Options{
+				"init": init,
+				"mutationToDom": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+					ws := TheWorkspace
+					b := &Block{Object: obj}
+					return b.mutationToDom(ws).Object
+				}),
+				"domToMutation": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+					ws := TheWorkspace
+					b := &Block{Object: obj}
+					xmlElement := &DomElement{Object: parms[0]}
+					if e := b.domToMutation(ws, xmlElement); e != nil {
+						panic(e)
+					}
+					return
+				}),
+				"decompose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+					ws := TheWorkspace
+					b := &Block{Object: obj}
+					mui := &Workspace{Object: parms[0]}
+					if mb, e := b.decompose(ws, mui); e != nil {
+						panic(e)
+					} else {
+						ret = mb.Object
+					}
+					return
+				}),
+				"compose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+					ws := TheWorkspace
+					b := &Block{Object: obj}
+					containerBlock := &Block{Object: parms[0]}
+					b.compose(ws, containerBlock)
+					return
+				}),
+				"saveConnections": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+					ws := TheWorkspace
+					b := &Block{Object: obj}
+					containerBlock := &Block{Object: parms[0]}
+					b.saveConnections(ws, containerBlock)
+					return
+				}),
+			}
 		}
+
 		// register things to blockly.
 		reg.types[typeName] = structType
 		blocks.Set(string(typeName), fns)
@@ -294,7 +347,7 @@ func constraintsForField(f r.StructField) (ret interface{}, err error) {
 // each field gets its own "options" Options
 func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []mutationField, err error) {
 	var msgs []string
-	for i := 0; i < t.NumField() && err == nil; i++ {
+	for i, cnt := 0, t.NumField(); i < cnt && err == nil; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
 		if f := t.Field(i); len(f.PkgPath) == 0 &&
 			f.Name != PreviousStatementField &&
