@@ -1,88 +1,60 @@
 package gblocks
 
 import (
-	// "encoding/json"
 	"github.com/kr/pretty"
 	r "reflect"
 	"testing"
 )
 
-type Possessives int
+type Enum int
 
 const (
-	IsA Possessives = iota
-	// for plural nouns
-	IsAn
-	AreAn
-	// for multiple nouns
-	Are
-	AreA
+	DefaultChoice Enum = iota
+	AlternativeChoice
 )
 
-// TheNouns are-an [ Adjectives ] Class [ NounRelation ] stop.
-type NounAssertion struct {
-	//*Assertion
-	// noun list: must have at least one.
-	//Nouns
-	// enums generate FieldDropdown
-	Possessives
-	// optional: adjectives
-	// Adjectives []*Adjectives
-	// class name
-	Class *Class
-	// optional: relation.
-	PreviousStatement, NextStatement *NounAssertion
+func (i Enum) String() (ret string) {
+	switch i {
+	case DefaultChoice:
+		ret = "DefaultChoice"
+	case AlternativeChoice:
+		ret = "AlternativeChoice"
+	}
+	return
 }
 
-type Class struct {
-	Class string
-}
-
-type Noun struct {
-	Noun string
+type EnumStatement struct {
+	Enum
+	PreviousStatement, NextStatement *EnumStatement
 }
 
 func TestEnumLabels(t *testing.T) {
 	var reg Registry
-	reg.registerEnum(map[Possessives]string{
-		IsA:   "is a",
-		IsAn:  "is an",
-		AreAn: "are an",
-		Are:   "are",
-		AreA:  "are a",
+	reg.registerEnum(map[Enum]string{
+		DefaultChoice:     "default",
+		AlternativeChoice: "alt",
 	})
 	opt := make(map[string]interface{})
-	reg.initJson(r.TypeOf((*NounAssertion)(nil)).Elem(), opt)
-	// out, _ := json.MarshalIndent(opt, "", "    ")
-	//t.Log(string(out)) //
-	v := pretty.Diff(opt, possessives)
+	reg.initJson(r.TypeOf((*EnumStatement)(nil)).Elem(), opt)
+	expected := map[string]interface{}{
+		"message0": "%1",
+		"args0": []Options{
+			{
+				"name": "ENUM",
+				"type": "field_dropdown",
+				"options": []stringPair{
+					{"default", "DefaultChoice"},
+					{"alt", "AlternativeChoice"},
+				},
+			},
+		},
+		"previousStatement": TypeName("enum_statement"),
+		"nextStatement":     TypeName("enum_statement"),
+		"type":              TypeName("enum_statement"),
+	}
+	v := pretty.Diff(opt, expected)
 	if len(v) != 0 {
 		t.Fatal(v)
 		t.Log(v)
 	}
-}
-
-var possessives = map[string]interface{}{
-	"message0": "%1 %2",
-	"args0": []Options{
-		{
-			"name": "POSSESSIVES",
-			"type": "field_dropdown",
-			"options": []stringPair{
-				{"is a", "IsA"},
-				{"is an", "IsAn"},
-				{"are an", "AreAn"},
-				{"are", "Are"},
-				{"are a", "AreA"},
-			},
-		},
-		{
-			"check": TypeName("class"),
-			"name":  "CLASS",
-			"type":  "input_value",
-		},
-	},
-	"previousStatement": TypeName("noun_assertion"),
-	"nextStatement":     TypeName("noun_assertion"),
-	"type":              TypeName("noun_assertion"),
 }

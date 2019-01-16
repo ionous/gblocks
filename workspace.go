@@ -34,23 +34,34 @@ type Workspace struct {
 
 var TheWorkspace *Workspace
 
-func NewBlankWorkspace() *Workspace {
-	obj := js.Global.Get("Blockly").Get("Workspace").New()
-	ws := initWorkspace(obj)
-	TheWorkspace = ws
-	return ws
+func NewBlankWorkspace() (ret *Workspace) {
+	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+		obj := blockly.Get("Workspace").New()
+		ws := initWorkspace(obj)
+		TheWorkspace = ws
+		ret = ws
+	}
+	return
 }
 
-func NewWorkspace(elementId, mediaPath string) *Workspace {
-	div := js.Global.Get("document").Call("getElementById", elementId)
+func NewWorkspace(elementId, mediaPath string, tools interface{}) (ret *Workspace) {
 	// note: toolbox can be an xml string containing the toolbox
-	obj := js.Global.Get("Blockly").Call("inject", "  blockly", map[string]interface{}{
-		"media":   mediaPath,
-		"toolbox": div,
-	})
-	ws := initWorkspace(obj)
-	TheWorkspace = ws
-	return ws
+	// grrr --- init calls:
+	// - Blockly.VerticalFlyout.Blockly.Flyout.show
+	// - Blockly.Events.Create
+	// - Object.Blockly.Xml.blockToDom
+	// - Blockly.BlockSvg.mutationToDom
+	// -> registerBlock's mutationToDom; and TheWorkspace is nil.
+	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+		obj := blockly.Call("inject", "blockly", map[string]interface{}{
+			"media":   mediaPath,
+			"toolbox": tools,
+		})
+		ws := initWorkspace(obj)
+		TheWorkspace = ws
+		ret = ws
+	}
+	return
 }
 
 func initWorkspace(obj *js.Object) *Workspace {
@@ -250,16 +261,13 @@ func (ws *Workspace) mirror(evt interface{}) {
 		if evt.Element == "field" {
 			if ctx := ws.Context(evt.BlockId); ctx != nil {
 				name := InputName(evt.Name)
-				dst := ctx.Elem().FieldByName(name.FieldName())
+				dst := ctx.FieldForInput(name)
 
 				switch v := evt.NewValue; dst.Kind() {
 				case r.Bool:
 					var v bool = v.Bool()
 					dst.Set(r.ValueOf(v))
-				case r.Int:
-					var v int = v.Int()
-					dst.Set(r.ValueOf(v))
-				case r.Int8, r.Int16, r.Int32:
+				case r.Int, r.Int8, r.Int16, r.Int32:
 					var v int = v.Int()
 					dst.Set(r.ValueOf(v).Convert(dst.Type()))
 				case r.Int64:
@@ -290,44 +298,41 @@ func (ws *Workspace) mirror(evt interface{}) {
 	case *BlockMove:
 		if ctx := ws.Context(evt.BlockId); ctx != nil {
 			// disconnect the block from the parent; and the parent from the block
-			if pid := evt.OldParentId(); len(pid) > 0 {
-				oldParent := ws.Context(pid).Elem()
+			if pid := evt.PrevParentId(); len(pid) > 0 {
+				oldParent := ws.Context(pid)
 
-				in := evt.OldInputName().FieldName()
+				in := evt.PrevInputName()
 				if len(in) == 0 {
-					in = NextStatementField
+					in = NextInput
 					// fix up the block's previous input to point to nothing
-					if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
-						panic("missing previous statement")
+					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
+						panic(oldParent.String() + " missing previous statement")
 					} else {
 						prev.Set(r.Zero(prev.Type()))
 					}
 				}
 				// fix up the parent's input to point to nothing
-				dst := oldParent.FieldByName(in)
+				dst := oldParent.FieldForInput(in)
 				dst.Set(r.Zero(dst.Type()))
 			}
 
 			// connect the block to the parent; and the parent to the block
-			if pid := evt.NewParentId(); len(pid) > 0 {
-				newParent := ws.Context(pid).Elem()
-				if !newParent.IsValid() {
-					panic("missing pid " + pid)
-				}
-				in := evt.NewInputName().FieldName()
+			if pid := evt.NextParentId(); len(pid) > 0 {
+				newParent := ws.Context(pid)
+				in := evt.NextInputName()
 				// a blank input means a vertical (next/prev) connection
 				if len(in) == 0 {
-					in = NextStatementField
+					in = NextInput
 					// fix up the block's previous to point to the parent
-					if prev := ctx.Elem().FieldByName(PreviousStatementField); !prev.IsValid() {
+					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
 						panic("missing previous statement")
 					} else {
-						prev.Set(newParent.Addr())
+						prev.Set(newParent.Ptr())
 					}
 				}
 				// fix up the parent's input to point to this block
-				if dst := newParent.FieldByName(in); !dst.IsValid() {
-					panic("missing field " + in)
+				if dst := newParent.FieldForInput(in); !dst.IsValid() {
+					panic(newParent.String() + " missing field " + in.String())
 				} else {
 					valPtr := ctx.Ptr()
 					dst.Set(valPtr)

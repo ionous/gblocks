@@ -10,6 +10,18 @@ type Field struct {
 	//maxDisplayLength
 }
 
+type FieldLabel struct {
+	*Field
+}
+
+func NewFieldLabel(txt, cls string) (ret *FieldLabel) {
+	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+		obj := blockly.Get("FieldLabel").New(txt, cls)
+		ret = &FieldLabel{Field: &Field{Object: obj}}
+	}
+	return
+}
+
 // func (f *Field) setSourceBlock (block) {
 // func (f *Field) init () {
 // func (f *Field) initModel () {

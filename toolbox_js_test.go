@@ -13,10 +13,9 @@ func TestToolText(t *testing.T) {
 			/* */ `</category>` +
 			/**/ `</category>` +
 			`</xml>`
-	tool := NewTools(nil)
-	elm := tool.Box("xml", Attrs{"id": "toolbox", "style": "display: none"},
-		tool.Box("category", Attrs{"name": "Logic", "colour": "%{BKY_LOGIC_HUE}"},
-			tool.Box("category", Attrs{"name": "If"}),
+	elm := Toolbox("xml", Attrs{"id": "toolbox", "style": "display: none"},
+		Toolbox("category", Attrs{"name": "Logic", "colour": "%{BKY_LOGIC_HUE}"},
+			Toolbox("category", Attrs{"name": "If"}),
 		),
 	)
 	html := elm.OuterHTML()
@@ -39,7 +38,7 @@ func TestToolStack(t *testing.T) {
 			/* */ `</next>` +
 			/**/ `</block>` +
 			`</xml>`
-	elm := NewToolData(NewDomElement("xml"),
+	elm := Toolbox("xml", nil,
 		&StackBlock{
 			NextStatement: &StackBlock{
 				NextStatement: &StackBlock{
@@ -64,7 +63,7 @@ func TestToolRow(t *testing.T) {
 			/*  */ `</value>` +
 			/* */ `</block>` +
 			`</xml>`
-	elm := NewToolData(NewDomElement("xml"),
+	elm := Toolbox("xml", nil,
 		&RowBlock{
 			Input: &RowBlock{
 				Input: &RowBlock{
@@ -85,7 +84,7 @@ func TestToolFieldBlock(t *testing.T) {
 			/* */ `<field name="NUMBER">10</field>` +
 			/**/ `</block>` +
 			`</xml>`
-	elm := NewToolData(NewDomElement("xml"),
+	elm := Toolbox("xml", nil,
 		&FieldBlock{0}, &FieldBlock{10})
 	require.Equal(t, expected, elm.OuterHTML())
 }
@@ -95,11 +94,20 @@ func TestToolMutation(t *testing.T) {
 		`<xml>` +
 			/**/ `<block type="shape_test">` +
 			/* */ `<mutation>` +
-			/*  */ `<input name="MUTANT" types="mutation_el,mutation_alt" elements="0,1">` +
+			/*  */ `<data name="MUTANT" types="mutation_el,mutation_alt" elements="0,1">` +
+			/*  */ `</data>` +
 			/* */ `</mutation>` +
+			/* */ `<statement name="MUTANT">` +
+			/*  */ `<block type="mutation_el">` +
+			/*   */ `<next>` +
+			/*    */ `<block type="mutation_alt">` +
+			/*    */ `</block>` +
+			/*   */ `</next>` +
+			/*  */ `</block>` +
+			/* */ `</statement>` +
 			/**/ `</block>` +
 			`</xml>`
-	elm := NewToolData(
+	elm := NewTools(
 		NewDomElement("xml"),
 		&ShapeTest{Mutant: []interface{}{
 			&MutationEl{},
@@ -127,12 +135,26 @@ func TestToolStatement(t *testing.T) {
 			/**/ `</block>` +
 			`</xml>`
 		//
-	elm := NewToolData(NewDomElement("xml"),
+	elm := Toolbox("xml", nil,
 		&StatementBlock{
 			Do: []interface{}{
 				&StackBlock{},
 				&StackBlock{},
 			}})
+	// t.Log(elm.OuterHTML())
+	require.Equal(t, expected, elm.OuterHTML())
+}
+
+func TestToolEnum(t *testing.T) {
+	expected :=
+		`<xml>` +
+			/**/ `<block type="enum_statement">` +
+			/* */ `<field name="ENUM">AlternativeChoice</field>` +
+			/**/ `</block>` +
+			`</xml>`
+		//
+	elm := Toolbox("xml", nil,
+		&EnumStatement{Enum: AlternativeChoice})
 	// t.Log(elm.OuterHTML())
 	require.Equal(t, expected, elm.OuterHTML())
 }

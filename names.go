@@ -23,6 +23,17 @@ func pascalToUnderscore(s string) (ret string) {
 	return
 }
 
+func pascalToSpace(s string) (ret string) {
+	if len(s) > 0 {
+		split := camelcase.Split(s)
+		for i, s := range split {
+			split[i] = strings.ToLower(s)
+		}
+		ret = strings.Join(split, " ")
+	}
+	return
+}
+
 // PascalCase -> CAPITAL_NAME
 func pascalToCaps(s string) (ret string) {
 	if len(s) > 0 {

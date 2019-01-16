@@ -36,7 +36,7 @@ func testMirror(t *testing.T, fn func(*Workspace)) {
 	require.NoError(t, RegisterBlock((*FieldBlock)(nil), nil), "register fields")
 	ws := NewBlankWorkspace()
 	// replace timed event queue with direct event queue
-	events := &Events{Object: js.Global.Get("Blockly").Get("Events")}
+	events := GetEvents()
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
 		events.TestFire(args[0])
 		return nil
@@ -55,6 +55,7 @@ func TestJsonStackBlock(t *testing.T) {
 	err := reg.registerBlock(typeName, structType, opts)
 	require.NoError(t, err, "register stack")
 	expected := Options{
+		"message0":          "stack block",
 		"type":              TypeName("stack_block"),
 		"previousStatement": nil,
 		"nextStatement":     nil,

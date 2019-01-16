@@ -1,6 +1,7 @@
 package gblocks
 
 import (
+	"fmt"
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
@@ -63,15 +64,18 @@ func TestShapeChangeless(t *testing.T) {
 }
 
 func TestShapeUpdate(t *testing.T) {
-	subInput := Verify{"SUB_INPUT", InputValue, -1}
+	subInput := func(i int) Verify {
+		name := InputName(fmt.Sprintf("MUTANT/%d/SUB_INPUT", i))
+		return Verify{name, InputValue, -1}
+	}
 	//
 	none := []Verify{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 0}, {"", DummyInput, -1}}
 	//
 	v := [][]Verify{
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 1}, subInput, {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 2}, subInput, subInput, {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 3}, subInput, subInput, subInput, {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 4}, subInput, subInput, subInput, subInput, {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 1}, subInput(0), {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 2}, subInput(0), subInput(1), {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 3}, subInput(0), subInput(1), subInput(2), {"", DummyInput, -1}},
+		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 4}, subInput(0), subInput(1), subInput(2), subInput(3), {"", DummyInput, -1}},
 	}
 
 	testShape(t, func(ws *Workspace) {
@@ -157,7 +161,7 @@ func testShape(t *testing.T, fn func(*Workspace)) {
 	), "register blocks")
 	ws := NewBlankWorkspace()
 	// replace timed event queue with direct event queue
-	events := &Events{Object: js.Global.Get("Blockly").Get("Events")}
+	events := GetEvents()
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
 		events.TestFire(args[0])
 		return nil

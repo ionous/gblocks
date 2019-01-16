@@ -25,13 +25,9 @@ type HtmlCollection struct {
 	*js.Object
 }
 
-func NewDomElement(name string) *DomElement {
+func NewDomElement(name string, attrs ...Attrs) *DomElement {
 	obj := js.Global.Get("document").Call("createElement", name)
-	return &DomElement{Object: obj}
-}
-
-func CreateDomElement(name string, attrs ...Attrs) *DomElement {
-	dom := NewDomElement(name)
+	dom := &DomElement{Object: obj}
 	for _, attrs := range attrs {
 		for k, v := range attrs {
 			dom.SetAttribute(k, v)

@@ -1,7 +1,7 @@
 package gblocks
 
 import (
-	"fmt"
+	"fmt" // for enum key names
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
 	r "reflect"
@@ -21,7 +21,7 @@ type Registry struct {
 
 var TheRegistry Registry
 
-func RegisterBlocks(opt Options, blocks ...interface{}) error {
+func RegisterBlocks(opt map[string]Options, blocks ...interface{}) error {
 	return TheRegistry.registerBlocks(opt, blocks...)
 }
 
@@ -38,25 +38,43 @@ func RegisterBlock(b interface{}, opt Options) error {
 }
 
 // RegisterEnum - expects a map of intish to string
-func RegisterEnum(n interface{}) ([]stringPair, error) {
-	return TheRegistry.registerEnum(n)
+func RegisterEnum(n interface{}) error {
+	// string pairs is returned for the sake of tests; we can ignore it here.
+	_, err := TheRegistry.registerEnum(n)
+	return err
 }
 
 type mutationField struct {
-	name  string
-	input InputName
-	check TypeName // fix, can this be an array.
+	mutationName string
+	inputName    InputName
+	check        TypeName // fix, can this be an array.
+}
+
+type mutationType struct {
+	workspaceType TypeName // name of the block in the workspace
+	mutationBlock r.Type   // mutation ui block
 }
 
 //
-type mutationMap map[TypeName]r.Type
+type mutationMap []mutationType
+
+func (mm *mutationMap) findMutationType(elType TypeName) (ret r.Type, okay bool) {
+	for _, mtype := range *mm {
+		if mtype.workspaceType == elType {
+			ret = mtype.mutationBlock
+			okay = true
+			break
+		}
+	}
+	return
+}
 
 // findWorkspaceType - what kind of block in the main workspace does the mutation elemeent represent*
 func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
-	for name, t := range *mm {
+	for _, mt := range *mm {
 		// hmmm... skip the initial nil entry.
-		if len(name) > 0 && toTypeName(t) == mutationType {
-			ret = name
+		if len(mt.workspaceType) > 0 && toTypeName(mt.mutationBlock) == mutationType {
+			ret = mt.workspaceType
 			break
 		}
 	}
@@ -80,15 +98,13 @@ func (reg *Registry) NewData(name TypeName) (ret r.Value, err error) {
 	return
 }
 
-func (reg *Registry) registerBlocks(opt Options, blocks ...interface{}) (err error) {
+func (reg *Registry) registerBlocks(opt map[string]Options, blocks ...interface{}) (err error) {
 	for _, b := range blocks {
 		structType := r.TypeOf(b).Elem()
 		typeName := toTypeName(structType)
 		var sub Options
-		if opt, ok := opt[string(typeName)]; ok {
-			if opt, ok := opt.(Options); ok {
-				sub = opt
-			}
+		if opt, ok := opt[typeName.String()]; ok {
+			sub = opt
 		}
 		if e := reg.registerBlock(typeName, structType, sub); e != nil {
 			e := errutil.New("error registering", typeName, e)
@@ -108,18 +124,18 @@ func (reg *Registry) registerMutation(name string, pairs ...interface{}) (err er
 			err = errutil.New("mutation already exists")
 		}
 		if err == nil {
-			mutationTypes := make(mutationMap)
+			mutationTypes := make(mutationMap, 0, len(pairs)/2)
 			for i := 0; i < len(pairs); i += 2 {
-				var n TypeName
+				var elType TypeName
 				p1, p2 := r.TypeOf(pairs[i]), r.TypeOf(pairs[i+1])
 				if p1 != nil {
-					n = toTypeName(p1.Elem())
+					elType = toTypeName(p1.Elem())
 				}
-				if was, exists := mutationTypes[n]; exists {
-					err = errutil.New("type mapping already exists", n, was)
+				if was, exists := mutationTypes.findMutationType(elType); exists {
+					err = errutil.New("type mapping already exists", elType, was)
 					break
 				}
-				mutationTypes[n] = p2.Elem()
+				mutationTypes = append(mutationTypes, mutationType{elType, p2.Elem()})
 			}
 			reg.mutations[name] = mutationTypes
 		}
@@ -144,28 +160,45 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 	}
 	// delay the json initialization, so enums, etc. can all be registered first?
 	// useful though to get options out.
-	if mfs, e := reg.initJson(structType, opt); e != nil {
+	if mutableInputs, e := reg.initJson(structType, opt); e != nil {
 		err = e
-	} else if blocks := js.Global.Get("Blockly").Get("Blocks"); blocks.Bool() {
+	} else if blockly := js.Global.Get("Blockly"); !blockly.Bool() {
+		err = errutil.New("blockly doesnt exist")
+	} else if blocks := blockly.Get("Blocks"); !blocks.Bool() {
+		err = errutil.New("blockly blocks dont exist")
+	} else {
 		// the ui system has "blocks" -- mapping type names to prototypes; standalone tests do not
 		init := js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
 			b := &Block{Object: obj}
 			if e := b.JsonInit(opt); e != nil {
 				panic(e)
-			} else if len(mfs) > 0 {
-				// ideally, there'd be a custom input type for mutations; but there's not.
-				for _, mf := range mfs {
-					if in, index := b.InputByName(mf.input); index >= 0 {
-						in.ForceMutation(mf.name)
+			} else if cnt := len(mutableInputs); cnt > 0 {
+				var blockNames []TypeName
+				// all of the mutatable inputs
+				for _, mutableInput := range mutableInputs {
+					mutationName, inputName := mutableInput.mutationName, mutableInput.inputName
+					if in, index := b.InputByName(inputName); index >= 0 {
+						in.ForceMutation(inputName.String())
 					} else {
-						panic("unexpected missing input" + mf.input)
+						panic("unexpected missing input" + inputName)
 					}
+					if mutationBlocks, ok := reg.mutations[mutationName]; !ok {
+						panic("unknown mutation" + mutationName)
+					} else {
+						for _, mblock := range mutationBlocks {
+							if len(mblock.workspaceType) > 0 {
+								blockNames = append(blockNames, toTypeName(mblock.mutationBlock))
+							}
+						}
+					}
+
 				}
+				b.SetMutator(NewMutator(blockNames))
 			}
 			return
 		})
 		var fns Options
-		if len(mfs) == 0 {
+		if len(mutableInputs) == 0 {
 			fns = Options{
 				"init": init,
 			}
@@ -205,10 +238,9 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 					return
 				}),
 				"saveConnections": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					ws := TheWorkspace
 					b := &Block{Object: obj}
 					containerBlock := &Block{Object: parms[0]}
-					b.saveConnections(ws, containerBlock)
+					b.saveConnections(containerBlock)
 					return
 				}),
 			}
@@ -219,13 +251,17 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 		blocks.Set(string(typeName), fns)
 
 		// create custom mutation block
-		if len(mfs) > 0 {
+		// FIX: if the same mutation appears in multiple blocks, this wont work
+		if len(mutableInputs) > 0 {
 			fns := Options{
 				"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
 					b := &Block{Object: obj}
-					for _, mf := range mfs {
-						in := b.AppendStatementInput(mf.input)
-						in.SetCheck(mf.check)
+					for _, mutableInput := range mutableInputs {
+						label := NewFieldLabel(mutableInput.inputName.Friendly(), "")
+						//b.AppendDummyInput(mutableInput.inputName + "$label").AppendField(label.Field)
+						in := b.AppendStatementInput(mutableInput.inputName)
+						in.AppendField(label.Field)
+						in.SetCheck(mutableInput.check)
 					}
 					return
 				}),
@@ -274,7 +310,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (ret []mutationField, err e
 	if _, ok := opt[opt_type]; !ok {
 		opt[opt_type] = name
 	}
-	if msg, args, mutations, e := reg.makeArgs(t); e != nil {
+	if msg, args, mutations, e := reg.makeArgs(t, ""); e != nil {
 		err = errutil.Append(err, e)
 	} else {
 		if len(msg) > 0 && !opt.contains(opt_message0) {
@@ -283,11 +319,22 @@ func (reg *Registry) initJson(t r.Type, opt Options) (ret []mutationField, err e
 		if len(args) > 0 && !opt.contains(opt_args0) {
 			opt[opt_args0] = args
 		}
+		if !opt.contains(opt_args0) && !opt.contains(opt_message0) {
+			spaces := name.Friendly()
+			// FIX: this is ill advised.
+			// if mutations blocks can be derived from the workspace blocks that they create
+			// then we could use the label thse blocks with the workspace block names
+			if strings.HasSuffix(spaces, " el") {
+				spaces = spaces[:len(spaces)-3]
+			}
+			opt[opt_message0] = spaces
+		}
+
 		ret = mutations
 	}
 	hasPrev, hasNext := opt.contains(opt_previousStatement), opt.contains(opt_nextStatement)
 	if !hasPrev {
-		if f, ok := t.FieldByName(PreviousStatementField); ok {
+		if f, ok := t.FieldByName(PreviousField); ok {
 			if c, e := constraintsForField(f); e != nil {
 				err = errutil.Append(err, e)
 			} else {
@@ -297,7 +344,7 @@ func (reg *Registry) initJson(t r.Type, opt Options) (ret []mutationField, err e
 		}
 	}
 	if !hasNext {
-		if f, ok := t.FieldByName(NextStatementField); ok {
+		if f, ok := t.FieldByName(NextField); ok {
 			if c, e := constraintsForField(f); e != nil {
 				err = errutil.Append(err, e)
 			} else {
@@ -345,16 +392,16 @@ func constraintsForField(f r.StructField) (ret interface{}, err error) {
 
 // evaluate the fields of the passed type to generate json usable by blockly initialization
 // each field gets its own "options" Options
-func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []mutationField, err error) {
+func (reg *Registry) makeArgs(t r.Type, path string) (msg string, args []Options, mutableInputs []mutationField, err error) {
 	var msgs []string
 	for i, cnt := 0, t.NumField(); i < cnt && err == nil; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
 		if f := t.Field(i); len(f.PkgPath) == 0 &&
-			f.Name != PreviousStatementField &&
-			f.Name != NextStatementField {
+			f.Name != PreviousField &&
+			f.Name != NextField {
 
 			// there can be only one.
-			if opt, e := reg.makeOpt(f); e != nil {
+			if opt, e := reg.makeOpt(f, path); e != nil {
 				err = errutil.Append(err, e)
 			} else {
 				args = append(args, opt)
@@ -371,18 +418,18 @@ func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []mutat
 						check = c.(TypeName)
 					} else if types, ok := reg.mutations[m]; !ok {
 						panic("couldnt find mutation named " + m)
-					} else if inputType, ok := types[""]; !ok {
+					} else if inputType, ok := types.findMutationType(""); !ok {
 						panic("error " + m)
 					} else {
 						check = toTypeName(inputType)
 					}
 
-					mf := mutationField{
-						name:  m,
-						input: input.Interface().(InputName),
-						check: check,
+					mutableInput := mutationField{
+						mutationName: m,
+						inputName:    input.Interface().(InputName),
+						check:        check,
 					}
-					mfs = append(mfs, mf)
+					mutableInputs = append(mutableInputs, mutableInput)
 				}
 			}
 		}
@@ -391,22 +438,22 @@ func (reg *Registry) makeArgs(t r.Type) (msg string, args []Options, mfs []mutat
 	return
 }
 
-func (reg *Registry) makeOpt(f r.StructField) (opt Options, err error) {
+func (reg *Registry) makeOpt(f r.StructField, path string) (opt Options, err error) {
 	// tags take precedence over type info.
 	// ( and some, ex. 'align' come only from tags. )
 	opt = parseTags(string(f.Tag))
 	name := pascalToCaps(f.Name)
-	opt.add(opt_name, name)
+	opt.add(opt_name, path+name)
 
 	// build 'type', 'check'
 	switch k := f.Type.Kind(); k {
 
 	// slice of statements or a mutation.
 	case r.Slice:
-		if s, ok := f.Tag.Lookup("mutation"); ok {
+		if s, ok := f.Tag.Lookup(tag_mutation); ok {
 			opt.add(opt_type, input_dummy)
 			opt[opt_mutation] = s
-			// -- the dummy input cant have a check type
+			// note: -- the dummy input cant have a check type
 			// if !opt.contains(opt_check) {
 			// 	if types, ok := reg.mutations[s]; !ok {
 			// 		panic("couldnt find mutation named " + s)

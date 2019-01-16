@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"strings"
 )
 
 type InputType int
@@ -25,12 +26,24 @@ const (
 	AlignRight
 )
 
+// InputNames are caps case. ex. INPUT_NAME
 type InputName string
 
-func (n InputName) FieldName() string {
-	return underscoreToPascal(n.String())
+// FieldPath returns the name of the go struct field.
+func (n InputName) FieldPath() string {
+	slashes := strings.Split(n.String(), "/")
+	for i, s := range slashes {
+		slashes[i] = underscoreToPascal(s)
+	}
+	return strings.Join(slashes, "/")
 }
 
+// Friendly returns the name in spaces.
+func (n InputName) Friendly() string {
+	return pascalToSpace(underscoreToPascal(n.String()))
+}
+
+// String returns the name in default (uppercase)
 func (n InputName) String() (ret string) {
 	if len(n) > 0 {
 		ret = string(n)

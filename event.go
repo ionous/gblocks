@@ -96,32 +96,32 @@ type BlockMove struct {
 	// OldCoordinate *js.Object `js:"oldCoordinate"` // X and Y coordinates if it was a top level block. Undefined if it had a parent.
 }
 
-// UUID of new parent block. Empty if it is a top level block.
-func (evt *BlockMove) NewParentId() (ret string) {
+// NextParentId - UUID of new parent block. Empty if it is a top level block.
+func (evt *BlockMove) NextParentId() (ret string) {
 	if p := evt.Get("newParentId"); p.Bool() {
 		ret = p.String()
 	}
 	return
 }
 
-// UUID of old parent block. Empty if it was a top level block.
-func (evt *BlockMove) OldParentId() (ret string) {
+// PrevParentId - UUID of old parent block. Empty if it was a top level block.
+func (evt *BlockMove) PrevParentId() (ret string) {
 	if p := evt.Get("oldParentId"); p.Bool() {
 		ret = p.String()
 	}
 	return
 }
 
-// Input in new parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) NewInputName() (ret InputName) {
+// NextInputName - Input in new parent ( if any ). Empty if it's the parent's next block.
+func (evt *BlockMove) NextInputName() (ret InputName) {
 	if p := evt.Get("newInputName"); p.Bool() {
 		ret = InputName(p.String())
 	}
 	return
 }
 
-// Input in old parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) OldInputName() (ret InputName) {
+// PrevInputName - Input in old parent ( if any ). Empty if it's the parent's next block.
+func (evt *BlockMove) PrevInputName() (ret InputName) {
 	if p := evt.Get("oldInputName"); p.Bool() {
 		ret = InputName(p.String())
 	}

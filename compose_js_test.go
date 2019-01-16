@@ -16,10 +16,13 @@ type MutationAltControl struct {
 }
 
 // for testing.
-func newMutatorLikeWorkspace() *Workspace {
-	obj := js.Global.Get("Blockly").Get("Workspace").New()
-	obj.Set("isMutator", true)
-	return initWorkspace(obj)
+func newMutatorLikeWorkspace() (ret *Workspace) {
+	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+		obj := blockly.Get("Workspace").New()
+		obj.Set("isMutator", true)
+		ret = initWorkspace(obj)
+	}
+	return
 }
 
 func TestMutationDecompose(t *testing.T) {
@@ -90,7 +93,7 @@ func TestMutationSaveConnections(t *testing.T) {
 		mui := newMutatorLikeWorkspace()
 		containerBlock, e := b.decompose(ws, mui)
 		require.NoError(t, e, "decomposing")
-		b.saveConnections(ws, containerBlock)
+		b.saveConnections(containerBlock)
 		var connections []*Connection
 		//
 		for mi, mcount := 0, containerBlock.NumInputs(); mi < mcount; mi++ {
@@ -150,7 +153,7 @@ func TestMutationCompose(t *testing.T) {
 		// test the composed block
 		composed := reduceInputs(b)
 		str := strings.Join(composed, ",")
-		require.Equal(t, str, "INPUT,MUTANT,SUB_INPUT,,,")
+		require.Equal(t, "INPUT,MUTANT,MUTANT/0/SUB_INPUT,,,", str)
 		d := ws.GetDataById(b.Id)
 
 		// test the generated data

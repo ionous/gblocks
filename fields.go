@@ -16,6 +16,5 @@ type FieldImage struct {
 }
 
 type FieldText string // field_input, FieldTextInput; pre-existing validators inclde numberValidator, nongenativeIntegerValidator
-type FieldLabel string
 type FieldNumber float32
 type FieldVariable string

@@ -19,6 +19,7 @@ const (
 	opt_text      = "text"
 	opt_precision = "precision"
 	opt_readOnly  = "readOnly"
+	tag_mutation  = "mutation"
 
 	input_statement = "input_statement"
 	input_value     = "input_value"
@@ -35,12 +36,13 @@ const (
 	field_input    = "field_input"  // text input options['spellcheck''],
 	field_variable = "field_variable"
 
-	PreviousStatementField = "PreviousStatement"
-	NextStatementField     = "NextStatement"
-	OutputMethod           = "Output"
+	PreviousField = "PreviousStatement"
+	NextField     = "NextStatement"
 
-	PREVIOUS_STATEMENT InputName = "PREVIOUS_STATEMENT"
-	NEXT_STATEMENT     InputName = "NEXT_STATEMENT"
+	PreviousInput InputName = "PREVIOUS_STATEMENT"
+	NextInput     InputName = "NEXT_STATEMENT"
+
+	OutputMethod = "Output"
 
 	// colour            = "colour"
 	// helpUrl           = "helpUrl"

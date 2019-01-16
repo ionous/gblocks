@@ -14,7 +14,7 @@ func TestShapeDomSave(t *testing.T) {
 		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		el := b.mutationToDom(ws)
-		text := `<mutation><input name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></mutation>`
+		text := `<mutation><data name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></data></mutation>`
 		require.Equal(t, text, el.OuterHTML())
 	})
 }
@@ -28,7 +28,7 @@ func TestShapeDomRestore(t *testing.T) {
 		d.Mutant = append(d.Mutant, &MutationEl{}, &MutationAlt{}, &MutationAlt{})
 		//
 		el := b.mutationToDom(ws)
-		text := `<mutation><input name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></mutation>`
+		text := `<mutation><data name="MUTANT" types="mutation_el,mutation_alt" elements="0,1,1"></data></mutation>`
 		require.Equal(t, text, el.OuterHTML())
 	})
 }

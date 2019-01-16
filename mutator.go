@@ -1,5 +1,20 @@
 package gblocks
 
+import "github.com/gopherjs/gopherjs/js"
+
+//Blockly.Mutator = function(quarkNames) {
+type Mutator struct {
+	*js.Object
+}
+
+func NewMutator(quarkNames []TypeName) (ret *Mutator) {
+	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+		obj := blockly.Get("Mutator").New(quarkNames)
+		ret = &Mutator{Object: obj}
+	}
+	return
+}
+
 /**
  * Reconnect an block to a mutated input.
  * @return {boolean} True iff a reconnection was made, false otherwise.

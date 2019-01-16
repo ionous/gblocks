@@ -10,6 +10,10 @@ func (n TypeName) StructName() string {
 	return underscoreToPascal(n.String())
 }
 
+func (n TypeName) Friendly() string {
+	return pascalToSpace(underscoreToPascal(n.String()))
+}
+
 func (n TypeName) String() (ret string) {
 	if len(n) > 0 {
 		ret = string(n)
@@ -285,7 +289,11 @@ func (b *Block) MutationType() TypeName {
 //func (b* Block)getCommentText  ()  { b.Call("getCommentText") }
 //func (b* Block)setCommentText  (text)  { b.Call("setCommentText") }
 //func (b* Block)setWarningText  (_text, _opt_id)  { b.Call("setWarningText") }
-//func (b* Block)setMutator  (_mutator)  { b.Call("setMutator") }
+//
+func (b *Block) SetMutator(mutator *Mutator) {
+	b.Call("setMutator", mutator.Object)
+}
+
 //func (b* Block)getRelativeToSurfaceXY  ()  { b.Call("getRelativeToSurfaceXY") }
 //func (b* Block)moveBy  (dx, dy)  { b.Call("moveBy") }
 //func (b* Block)allInputsFilled  (opt_shadowBlocksAreFilled)  { b.Call("allInputsFilled") }
