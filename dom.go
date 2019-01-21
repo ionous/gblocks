@@ -6,6 +6,7 @@ import (
 
 type DomElement struct {
 	*js.Object
+	TagName    string      `js:tagName`
 	Attributes *Attributes `js:attributes`
 }
 

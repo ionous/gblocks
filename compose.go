@@ -1,186 +1,195 @@
 package gblocks
 
 import (
+	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
-	r "reflect"
 )
 
-// Prepare the mutator's dialog with this block's components.
-// just like the original code, this goes from the *data* not the workspace block ui
-func (b *Block) decompose(blockws, mutationws *Workspace) (ret *Block, err error) {
-	if blockws == nil {
-		err = errutil.New("decompose from nil workspace")
-	} else if mutationws == nil {
+// collapse all dynamic inputs
+func (b *Block) removeAtoms() {
+	for i, collapse := 0, 0; i < b.NumInputs(); {
+		in := b.Input(i)
+		if collapse > 0 {
+			b.RemoveInput(in.Name)
+			collapse--
+		} else {
+			if m := in.Mutation(); m != nil {
+				collapse = m.ResetAtoms() // returns the total number of inputs used by this mutation
+			}
+			i++
+		}
+	}
+}
+
+//  workspace -> mutation ui
+func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error) {
+	if mui == nil {
 		err = errutil.New("decompose into nil workspace")
-	} else if container, e := mutationws.NewBlock(b.Type + "$mutation"); e != nil {
+	} else if muiContainer, e := mui.NewBlock(b.Type + "$mutation"); e != nil {
 		err = e // couldnt get the predefined mutator block used for the dialog
-	} else if ctx := blockws.Context(b.Id); ctx == nil {
-		err = errutil.New("decompose from empty block")
 	} else {
-		container.InitSvg()
-		// if the block has data already, hook it up to the container
-		if ctx.IsValid() {
-			srcData := ctx.Elem() // source data
-			srcType := srcData.Type()
-			// the input names match the field names of the data.
-			for i, cnt := 0, container.NumInputs(); i < cnt; i++ {
-				in := container.Input(i)
-				name := in.Name.FieldPath()
-				connection := in.Connection()
-				// connect each data element to the mutation's ui input
-				// note: labels have names, but theres no orginal field
-				if elsInfo, ok := srcType.FieldByName(name); ok {
-					els := srcData.FieldByIndex(elsInfo.Index)
-					//  "cant call Len on Input"
-					if cnt := els.Len(); cnt > 0 {
-						mutationType := elsInfo.Tag.Get(tag_mutation)
-						mutationTypes := TheRegistry.mutations[mutationType]
-						//
-						for i := 0; i < cnt; i++ {
-							iface := els.Index(i)
-							ptr := iface.Elem()
-							el := ptr.Elem()
-							//
-							elType := toTypeName(el.Type())
-							if mutationType, ok := mutationTypes.findMutationType(elType); !ok {
-								e := errutil.New("couldnt find type", elType)
-								err = errutil.Append(err, e)
-							} else {
-								if block, e := mutationws.NewBlock(mutationType); e != nil {
-									err = errutil.Append(err, e)
-								} else {
-									block.InitSvg()
-									connection.Connect(block.PreviousConnection())
-									connection = block.NextConnection()
-								}
-							}
-						}
+		muiContainer.InitSvg()
+		// each input in the mui represents an atom in the workspace block
+		for i, cnt := 0, muiContainer.NumInputs(); i < cnt; i++ {
+			muiInput := muiContainer.Input(i)
+			// the input names in the mui match the mutation in the original block
+			if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
+				err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
+			} else if m := blockInput.Mutation(); m != nil {
+				// ^ the mutation data for the input in the workspace
+				err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
+			} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
+				// ^ the data needed to create mutation ui blocks from atoms
+				err = errutil.Append(err, errutil.New("input", muiInput.Name, "has unknown mutation", m.MutationName))
+			} else {
+				muiConnection := muiInput.Connection()
+				// for every atom in the workspace block
+				for i, cnt := 0, m.NumAtoms(); i < cnt; i++ {
+					atom := m.Atom(i)
+					if mutationType, ok := mutationTypes.findMutationType(atom.Type); !ok {
+						err = errutil.Append(err, errutil.New("couldnt type for atom", atom.Type))
+					} else if muiBlock, e := mui.NewBlock(mutationType); e != nil {
+						err = errutil.Append(err, e)
+					} else {
+						muiBlock.InitSvg()
+						muiConnection.Connect(muiBlock.PreviousConnection())
+						muiConnection = muiBlock.NextConnection()
 					}
 				}
 			}
 		}
 		if err == nil {
-			ret = container
+			ret = muiContainer
 		} else {
-			container.Dispose()
+			muiContainer.Dispose()
 		}
 	}
 	return
 }
 
-// "into" each mutation ui block
-// ( found by looking into the container block -- the blocks connected to the inputs )
-// store links to the connections of the blocks in the workspace
-// ( so that reordering the mutations can re-order the connections )
-func (b *Block) saveConnections(containerBlock *Block) {
+// before we re/compose the workspace blocks/ remember what the connections pointed to
+func (b *Block) saveConnections(muiContainer *Block) (err error) {
 	// for each input in the mutation ui
-	for mi, mcount := 0, containerBlock.NumInputs(); mi < mcount; mi++ {
-		firstInput := containerBlock.Input(mi)
-		if c := firstInput.Connection(); c != nil {
-			// start with the first block connected to the mutation's ui input
-			if itemBlock := c.TargetBlock(); itemBlock != nil {
-				// the name of dummy input in the (this) block is the same as the mutation's ui input
-				blockInput, baseIndex := b.InputByName(firstInput.Name)
-				if m := blockInput.Mutation(); m == nil {
-					panic("the input in the block should be a mutation")
+	for mi, mcount := 0, muiContainer.NumInputs(); mi < mcount; mi++ {
+		muiInput := muiContainer.Input(mi)
+		// get the corresponding input in the workspace
+		if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
+			err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
+		} else if m := blockInput.Mutation(); m != nil {
+			// ^ the mutation data for the input in the workspace
+			err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
+		} else if muiConnection := muiInput.Connection(); muiConnection == nil {
+			// ^ the connected blocks in the mutation ui
+			err = errutil.Append(err, errutil.New("input is missing connections", muiInput.Name))
+		} else {
+			// for every block connected to the mutation ui's input...
+			atomIndex, atomCnt := 0, m.NumAtoms()
+			for muiBlock := muiConnection.TargetBlock(); muiBlock != nil && atomIndex < atomCnt; atomIndex++ {
+				// each mutation ui block represents a single atom in the workspace
+				atom := m.Atom(atomIndex)
+				// the atom, however, can hold several inputs
+				var connections []*Connection
+				// record all of the atom's input...
+				for i, inputIndex := 0, inputIndex+1; i < atom.NumInputs; i, inputIndex = i+1, inputIndex+1 {
+					in := b.Input(inputIndex)
+					connections = append(connections, in.Connection().TargetConnection())
+				}
+				// and store them in the mutation ui's block
+				muiBlock.connections = js.Global.Get("Array")
+				// then, move to the next block connected to the mutation ui's input
+				if muiConnection := muiBlock.NextConnection(); muiConnection != nil {
+					muiBlock = muiConnection.TargetBlock()
 				} else {
-					// for each sub-block in the workspace block
-					for ai, acnt := 0, m.Atoms(); ai < acnt; ai++ {
-						atom := m.Atom(ai)
-						// for each input in the sub-block, store its outgoing connection
-						for ni, ncnt := 0, atom.Connections(); ni < ncnt; ni++ {
-							blockInput := b.Input(baseIndex + ni)
-							atom.SaveConnection(ni, blockInput)
-						}
-						// next block in the mutation ui
-						if c := itemBlock.NextConnection(); c != nil {
-							itemBlock = c.TargetBlock()
-						} else {
-							break
-						}
-					}
+					break // done with blocks
 				}
 			}
-		}
-	}
-}
-
-type ConnectionList struct {
-	list []*Connection
-}
-
-func (cl *ConnectionList) add(c *Connection) {
-	cl.list = append(cl.list, c)
-}
-
-func (cl *ConnectionList) contains(c *Connection) (ret bool) {
-	for _, oc := range cl.list {
-		if oc.Object == c.Object {
-			ret = true
 		}
 	}
 	return
 }
 
-// re/create the workspace blocks from the mutation dialog ui
-func (b *Block) compose(ws *Workspace, containerBlock *Block) {
-	if ws != nil {
-		// rebuild the block
-		ctx := ws.Context(b.Id)
-		// for each mutation in the mutator ui
-		for mi, mcount := 0, containerBlock.NumInputs(); mi < mcount; mi++ {
-			firstInput := containerBlock.Input(mi)
-			// ugh.
-			el := ctx.Elem()
-			elType := el.Type()
-			// labels have names which cant be found
-			if elsInfo, ok := elType.FieldByName(firstInput.Name.FieldPath()); ok {
-				mutationType := elsInfo.Tag.Get(tag_mutation)
-				mutationTypes := TheRegistry.mutations[mutationType]
+// mutation ui -> workspace
+func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
+	// remove all the dynamic inputs from the blocks;
+	// we're about to recreate/recompose them.
+	b.removeAtoms()
+	type savedConnection struct {
+		connections *js.Object
+		numInputs   int
+	}
+	type savedMutation struct {
+		inputName        InputName
+		savedConnections []savedConnection
+	}
+	var savedMutations []savedMutation
+	// for each mutation in the mutator ui
+	for mi, mcount := 0, muiContainer.NumInputs(); mi < mcount; mi++ {
+		muiInput := muiContainer.Input(mi)
+		// get the corresponding input in the workspace
+		if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
+			err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
+		} else if m := blockInput.Mutation(); m != nil {
+			// ^ the mutation data for the input in the workspace
+			err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
+		} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
+			// ^ the data needed to create workspace atoms from mutation ui blocks
+			err = errutil.Append(err, errutil.New("input", muiInput.Name, "has unknown mutation", m.MutationName))
+		} else {
+			var savedConnections []savedConnection
+			if muiConnection := muiInput.Connection(); muiConnection != nil {
+				okay := true
+				// for every block connected to the mutation ui's input...
+				for muiBlock := muiConnection.TargetBlock(); muiBlock != nil; {
+					// determine which workspace atom corresponds to the (user selected) mutation ui block
+					if atomType, found := mutationTypes.findAtomType(muiBlock.Type); !found {
+						err = errutil.Append(err, errutil.New("unknown atom type for mutation", muiInput.Name, muiBlock.Type))
+						okay = false
+						break
+					} else if numInputs, e := m.addAtom(reg, atomType); e != nil {
+						err = errutil.Append(err, e)
+						okay = false
+						break
+					} else {
+						// after we have generated all the inputs in the workspace block we will need to reconnect them.
+						saved := savedConnection{muiBlock.connections, numInputs}
+						savedConnections = append(savedConnections, saved)
 
-				// reset the data generated by a previous mutation.
-				els := el.FieldByIndex(elsInfo.Index)
-				out := els.Slice(0, 0)
-
-				// recreate the data generated by the current mutation.
-				if c := firstInput.Connection(); c != nil {
-					// each clause represents one atom of this block.
-					for clauseBlock := c.TargetBlock(); clauseBlock != nil; {
-						// for each clause, create some data
-						typeName := mutationTypes.findWorkspaceType(clauseBlock.Type)
-						// append the data to the output array
-						if v, e := TheRegistry.NewData(typeName); e != nil {
-							panic("Composing " + clauseBlock.Type.String() + " " + e.Error())
-						} else {
-							out = r.Append(out, v)
-						}
 						// next clause in the mutation ui ( for this input )
-						if c := clauseBlock.NextConnection(); c != nil {
-							clauseBlock = c.TargetBlock()
+						if muiConnection := muiBlock.NextConnection(); muiConnection != nil {
+							muiBlock = muiConnection.TargetBlock()
 						} else {
 							break
 						}
 					}
-					els.Set(out)
+					if okay {
+						savedMutations = append(savedMutations, savedMutation{muiInput.Name, savedConnections})
+					}
 				}
 			}
-		}
-
-		// recreates all dynamic inputs based on the data
-		b.updateShape(ws)
-
-		// after re-creating the inputs; re-connect those inputs.
-		for bi, bcnt := 0, b.NumInputs(); bi < bcnt; bi++ {
-			in := b.Input(bi)
-			if m := in.Mutation(); m != nil {
-				for ai, acnt := 0, m.Atoms(); ai < acnt; ai++ {
-					atom := m.Atom(ai)
-					for ni, ncnt := 0, atom.Connections(); ni < ncnt; ni++ {
-						bi++
-						reconnect(b, bi, atom.Connection(ni))
+			b.InitSvg()
+			// re-connect those inputs
+			for _, saved := range savedMutations {
+				name := saved.inputName
+				if in, index := b.InputByName(name); index < 0 {
+					err = errutil.Append(err, errutil.New("missing input named", name))
+				} else if m := in.Mutation(); m != nil {
+					err = errutil.Append(err, errutil.New("missing mutable data", name))
+				} else {
+					for _, saved := range saved.savedConnections {
+						inputs, connections := saved.numInputs, saved.connections
+						var cnt int
+						if a, b := inputs, connections.Length(); a < b {
+							cnt = a
+						} else {
+							cnt = b
+						}
+						for i := 0; i < cnt; i++ {
+							reconnect(b, index+i+1, jsConnection(connections.Index(i)))
+						}
 					}
 				}
 			}
 		}
 	}
+	return
 }

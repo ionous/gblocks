@@ -38,10 +38,7 @@ type Block struct {
 	IsInMutator  bool       `js:"isInMutator"`
 	Rtl          bool       `js:"RTL"`
 	InputsInline bool       `js:"inputsInline"`
-
-	// note: this workspace pointer has limited value;
-	// it doesnt point to the Workspace object containing "Context" data
-	workspace_ *js.Object `js:"workspace"`
+	workspace    *js.Object `js:"workspace"`
 }
 
 func jsConnection(obj *js.Object) (ret *Connection) {
@@ -243,7 +240,7 @@ func (b *Block) interpolate(msg string, args []Options) {
 }
 
 func (b *Block) hasWorkspace() bool {
-	return b.workspace_ != nil && b.workspace_ != js.Undefined
+	return b.workspace != nil && b.workspace.Bool()
 }
 
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }
@@ -272,11 +269,16 @@ func (b *Block) setInput(i int, in *Input) {
 }
 
 func (b *Block) InputByName(str InputName) (retInput *Input, retIndex int) {
+	found := false
 	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
 		if in := b.Input(i); in.Name == str {
 			retInput, retIndex = in, i
+			found = true
 			break
 		}
+	}
+	if !found {
+		retIndex = -1
 	}
 	return
 }

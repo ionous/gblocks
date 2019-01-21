@@ -19,30 +19,30 @@ type Registry struct {
 	mutations map[string]mutationMap
 }
 
-var TheRegistry Registry
+// var TheRegistry Registry
 
-func RegisterBlocks(opt map[string]Options, blocks ...interface{}) error {
-	return TheRegistry.registerBlocks(opt, blocks...)
-}
+// func RegisterBlocks(opt map[string]Options, blocks ...interface{}) error {
+// 	return TheRegistry.registerBlocks(opt, blocks...)
+// }
 
-// register a mapping of workspace block type to mutation ui block type.
-// name is the struct tag; it describes a mutation input
-func RegisterMutation(name string, pairs ...interface{}) error {
-	return TheRegistry.registerMutation(name, pairs...)
-}
+// // register a mapping of workspace block type to mutation ui block type.
+// // name is the struct tag; it describes a mutation input
+// func RegisterMutation(name string, pairs ...interface{}) error {
+// 	return TheRegistry.registerMutation(name, pairs...)
+// }
 
-func RegisterBlock(b interface{}, opt Options) error {
-	structType := r.TypeOf(b).Elem()
-	typeName := toTypeName(structType)
-	return TheRegistry.registerBlock(typeName, structType, opt)
-}
+// func RegisterBlock(b interface{}, opt Options) error {
+// 	structType := r.TypeOf(b).Elem()
+// 	typeName := toTypeName(structType)
+// 	return TheRegistry.registerType(typeName, structType, opt)
+// }
 
-// RegisterEnum - expects a map of intish to string
-func RegisterEnum(n interface{}) error {
-	// string pairs is returned for the sake of tests; we can ignore it here.
-	_, err := TheRegistry.registerEnum(n)
-	return err
-}
+// // RegisterEnum - expects a map of intish to string
+// func RegisterEnum(n interface{}) error {
+// 	// string pairs is returned for the sake of tests; we can ignore it here.
+// 	_, err := TheRegistry.registerEnum(n)
+// 	return err
+// }
 
 type mutationField struct {
 	mutationName string
@@ -69,12 +69,13 @@ func (mm *mutationMap) findMutationType(elType TypeName) (ret r.Type, okay bool)
 	return
 }
 
-// findWorkspaceType - what kind of block in the main workspace does the mutation elemeent represent*
-func (mm *mutationMap) findWorkspaceType(mutationType TypeName) (ret TypeName) {
+// findAtomType - what kind of block in the main workspace does the mutation elemeent represent*
+func (mm *mutationMap) findAtomType(mutationType TypeName) (ret TypeName, okay bool) {
 	for _, mt := range *mm {
 		// hmmm... skip the initial nil entry.
 		if len(mt.workspaceType) > 0 && toTypeName(mt.mutationBlock) == mutationType {
 			ret = mt.workspaceType
+			okay = true
 			break
 		}
 	}
@@ -106,7 +107,7 @@ func (reg *Registry) registerBlocks(opt map[string]Options, blocks ...interface{
 		if opt, ok := opt[typeName.String()]; ok {
 			sub = opt
 		}
-		if e := reg.registerBlock(typeName, structType, sub); e != nil {
+		if e := reg.registerType(typeName, structType, sub); e != nil {
 			e := errutil.New("error registering", typeName, e)
 			err = errutil.Append(err, e)
 		}
@@ -148,7 +149,7 @@ func (reg *Registry) contains(typeName TypeName) bool {
 	return ok
 }
 
-func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Options) (err error) {
+func (reg *Registry) registerType(typeName TypeName, structType r.Type, opt Options) (err error) {
 	//
 	if reg.types == nil {
 		reg.types = make(map[TypeName]r.Type)
@@ -206,41 +207,38 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 			fns = Options{
 				"init": init,
 				"mutationToDom": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
-					ws := TheWorkspace
 					b := &Block{Object: obj}
-					return b.mutationToDom(ws).Object
+					dom := b.mutationToDom()
+					return dom.Object
 				}),
 				"domToMutation": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					ws := TheWorkspace
-					b := &Block{Object: obj}
-					xmlElement := &DomElement{Object: parms[0]}
-					if e := b.domToMutation(ws, xmlElement); e != nil {
+					b, xmlElement := &Block{Object: obj}, &DomElement{Object: parms[0]}
+					if e := b.domToMutation(reg, xmlElement); e != nil {
 						panic(e)
 					}
 					return
 				}),
 				"decompose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					ws := TheWorkspace
-					b := &Block{Object: obj}
-					mui := &Workspace{Object: parms[0]}
-					if mb, e := b.decompose(ws, mui); e != nil {
+					b, mui := &Block{Object: obj}, &Workspace{Object: parms[0]}
+					if muiContainer, e := b.decompose(reg, mui); e != nil {
 						panic(e)
 					} else {
-						ret = mb.Object
+						ret = muiContainer.Object
 					}
 					return
 				}),
 				"compose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					ws := TheWorkspace
-					b := &Block{Object: obj}
-					containerBlock := &Block{Object: parms[0]}
-					b.compose(ws, containerBlock)
+					b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
+					if e := b.compose(reg, containerBlock); e != nil {
+						panic(e)
+					}
 					return
 				}),
 				"saveConnections": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b := &Block{Object: obj}
-					containerBlock := &Block{Object: parms[0]}
-					b.saveConnections(containerBlock)
+					b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
+					if e := b.saveConnections(containerBlock); e != nil {
+						panic(e)
+					}
 					return
 				}),
 			}
@@ -258,7 +256,6 @@ func (reg *Registry) registerBlock(typeName TypeName, structType r.Type, opt Opt
 					b := &Block{Object: obj}
 					for _, mutableInput := range mutableInputs {
 						label := NewFieldLabel(mutableInput.inputName.Friendly(), "")
-						//b.AppendDummyInput(mutableInput.inputName + "$label").AppendField(label.Field)
 						in := b.AppendStatementInput(mutableInput.inputName)
 						in.AppendField(label.Field)
 						in.SetCheck(mutableInput.check)

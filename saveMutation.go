@@ -2,86 +2,66 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
-	r "reflect"
-	"strings"
 )
 
-// Create XML to record the number of user-defined input blocks.
-// note: this function cannot return nil, or blockly will fail.
-func (b *Block) mutationToDom(ws *Workspace) *DomElement {
+// Serialize mutations returning XML describing the number and type of user-defined inputs.
+// note: this is used by blockly during block creation, updates to generate block.xml.
+// this function cannot return nil or blockly will throw an error.
+func (b *Block) mutationToDom() *DomElement {
 	out := NewDomElement("mutation")
-	if ws != nil {
-		if cnt := b.NumInputs(); cnt > 0 {
-			if ctx := ws.Context(b.Id); ctx != nil {
-				for i := 0; i < cnt; i++ {
-					in := b.Input(i)
-					if m := in.Mutation(); m != nil {
-						if slice := ctx.FieldForInput(in.Name); slice.IsValid() {
-							appendMutation(in.Name.String(), slice, out)
-						}
-					}
-				}
+	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
+		in := b.Input(i)
+		if m := in.Mutation(); m != nil {
+			if child := m.mutationToDom(); child != nil {
+				out.AppendChild(child)
 			}
 		}
 	}
 	return out
 }
 
-func appendMutation(name string, slice r.Value, out *DomElement) {
-	if cnt := slice.Len(); cnt > 0 {
-		elements := make([]int, cnt)
-		nameToIndex := make(map[r.Type]int)
-		var typeNames []TypeName
+// shared with toolbox creation
+func (m *InputMutation) mutationToDom() (ret *DomElement) {
+	in := m.Input()
+	if cnt := m.NumAtoms(); cnt > 0 {
+		out := NewDomElement("atoms", Attrs{"name": in.Name.String()})
 		for i := 0; i < cnt; i++ {
-			// note: we have to deref the element into its actual value before asking for its type.
-			iface := slice.Index(i)
-			ptr := iface.Elem()
-			el := ptr.Elem()
-			t := el.Type()
-			typeIndex := len(nameToIndex)
-			if existingIndex, ok := nameToIndex[t]; ok {
-				typeIndex = existingIndex
-			} else {
-				nameToIndex[t] = typeIndex
-				typeName := toTypeName(t)
-				typeNames = append(typeNames, typeName)
-			}
-			elements[i] = typeIndex
+			atom := m.Atom(i)
+			out.AppendChild(NewDomElement("atom", Attrs{"type": atom.Type.String()}))
 		}
-		el := out.AppendChild(NewDomElement("data"))
-		el.SetAttribute("name", name)
-		el.SetAttribute("types", typeNames)
-		el.SetAttribute("elements", elements)
+		ret = out
 	}
+	return
 }
 
-func (b *Block) domToMutation(ws *Workspace, dom *DomElement) (err error) {
-	if ws == nil {
-		// happens during Blockly.inject
-		// err = errutil.New("deserializing mutation into nil workspace")
-	} else if ctx := ws.Context(b.Id); ctx == nil {
-		//err = errutil.New("deserializing mutation into invalid workspace")
-	} else {
-		kids := dom.Children()
-		for i, cnt := 0, kids.Num(); i < cnt; i++ {
-			el := kids.Index(i)
-			attrName := InputName(el.GetAttribute("name").String())
-			if els := ctx.FieldForInput(attrName); !els.IsValid() {
-				err = errutil.New("unknown field", attrName)
+// Deserialize mutations by expanding XML into atoms.
+func (b *Block) domToMutation(reg *Registry, dom *DomElement) (err error) {
+	// we are "reloading" the mutations; remove all dynamic inputs
+	b.removeAtoms()
+	//
+	kids := dom.Children()
+	for i, cnt := 0, kids.Num(); i < cnt; i++ {
+		if el := kids.Index(i); el.TagName != "atoms" {
+			err = errutil.Append(err, errutil.New("mutation has unexpected child", el.TagName))
+		} else {
+			inputName := InputName(el.GetAttribute("name").String())
+			if in, index := b.InputByName(inputName); index < 0 {
+				err = errutil.New("unknown input", inputName)
+			} else if m := in.Mutation(); m == nil {
+				err = errutil.New("input is not a mutation", inputName)
 			} else {
-				out := els.Slice(0, 0)
-				types := strings.Split(el.GetAttribute("types").Value.String(), ",")
-				val := el.GetAttribute("elements").Value
-				for i := 0; i < val.Length(); i++ {
-					index := val.Index(i).Int()
-					typeName := TypeName(types[index])
-					if v, e := TheRegistry.NewData(typeName); e != nil {
+				kids := el.Children()
+				for i, cnt := 0, kids.Num(); i < cnt; i++ {
+					if el := kids.Index(i); el.TagName != "atom" {
+						err = errutil.Append(err, errutil.New("input has unexpected child", el.TagName))
+					} else if atomType := TypeName(el.GetAttribute("type").String()); len(atomType) == 0 {
+						err = errutil.Append(err, errutil.New("atom has no type", el.TagName))
+					} else if numInputs, e := m.addAtom(reg, atomType); e != nil {
 						err = errutil.Append(err, e)
 					} else {
-						out = r.Append(out, v)
+						m.TotalInputs += numInputs
 					}
 				}
-				els.Set(out)
 			}
 		}
 	}

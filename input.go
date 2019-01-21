@@ -3,7 +3,6 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
-	"strings"
 )
 
 type InputType int
@@ -29,15 +28,6 @@ const (
 // InputNames are caps case. ex. INPUT_NAME
 type InputName string
 
-// FieldPath returns the name of the go struct field.
-func (n InputName) FieldPath() string {
-	slashes := strings.Split(n.String(), "/")
-	for i, s := range slashes {
-		slashes[i] = underscoreToPascal(s)
-	}
-	return strings.Join(slashes, "/")
-}
-
 // Friendly returns the name in spaces.
 func (n InputName) Friendly() string {
 	return pascalToSpace(underscoreToPascal(n.String()))
@@ -52,13 +42,19 @@ func (n InputName) String() (ret string) {
 }
 
 type Input struct {
-	*js.Object               // Blockly.Input
-	Type       InputType     `js:"type"`
-	Name       InputName     `js:"name"`
-	Align      InputAlign    `js:"align"`
-	FieldRow   []interface{} `js:"fieldRow"`   // array of Blockly.Field
-	connection *js.Object    `js:"connection"` // Blockly.Connection
-	mutation_  *js.Object    `js:"mutation_"`  // *InputMutation
+	*js.Object                // Blockly.Input
+	Type        InputType     `js:"type"`
+	Name        InputName     `js:"name"`
+	Align       InputAlign    `js:"align"`
+	FieldRow    []interface{} `js:"fieldRow"`     // array of Blockly.Field
+	sourceBlock *js.Object    `js:"sourceBlock_"` // Blockly.Block
+	connection  *js.Object    `js:"connection"`   // Blockly.Connection
+	// custom
+	mutation_ *js.Object `js:"mutation_"` // *InputMutation
+}
+
+func (in *Input) Block() *Block {
+	return &Block{Object: in.sourceBlock}
 }
 
 func (in *Input) Connection() *Connection {
@@ -90,9 +86,7 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 func (in *Input) ForceMutation(name string) {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
-	m := &InputMutation{Object: new(js.Object)}
-	m.name = name
-	in.mutation_ = m.Object
+	in.mutation_ = NewInputMutation(in, name).Object
 }
 
 func (in *Input) Mutation() (ret *InputMutation) {
