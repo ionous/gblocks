@@ -34,7 +34,7 @@ func (b *RowBlock) Output() interface{} {
 // 	require.NoError(t, RegisterBlock((*StackBlock)(nil), nil), "register stack")
 // 	require.NoError(t, RegisterBlock((*RowBlock)(nil), nil), "register row")
 // 	require.NoError(t, RegisterBlock((*FieldBlock)(nil), nil), "register fields")
-// 	ws := NewBlankWorkspace()
+// 	ws := NewBlankWorkspace(false)
 // 	// replace timed event queue with direct event queue
 // 	events := GetEvents()
 // 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {

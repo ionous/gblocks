@@ -179,7 +179,7 @@ func (reg *Registry) registerType(typeName TypeName, structType r.Type, opt Opti
 				for _, mutableInput := range mutableInputs {
 					mutationName, inputName := mutableInput.mutationName, mutableInput.inputName
 					if in, index := b.InputByName(inputName); index >= 0 {
-						in.ForceMutation(inputName.String())
+						in.ForceMutation(mutationName)
 					} else {
 						panic("unexpected missing input" + inputName)
 					}

@@ -1,11 +1,11 @@
 package gblocks
 
 import (
-	"github.com/gopherjs/gopherjs/js"
+	// "github.com/gopherjs/gopherjs/js"
 	// "github.com/kr/pretty"
-	// "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 	// "strings"
-	// "testing"
+	"testing"
 )
 
 type MutationElControl struct {
@@ -15,43 +15,38 @@ type MutationAltControl struct {
 	PreviousStatement, NextStatement interface{}
 }
 
-// for testing.
-func newMutatorLikeWorkspace() (ret *Workspace) {
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
-		obj := blockly.Get("Workspace").New()
-		ret := &Workspace{Object: obj}
-		ret.IsMutator = true
-	}
-	return
+func TestMutationDecompose(t *testing.T) {
+	testShape(t, func(ws *Workspace, reg *Registry) {
+		b, e := ws.NewBlock((*ShapeTest)(nil))
+		require.NoError(t, e, "created block")
+		//
+		if in, index := b.InputByName("MUTANT"); index < 0 {
+			t.Fatal("missing input")
+		} else if m := in.Mutation(); m == nil {
+			t.Fatal("missing mutation")
+		} else {
+			for i, atomType := range []TypeName{"atom_test", "atom_alt_test", "atom_test"} {
+				numInputs, e := m.addAtom(reg, atomType)
+				require.NoError(t, e, "added atom", i)
+				require.Equal(t, 1, numInputs, "added inputs", i)
+			}
+		}
+		//
+		t.Log("decomposing")
+		mui := NewBlankWorkspace(true)
+		muiContainer, e := b.decompose(reg, mui)
+		require.NoError(t, e)
+		//
+		t.Log("reducing")
+		require.NotNil(t, muiContainer, "reduced")
+		mutationString := reduceInputs(muiContainer)
+		//
+		t.Log("matching", mutationString)
+		require.Equal(t, []string{
+			"MUTANT", "mutation_el_control", "mutation_alt_control", "mutation_el_control",
+		}, mutationString)
+	})
 }
-
-// func xTestMutationDecompose(t *testing.T) {
-// 	testShape(t, func(ws *Workspace, reg*Registry) {
-// 		require.False(t, ws.IsMutator, "is mutator")
-// 		//
-// 		t.Log("new block")
-// 		b, e := ws.NewBlock((*ShapeTest)(nil))
-// 		require.NoError(t, e)
-
-// 		t.Log("data by id")
-// 		d := ws.GetDataById(b.Id).(*ShapeTest)
-// 		d.Mutant = append(d.Mutant, &AtomTest{}, &MutationAlt{}, &MutationAlt{})
-// 		//
-// 		t.Log("decomposing")
-// 		mui := newMutatorLikeWorkspace()
-// 		containerBlock, e := b.decompose(ws, mui)
-// 		require.NoError(t, e)
-// 		//
-// 		t.Log("reducing")
-// 		require.NotNil(t, containerBlock, "reduced")
-// 		mutationString := reduceInputs(containerBlock)
-// 		//
-// 		t.Log("matching", mutationString)
-// 		require.Equal(t, []string{
-// 			"MUTANT", "mutation_el_control", "mutation_alt_control", "mutation_alt_control",
-// 		}, mutationString)
-// 	})
-// }
 
 func reduceInputs(block *Block) (ret []string) {
 	for i, cnt := 0, block.NumInputs(); i < cnt; i++ {
@@ -86,13 +81,13 @@ func reduceBlocks(block *Block) (ret []string) {
 // 		//
 // 		t.Log("decomposing")
 // 		mui := newMutatorLikeWorkspace()
-// 		containerBlock, e := b.decompose(ws, mui)
+// 		muiContainer, e := b.decompose(ws, mui)
 // 		require.NoError(t, e, "decomposing")
-// 		b.saveConnections(containerBlock)
+// 		b.saveConnections(muiContainer)
 // 		var connections []*Connection
 // 		//
-// 		for mi, mcount := 0, containerBlock.NumInputs(); mi < mcount; mi++ {
-// 			firstInput := containerBlock.Input(mi)
+// 		for mi, mcount := 0, muiContainer.NumInputs(); mi < mcount; mi++ {
+// 			firstInput := muiContainer.Input(mi)
 // 			if c := firstInput.Connection(); c != nil {
 // 				connections = append(connections, c)
 // 				for itemBlock := c.TargetBlock(); itemBlock != nil; {

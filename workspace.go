@@ -34,10 +34,11 @@ type Workspace struct {
 	// context map[string]*Context // blockId-> context
 }
 
-func NewBlankWorkspace() (ret *Workspace) {
+func NewBlankWorkspace(isMutator bool) (ret *Workspace) {
 	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
 		obj := blockly.Get("Workspace").New()
 		ret = &Workspace{Object: obj}
+		ret.IsMutator = isMutator
 	}
 	return
 }

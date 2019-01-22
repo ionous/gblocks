@@ -158,7 +158,7 @@ func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 		(*MutationElControl)(nil),
 		(*MutationAltControl)(nil),
 	), "register blocks")
-	ws := NewBlankWorkspace()
+	ws := NewBlankWorkspace(false)
 	// replace timed event queue with direct event queue
 	events := GetEvents()
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {

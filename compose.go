@@ -34,7 +34,7 @@ func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error)
 			// the input names in the mui match the mutation in the original block
 			if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
 				err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
-			} else if m := blockInput.Mutation(); m != nil {
+			} else if m := blockInput.Mutation(); m == nil {
 				// ^ the mutation data for the input in the workspace
 				err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
 			} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
@@ -74,7 +74,7 @@ func (b *Block) saveConnections(muiContainer *Block) (err error) {
 		// get the corresponding input in the workspace
 		if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
 			err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
-		} else if m := blockInput.Mutation(); m != nil {
+		} else if m := blockInput.Mutation(); m == nil {
 			// ^ the mutation data for the input in the workspace
 			err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
 		} else if muiConnection := muiInput.Connection(); muiConnection == nil {
@@ -127,7 +127,7 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 		// get the corresponding input in the workspace
 		if blockInput, inputIndex := b.InputByName(muiInput.Name); inputIndex < 0 {
 			err = errutil.Append(err, errutil.New("no input named", muiInput.Name))
-		} else if m := blockInput.Mutation(); m != nil {
+		} else if m := blockInput.Mutation(); m == nil {
 			// ^ the mutation data for the input in the workspace
 			err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
 		} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
@@ -170,9 +170,9 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 			for _, saved := range savedMutations {
 				name := saved.inputName
 				if in, index := b.InputByName(name); index < 0 {
-					err = errutil.Append(err, errutil.New("missing input named", name))
-				} else if m := in.Mutation(); m != nil {
-					err = errutil.Append(err, errutil.New("missing mutable data", name))
+					err = errutil.Append(err, errutil.New("no input named", name))
+				} else if m := in.Mutation(); m == nil {
+					err = errutil.Append(err, errutil.New("input isnt mutable", name))
 				} else {
 					for _, saved := range saved.savedConnections {
 						inputs, cs := saved.numInputs, saved.connections
