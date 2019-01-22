@@ -13,9 +13,18 @@ func NewConnections() *Connections {
 }
 
 func (cs *Connections) Append(c *Connection) {
-	cs.SetIndex(c.Length(), c.Object)
+	cs.SetIndex(cs.Length(), c)
 }
 
-func (cs *Connections) Connection(i int) *Connection {
-	return &Connection{Object: cs.Index(i)}
+func (cs *Connections) Connection(i int) (ret *Connection) {
+	return jsConnection(cs.Index(i))
+}
+
+// it's not clear why, but using (an uninitialied) *Connections as a js:tagged field
+// results in valid *Connections pointer with a nil *js.Object.
+func (cs *Connections) Length() (ret int) {
+	if cs.Object != nil && cs.Object.Bool() {
+		ret = cs.Object.Length()
+	}
+	return
 }

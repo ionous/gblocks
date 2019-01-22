@@ -67,6 +67,8 @@ func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error)
 }
 
 // before we re/compose the workspace blocks/ remember what the connections pointed to
+// connections are saved into the muiContainer's blocks
+// when the mui blocks are re-ordered, the connections are re-ordered.
 func (b *Block) saveConnections(muiContainer *Block) (err error) {
 	// for each input in the mutation ui
 	for mi, mcount := 0, muiContainer.NumInputs(); mi < mcount; mi++ {
@@ -89,9 +91,14 @@ func (b *Block) saveConnections(muiContainer *Block) (err error) {
 				// the atom, however, can hold several inputs
 				connections := NewConnections()
 				// record all of the atom's input...
-				for i, inputIndex := 0, inputIndex+1; i < atom.NumInputs; i, inputIndex = i+1, inputIndex+1 {
+				for i := 0; i < atom.NumInputs; i++ {
+					inputIndex++
 					in := b.Input(inputIndex)
-					connections.Append(in.Connection().TargetConnection())
+					var target *Connection
+					if c := in.Connection(); c != nil {
+						target = c.TargetConnection()
+					}
+					connections.Append(target)
 				}
 				// and store them in the mutation ui's block
 				muiBlock.connections = connections
@@ -175,15 +182,17 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 					err = errutil.Append(err, errutil.New("input isnt mutable", name))
 				} else {
 					for _, saved := range saved.savedConnections {
-						inputs, cs := saved.numInputs, saved.connections
-						var cnt int
-						if a, b := inputs, cs.Length(); a < b {
-							cnt = a
-						} else {
-							cnt = b
-						}
-						for i := 0; i < cnt; i++ {
-							reconnect(b, index+i+1, cs.Connection(i))
+						if inputs, cs := saved.numInputs, saved.connections; cs != nil {
+							// min number of inputs
+							var cnt int
+							if a, b := inputs, cs.Length(); a < b {
+								cnt = a
+							} else {
+								cnt = b
+							}
+							for i := 0; i < cnt; i++ {
+								reconnect(b, index+i+1, cs.Connection(i))
+							}
 						}
 					}
 				}

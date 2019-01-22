@@ -106,10 +106,7 @@ func (b *Block) GetNextBlock() (ret *Block) {
 
 // Return the connection on the first statement input
 func (b *Block) GetFirstStatementConnection() (ret *Connection) {
-	if obj := b.Call("getFirstStatementConnection"); obj.Bool() {
-		ret = &Connection{Object: obj}
-	}
-	return
+	return jsConnection(b.Call("getFirstStatementConnection"))
 }
 
 func (b *Block) GetRootBlock() (ret *Block) {
@@ -258,7 +255,7 @@ func (b *Block) NumInputs() int {
 
 func (b *Block) Input(i int) *Input {
 	if cnt := b.inputList.Length(); i < 0 || i >= cnt {
-		println(i, "of", cnt)
+		println("out of range", i, "of", cnt)
 		panic("out of range")
 	}
 	in := b.inputList.Index(i)

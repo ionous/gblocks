@@ -15,6 +15,7 @@ type StackBlock struct {
 
 // see also: blockly/tests/jsunit/block_test.js setUpRowBlocks.
 type RowBlock struct {
+	// implement an interface that generates an output
 	Input interface {
 		Output() interface{}
 	}

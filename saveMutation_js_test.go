@@ -79,20 +79,9 @@ func TestShapeAddAtom(t *testing.T) {
 
 func TestShapeSave(t *testing.T) {
 	testShape(t, func(ws *Workspace, reg *Registry) {
-		b, e := ws.NewBlock((*ShapeTest)(nil))
-		require.NoError(t, e, "created block")
+		b, e := buildMutation(ws, reg, t)
+		require.NoError(t, e)
 		//
-		if in, index := b.InputByName("MUTANT"); index < 0 {
-			t.Fatal("missing input")
-		} else if m := in.Mutation(); m == nil {
-			t.Fatal("missing mutation")
-		} else {
-			for i, atomType := range []TypeName{"atom_test", "atom_alt_test", "atom_test"} {
-				numInputs, e := m.addAtom(reg, atomType)
-				require.NoError(t, e, "added atom", i)
-				require.Equal(t, 1, numInputs, "added inputs", i)
-			}
-		}
 		el := b.mutationToDom()
 		require.Equal(t, expectedDom().OuterHTML(), el.OuterHTML())
 	})
@@ -106,7 +95,6 @@ func TestShapeRestore(t *testing.T) {
 		added, e := b.domToMutation(reg, expectedDom())
 		require.NoError(t, e)
 		require.Equal(t, 3, added)
-		// require.Equal(t, 6, b.NumInputs(), "expanded inputs")
 		//
 		if in, index := b.InputByName("MUTANT"); index < 0 {
 			t.Fatal("missing input")

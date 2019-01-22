@@ -356,13 +356,21 @@ func (reg *Registry) initJson(t r.Type, opt Options) (ret []mutationField, err e
 		if m, ok := r.PtrTo(t).MethodByName(OutputMethod); ok {
 			if cnt := m.Type.NumOut(); cnt != 1 {
 				err = errutil.Append(err, errutil.New("unexpected output count", cnt))
-			} else if out := m.Type.Out(0); out.Kind() != r.Interface {
-				err = errutil.Append(err, errutil.New("unexpected output type", out.Kind()))
-			} else if basicInterface := r.TypeOf((interface{})(nil)); out != basicInterface {
-				// basic interface is nil type.
-				opt[opt_output] = nil
 			} else {
-				opt[opt_output] = toTypeName(out)
+				out := m.Type.Out(0)
+				switch k := out.Kind(); k {
+				default:
+					err = errutil.Append(err, errutil.New("unexpected output type", k))
+				case r.Interface:
+					if basicInterface := r.TypeOf((interface{})(nil)); out != basicInterface {
+						// basic interface is nil type.
+						opt[opt_output] = nil
+					} else {
+						opt[opt_output] = toTypeName(out)
+					}
+				case r.Ptr:
+					opt[opt_output] = toTypeName(out.Elem())
+				}
 			}
 		}
 	}

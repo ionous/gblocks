@@ -14,6 +14,11 @@ type ShapeTest struct {
 	Field  string
 }
 
+// Output - implement a generic output
+func (n *ShapeTest) Output() *ShapeTest {
+	return n
+}
+
 type AtomTest struct {
 	SubInput *ShapeTest
 }
