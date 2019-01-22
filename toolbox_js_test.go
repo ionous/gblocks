@@ -108,7 +108,7 @@ func xTestToolMutation(t *testing.T) {
 			/**/ `</block>` +
 			`</xml>`
 	elm := NewTools(
-		NewDomElement("xml"),
+		NewXmlElement("xml"),
 		&ShapeTest{Mutant: []interface{}{
 			&AtomTest{},
 			&AtomAltTest{},

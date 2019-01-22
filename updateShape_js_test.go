@@ -97,7 +97,7 @@ func reduce(b *Block) (ret []Verify) {
 // 	})
 // }
 
-func xTestShapeCreate(t *testing.T) {
+func TestShapeCreate(t *testing.T) {
 	var reg Registry
 	// field has unknown type Mutant gblocks.ShapeMutation
 	require.NoError(t, reg.registerMutation("TestMutation",

@@ -7,8 +7,8 @@ import (
 // Serialize mutations returning XML describing the number and type of user-defined inputs.
 // note: this is used by blockly during block creation, updates to generate block.xml.
 // this function cannot return nil or blockly will throw an error.
-func (b *Block) mutationToDom() *DomElement {
-	out := NewDomElement("mutation")
+func (b *Block) mutationToDom() *XmlElement {
+	out := NewXmlElement("mutation")
 	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
 		in := b.Input(i)
 		if m := in.Mutation(); m != nil {
@@ -21,13 +21,13 @@ func (b *Block) mutationToDom() *DomElement {
 }
 
 // shared with toolbox creation
-func (m *InputMutation) mutationToDom() (ret *DomElement) {
+func (m *InputMutation) mutationToDom() (ret *XmlElement) {
 	in := m.Input()
 	if cnt := m.NumAtoms(); cnt > 0 {
-		out := NewDomElement("atoms", Attrs{"name": in.Name.String()})
+		out := NewXmlElement("atoms", Attrs{"name": in.Name.String()})
 		for i := 0; i < cnt; i++ {
 			atom := m.Atom(i)
-			out.AppendChild(NewDomElement("atom", Attrs{"type": atom.Type.String()}))
+			out.AppendChild(NewXmlElement("atom", Attrs{"type": atom.Type.String()}))
 		}
 		ret = out
 	}
@@ -35,10 +35,11 @@ func (m *InputMutation) mutationToDom() (ret *DomElement) {
 }
 
 // Deserialize mutations by expanding XML into atoms.
-func (b *Block) domToMutation(reg *Registry, dom *DomElement) (err error) {
+// returns the total number of inputs added
+func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err error) {
 	// we are "reloading" the mutations; remove all dynamic inputs
 	b.removeAtoms()
-	//
+
 	kids := dom.Children()
 	for i, cnt := 0, kids.Num(); i < cnt; i++ {
 		if el := kids.Index(i); el.TagName != "atoms" {
@@ -59,7 +60,7 @@ func (b *Block) domToMutation(reg *Registry, dom *DomElement) (err error) {
 					} else if numInputs, e := m.addAtom(reg, atomType); e != nil {
 						err = errutil.Append(err, e)
 					} else {
-						m.TotalInputs += numInputs
+						ret += numInputs
 					}
 				}
 			}

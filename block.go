@@ -29,16 +29,17 @@ type Block struct {
 	nextConnection     *js.Object `js:"nextConnection"`
 	previousConnection *js.Object `js:"previousConnection"`
 
-	inputList    *js.Object `js:"inputList"`
-	Disabled     bool       `js:"disabled"`
-	Tooltip      string     `js:"tooltip"`
-	ContextMenu  bool       `js:"contextMenu"`
-	Comment      string     `js:"comment"`
-	IsInFlyout   bool       `js:"isInFlyout"`
-	IsInMutator  bool       `js:"isInMutator"`
-	Rtl          bool       `js:"RTL"`
-	InputsInline bool       `js:"inputsInline"`
-	workspace    *js.Object `js:"workspace"`
+	inputList    *js.Object   `js:"inputList"`
+	Disabled     bool         `js:"disabled"`
+	Tooltip      string       `js:"tooltip"`
+	ContextMenu  bool         `js:"contextMenu"`
+	Comment      string       `js:"comment"`
+	IsInFlyout   bool         `js:"isInFlyout"`
+	IsInMutator  bool         `js:"isInMutator"`
+	Rtl          bool         `js:"RTL"`
+	InputsInline bool         `js:"inputsInline"`
+	workspace    *js.Object   `js:"workspace"`
+	connections  *Connections `js:"connections_"` // custom field
 }
 
 func jsConnection(obj *js.Object) (ret *Connection) {

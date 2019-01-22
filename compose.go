@@ -1,7 +1,6 @@
 package gblocks
 
 import (
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
 )
 
@@ -88,14 +87,14 @@ func (b *Block) saveConnections(muiContainer *Block) (err error) {
 				// each mutation ui block represents a single atom in the workspace
 				atom := m.Atom(atomIndex)
 				// the atom, however, can hold several inputs
-				var connections []*Connection
+				connections := NewConnections()
 				// record all of the atom's input...
 				for i, inputIndex := 0, inputIndex+1; i < atom.NumInputs; i, inputIndex = i+1, inputIndex+1 {
 					in := b.Input(inputIndex)
-					connections = append(connections, in.Connection().TargetConnection())
+					connections.Append(in.Connection().TargetConnection())
 				}
 				// and store them in the mutation ui's block
-				muiBlock.connections = js.Global.Get("Array")
+				muiBlock.connections = connections
 				// then, move to the next block connected to the mutation ui's input
 				if muiConnection := muiBlock.NextConnection(); muiConnection != nil {
 					muiBlock = muiConnection.TargetBlock()
@@ -114,7 +113,7 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 	// we're about to recreate/recompose them.
 	b.removeAtoms()
 	type savedConnection struct {
-		connections *js.Object
+		connections *Connections
 		numInputs   int
 	}
 	type savedMutation struct {
@@ -176,15 +175,15 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 					err = errutil.Append(err, errutil.New("missing mutable data", name))
 				} else {
 					for _, saved := range saved.savedConnections {
-						inputs, connections := saved.numInputs, saved.connections
+						inputs, cs := saved.numInputs, saved.connections
 						var cnt int
-						if a, b := inputs, connections.Length(); a < b {
+						if a, b := inputs, cs.Length(); a < b {
 							cnt = a
 						} else {
 							cnt = b
 						}
 						for i := 0; i < cnt; i++ {
-							reconnect(b, index+i+1, jsConnection(connections.Index(i)))
+							reconnect(b, index+i+1, cs.Connection(i))
 						}
 					}
 				}

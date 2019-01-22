@@ -11,16 +11,16 @@ type Attrs map[string]string
 // content can include dom nodes or gblocks instance data.
 // returns the parent node.
 // see also: https://developers.google.com/blockly/guides/configure/web/toolbox
-func Toolbox(tag string, attrs map[string]string, content ...interface{}) *DomElement {
-	out := NewDomElement(tag, attrs)
+func Toolbox(tag string, attrs map[string]string, content ...interface{}) *XmlElement {
+	out := NewXmlElement(tag, attrs)
 	return NewTools(out, content...)
 }
 
 // NewTools - attach toolbox content to the passed parent.
 // see also Toolbox.
-func NewTools(parent *DomElement, content ...interface{}) *DomElement {
+func NewTools(parent *XmlElement, content ...interface{}) *XmlElement {
 	for _, c := range content {
-		if child, ok := c.(*DomElement); ok {
+		if child, ok := c.(*XmlElement); ok {
 			parent.AppendChild(child)
 		} else {
 			v := r.ValueOf(c).Elem()
@@ -43,7 +43,7 @@ func unpack(v r.Value) (ret r.Value) {
 }
 
 // shared with toolbox creation
-func appendMutation(name string, slice r.Value, out *DomElement) {
+func appendMutation(name string, slice r.Value, out *XmlElement) {
 	if cnt := slice.Len(); cnt > 0 {
 		elements := make([]int, cnt)
 		nameToIndex := make(map[r.Type]int)
@@ -64,18 +64,18 @@ func appendMutation(name string, slice r.Value, out *DomElement) {
 			}
 			elements[i] = typeIndex
 		}
-		el := out.AppendChild(NewDomElement("data"))
+		el := out.AppendChild(NewXmlElement("data"))
 		el.SetAttribute("name", name)
 		el.SetAttribute("types", typeNames)
 		el.SetAttribute("elements", elements)
 	}
 }
 
-func toolboxData(v r.Value) *DomElement {
+func toolboxData(v r.Value) *XmlElement {
 	t := v.Type()
 	n := toTypeName(t)
-	el := NewDomElement("block", Attrs{"type": n.String()})
-	var mutationEl *DomElement
+	el := NewXmlElement("block", Attrs{"type": n.String()})
+	var mutationEl *XmlElement
 	//
 	for i, cnt := 0, t.NumField(); i < cnt; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
@@ -86,7 +86,7 @@ func toolboxData(v r.Value) *DomElement {
 			case NextField:
 				// <next>, recursive
 				if nv := v.FieldByIndex(f.Index); !nv.IsNil() {
-					nextEl := el.AppendChild(NewDomElement("next"))
+					nextEl := el.AppendChild(NewXmlElement("next"))
 					nextEl.AppendChild(toolboxData(unpack(nv)))
 				}
 
@@ -120,7 +120,7 @@ func toolboxData(v r.Value) *DomElement {
 					case r.Ptr:
 					case r.Interface:
 						if !nv.IsNil() {
-							valEl := el.AppendChild(NewDomElement("value", Attrs{"name": name}))
+							valEl := el.AppendChild(NewXmlElement("value", Attrs{"name": name}))
 							valEl.AppendChild(toolboxData(unpack(nv)))
 						}
 
@@ -128,15 +128,15 @@ func toolboxData(v r.Value) *DomElement {
 						if !nv.IsNil() {
 							if _, ok := f.Tag.Lookup(tag_mutation); ok {
 								if mutationEl == nil {
-									mutationEl = el.AppendChild(NewDomElement("mutation"))
+									mutationEl = el.AppendChild(NewXmlElement("mutation"))
 								}
 								appendMutation(name, nv, mutationEl)
 							}
-							top := el.AppendChild(NewDomElement("statement", Attrs{"name": name}))
+							top := el.AppendChild(NewXmlElement("statement", Attrs{"name": name}))
 							next := false
 							for i, cnt := 0, nv.Len(); i < cnt; i++ {
 								if next {
-									top = top.AppendChild(NewDomElement("next"))
+									top = top.AppendChild(NewXmlElement("next"))
 								}
 								top = top.AppendChild(toolboxData(unpack(nv.Index(i))))
 								next = true
@@ -156,8 +156,8 @@ func toolboxData(v r.Value) *DomElement {
 	return el
 }
 
-func toolboxField(name, val string) *DomElement {
-	field := NewDomElement("field", Attrs{"name": name})
+func toolboxField(name, val string) *XmlElement {
+	field := NewXmlElement("field", Attrs{"name": name})
 	field.SetInnerHTML(val)
 	return field
 }

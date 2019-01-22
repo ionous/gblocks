@@ -79,7 +79,7 @@ func (m *InputMutation) addAtom(reg *Registry, atomType TypeName) (ret int, err 
 	} else if msg, args, _, e := reg.makeArgs(rtype, m.Path(atomIndex)); e != nil {
 		// ^ expansion of atom into blockly inputs, etc.
 		err = e
-	} else if _, index := b.InputByName(in.Name); index < 0 {
+	} else if _, m_index := b.InputByName(in.Name); m_index < 0 {
 		// ^ the atom inputs will be placed directly after this input
 		err = errutil.New("input missing from owner block", in.Name)
 	} else {
@@ -96,7 +96,8 @@ func (m *InputMutation) addAtom(reg *Registry, atomType TypeName) (ret int, err 
 			// 1. up-to-and-including the mutation input
 			// 2. the atom's added inputs ( which were appened to the input list )
 			// 3. the inputs originally following the mutation input
-			for _, rng := range [][]int{{0, index + 1}, {oldLen + 1, newLen}, {index + 1, oldLen}} {
+			end := m_index + m.TotalInputs + 1
+			for _, rng := range [][]int{{0, end}, {oldLen, newLen}, {end, oldLen}} {
 				for i, last := rng[0], rng[1]; i < last; i++ {
 					scratch = append(scratch, b.Input(i))
 				}

@@ -212,8 +212,8 @@ func (reg *Registry) registerType(typeName TypeName, structType r.Type, opt Opti
 					return dom.Object
 				}),
 				"domToMutation": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b, xmlElement := &Block{Object: obj}, &DomElement{Object: parms[0]}
-					if e := b.domToMutation(reg, xmlElement); e != nil {
+					b, xmlElement := &Block{Object: obj}, &XmlElement{Object: parms[0]}
+					if _, e := b.domToMutation(reg, xmlElement); e != nil {
 						panic(e)
 					}
 					return

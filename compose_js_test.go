@@ -35,7 +35,7 @@ func newMutatorLikeWorkspace() (ret *Workspace) {
 
 // 		t.Log("data by id")
 // 		d := ws.GetDataById(b.Id).(*ShapeTest)
-// 		d.Mutant = append(d.Mutant, &AtomTest{}, &AtomAltTest{}, &AtomAltTest{})
+// 		d.Mutant = append(d.Mutant, &AtomTest{}, &MutationAlt{}, &MutationAlt{})
 // 		//
 // 		t.Log("decomposing")
 // 		mui := newMutatorLikeWorkspace()
@@ -82,7 +82,7 @@ func reduceBlocks(block *Block) (ret []string) {
 // 		//
 // 		t.Log("data by id")
 // 		d := ws.GetDataById(b.Id).(*ShapeTest)
-// 		d.Mutant = append(d.Mutant, &AtomTest{}, &AtomAltTest{}, &AtomAltTest{})
+// 		d.Mutant = append(d.Mutant, &AtomTest{}, &MutationAlt{}, &MutationAlt{})
 // 		//
 // 		t.Log("decomposing")
 // 		mui := newMutatorLikeWorkspace()
@@ -155,8 +155,8 @@ func reduceBlocks(block *Block) (ret []string) {
 // 		expected := &ShapeTest{
 // 			Mutant: []interface{}{
 // 				&AtomTest{},
-// 				&AtomAltTest{},
-// 				&AtomAltTest{},
+// 				&MutationAlt{},
+// 				&MutationAlt{},
 // 			},
 // 		}
 // 		v := pretty.Diff(d, expected)
