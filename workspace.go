@@ -14,6 +14,10 @@ const (
 	ToolboxAtRight
 )
 
+type IdGenerator interface {
+	NewId() string
+}
+
 // Workspace - a container for Blockly blocks.
 // The mutation popups, and the main editing space are examples of separate workspaces.
 // ( The toolbox uses the main workspace. )
@@ -29,6 +33,8 @@ type Workspace struct {
 
 	// workspace svg
 	IsMutator bool `js:"isMutator"`
+
+	idGen IdGenerator
 
 	// custom fields
 	// context map[string]*Context // blockId-> context
@@ -156,7 +162,11 @@ func (ws *Workspace) Dispose() {
 
 // where t is either a TypeName, string, or pointer to type.
 func (ws *Workspace) NewBlock(t interface{}) (*Block, error) {
-	return ws.NewBlockWithId(t, "")
+	var id string
+	if ws.idGen != nil {
+		id = ws.idGen.NewId()
+	}
+	return ws.NewBlockWithId(t, id)
 }
 
 func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, err error) {

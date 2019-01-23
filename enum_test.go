@@ -55,6 +55,5 @@ func TestEnumLabels(t *testing.T) {
 	v := pretty.Diff(opt, expected)
 	if len(v) != 0 {
 		t.Fatal(v)
-		t.Log(v)
 	}
 }

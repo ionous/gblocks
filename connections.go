@@ -12,11 +12,16 @@ func NewConnections() *Connections {
 	return &Connections{Object: js.Global.Get("Array").New()}
 }
 
-func (cs *Connections) Append(c *Connection) {
-	cs.SetIndex(cs.Length(), c)
+
+func (cs *Connections) AppendInput(in *Input) {
+	var target *Connection
+	if c := in.Connection(); c != nil {
+		target = c.TargetConnection()
+	}
+	cs.SetIndex(cs.Object.Length(), target)
 }
 
-func (cs *Connections) Connection(i int) (ret *Connection) {
+func (cs *Connections) Connection(i int) *Connection {
 	return jsConnection(cs.Index(i))
 }
 

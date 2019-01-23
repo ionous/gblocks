@@ -5,6 +5,7 @@ import (
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
+	"strconv"
 	"testing"
 )
 
@@ -102,6 +103,16 @@ func reduce(b *Block) (ret []Verify) {
 // 	})
 // }
 
+type orderedGenerator struct {
+	name string
+	i    int
+}
+
+func (o *orderedGenerator) NewId() string {
+	o.i++
+	return o.name + strconv.Itoa(o.i)
+}
+
 func TestShapeCreate(t *testing.T) {
 	var reg Registry
 	// field has unknown type Mutant gblocks.ShapeMutation
@@ -121,6 +132,7 @@ func TestShapeCreate(t *testing.T) {
 	var testShape = map[string]interface{}{
 		"type":     TypeName("shape_test"),
 		"message0": "%1 %2 %3",
+		"output":   TypeName("shape_test"),
 		"args0": []Options{
 			{
 				"name":  "INPUT",
@@ -142,8 +154,8 @@ func TestShapeCreate(t *testing.T) {
 	opt := make(map[string]interface{})
 	reg.initJson(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
 	if v := pretty.Diff(opt, testShape); len(v) != 0 {
+		t.Log(pretty.Sprint(opt))
 		t.Fatal(v)
-		t.Log(v)
 	}
 }
 
@@ -164,6 +176,7 @@ func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 		(*MutationAltControl)(nil),
 	), "register blocks")
 	ws := NewBlankWorkspace(false)
+	ws.idGen = &orderedGenerator{name: "main"}
 	// replace timed event queue with direct event queue
 	events := GetEvents()
 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {

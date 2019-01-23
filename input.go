@@ -128,3 +128,26 @@ func (in *Input) SetAlign(a InputAlign) {
 func (in *Input) Dispose() {
 	in.Call("dispose")
 }
+
+// iterate over all blocks stacked in this input
+func (in *Input) visitStack(cb func(b *Block) (keepGoing bool)) (exhausted bool) {
+	earlyOut := false
+	// get the input's connection information
+	if c := in.Connection(); c != nil {
+		// for every block connected to the input...
+		for b := c.TargetBlock(); b != nil; {
+			if !cb(b) {
+				earlyOut = true
+				break
+			}
+
+			// move to the next
+			if c := b.NextConnection(); c != nil {
+				b = c.TargetBlock()
+			} else {
+				break
+			}
+		}
+	}
+	return !earlyOut
+}
