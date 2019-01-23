@@ -251,9 +251,6 @@ func (ws *Workspace) ClearUndo() {
 	ws.Call("clearUndo")
 }
 
-// func (ws* Workspace) addChangeListener= function() {
-// func (ws* Workspace) removeChangeListener= function() {
-
 // listen to changes in the workspace, reflect them into the go-data.
 // func (ws *Workspace) mirror(evt interface{}) {
 // 	switch evt := evt.(type) {

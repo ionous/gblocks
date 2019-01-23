@@ -19,31 +19,6 @@ type Registry struct {
 	mutations map[string]mutationMap
 }
 
-// var TheRegistry Registry
-
-// func RegisterBlocks(opt map[string]Options, blocks ...interface{}) error {
-// 	return TheRegistry.registerBlocks(opt, blocks...)
-// }
-
-// // register a mapping of workspace block type to mutation ui block type.
-// // name is the struct tag; it describes a mutation input
-// func RegisterMutation(name string, pairs ...interface{}) error {
-// 	return TheRegistry.registerMutation(name, pairs...)
-// }
-
-// func RegisterBlock(b interface{}, opt Options) error {
-// 	structType := r.TypeOf(b).Elem()
-// 	typeName := toTypeName(structType)
-// 	return TheRegistry.registerType(typeName, structType, opt)
-// }
-
-// // RegisterEnum - expects a map of intish to string
-// func RegisterEnum(n interface{}) error {
-// 	// string pairs is returned for the sake of tests; we can ignore it here.
-// 	_, err := TheRegistry.registerEnum(n)
-// 	return err
-// }
-
 type mutationField struct {
 	mutationName string
 	inputName    InputName
@@ -99,7 +74,18 @@ func (reg *Registry) NewData(name TypeName) (ret r.Value, err error) {
 	return
 }
 
-func (reg *Registry) registerBlocks(opt map[string]Options, blocks ...interface{}) (err error) {
+func (reg *Registry) RegisterEnum(n interface{}) error {
+	_, e := reg.registerEnum(n)
+	return e
+}
+
+func (reg *Registry) RegisterBlock(b interface{}, opt Options) error {
+	structType := r.TypeOf(b).Elem()
+	typeName := toTypeName(structType)
+	return reg.registerType(typeName, structType, opt)
+}
+
+func (reg *Registry) RegisterBlocks(opt map[string]Options, blocks ...interface{}) (err error) {
 	for _, b := range blocks {
 		structType := r.TypeOf(b).Elem()
 		typeName := toTypeName(structType)
@@ -115,7 +101,7 @@ func (reg *Registry) registerBlocks(opt map[string]Options, blocks ...interface{
 	return
 }
 
-func (reg *Registry) registerMutation(name string, pairs ...interface{}) (err error) {
+func (reg *Registry) RegisterMutation(name string, pairs ...interface{}) (err error) {
 	if isEven := len(pairs)%1 == 0; !isEven {
 		err = errutil.New("expected pairs of types; found", len(pairs))
 	} else {

@@ -21,11 +21,11 @@ func (n *ShapeTest) Output() *ShapeTest {
 }
 
 type AtomTest struct {
-	SubInput *ShapeTest
+	AtomInput *ShapeTest
 }
 
 type AtomAltTest struct {
-	SubField string
+	AtomField string
 }
 
 type orderedGenerator struct {
@@ -41,12 +41,12 @@ func (o *orderedGenerator) NewId() string {
 func TestShapeCreate(t *testing.T) {
 	var reg Registry
 	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, reg.registerMutation("TestMutation",
+	require.NoError(t, reg.RegisterMutation("TestMutation",
 		nil, (*MutationElControl)(nil),
 		(*AtomTest)(nil), (*MutationElControl)(nil),
 		(*AtomAltTest)(nil), (*MutationAltControl)(nil),
 	), "register mutations")
-	require.NoError(t, reg.registerBlocks(nil,
+	require.NoError(t, reg.RegisterBlocks(nil,
 		(*ShapeTest)(nil),
 		(*AtomTest)(nil),
 		(*AtomAltTest)(nil),
@@ -87,13 +87,13 @@ func TestShapeCreate(t *testing.T) {
 func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 	reg := new(Registry)
 	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, reg.registerMutation("TestMutation",
+	require.NoError(t, reg.RegisterMutation("TestMutation",
 		nil, (*MutationElControl)(nil),
 		(*AtomTest)(nil), (*MutationElControl)(nil),
 		(*AtomAltTest)(nil), (*MutationAltControl)(nil),
 	), "register mutations")
 	//
-	require.NoError(t, reg.registerBlocks(nil,
+	require.NoError(t, reg.RegisterBlocks(nil,
 		(*ShapeTest)(nil),
 		(*AtomTest)(nil),
 		(*AtomAltTest)(nil),

@@ -33,7 +33,7 @@ func TestShapeAddAtom(t *testing.T) {
 		// ( see Blockly.Block.prototype.interpolate_ )
 		require.NoError(t, e, "created block")
 		require.Equal(t, 3, b.NumInputs(), "initial inputs")
-		expected := []string{"INPUT", "MUTANT", "<field>"}
+		expected := []string{"INPUT", "MUTANT", "FIELD"}
 		require.Equal(t, expected, reduceInputs(b))
 		//
 		if in, index := b.InputByName("MUTANT"); index < 0 {
@@ -48,7 +48,7 @@ func TestShapeAddAtom(t *testing.T) {
 				require.Equal(t, 1, numInputs, "added inputs")
 				//
 				require.Equal(t, b.NumInputs(), 4, "expanded inputs")
-				expected := []string{"INPUT", "MUTANT", "MUTANT/0/SUB_INPUT", "<field>"}
+				expected := []string{"INPUT", "MUTANT", "MUTANT/0/ATOM_INPUT", "FIELD"}
 				require.Equal(t, expected, reduceInputs(b))
 			}
 			t.Log("second")
@@ -58,7 +58,7 @@ func TestShapeAddAtom(t *testing.T) {
 				require.Equal(t, 1, numInputs, "added inputs")
 				//
 				require.Equal(t, b.NumInputs(), 5, "expanded inputs")
-				expected := []string{"INPUT", "MUTANT", "MUTANT/0/SUB_INPUT", "<field>", "<field>"}
+				expected := []string{"INPUT", "MUTANT", "MUTANT/0/ATOM_INPUT", "MUTANT/1/ATOM_FIELD", "FIELD"}
 				require.Equal(t, expected, reduceInputs(b))
 			}
 			t.Log("third")
@@ -70,7 +70,7 @@ func TestShapeAddAtom(t *testing.T) {
 				// note: unfortunately, fields dont keep their names; so the last input is nil
 				// ( see Blockly.Block.prototype.interpolate_ )
 				require.Equal(t, b.NumInputs(), 6, "expanded inputs")
-				expected := []string{"INPUT", "MUTANT", "MUTANT/0/SUB_INPUT", "<field>", "MUTANT/2/SUB_INPUT", "<field>"}
+				expected := []string{"INPUT", "MUTANT", "MUTANT/0/ATOM_INPUT", "MUTANT/1/ATOM_FIELD", "MUTANT/2/ATOM_INPUT", "FIELD"}
 				require.Equal(t, expected, reduceInputs(b))
 			}
 		}
@@ -101,7 +101,7 @@ func TestShapeRestore(t *testing.T) {
 		} else if m := in.Mutation(); m == nil {
 			t.Fatal("missing mutation")
 		} else {
-			expected := []string{"INPUT", "MUTANT", "MUTANT/0/SUB_INPUT", "<field>", "MUTANT/2/SUB_INPUT", "<field>"}
+			expected := []string{"INPUT", "MUTANT", "MUTANT/0/ATOM_INPUT", "MUTANT/1/ATOM_FIELD", "MUTANT/2/ATOM_INPUT", "FIELD"}
 			require.Equal(t, expected, reduceInputs(b))
 		}
 	})

@@ -42,13 +42,13 @@ func (n InputName) String() (ret string) {
 }
 
 type Input struct {
-	*js.Object                // Blockly.Input
-	Type        InputType     `js:"type"`
-	Name        InputName     `js:"name"`
-	Align       InputAlign    `js:"align"`
-	FieldRow    []interface{} `js:"fieldRow"`     // array of Blockly.Field
-	sourceBlock *js.Object    `js:"sourceBlock_"` // Blockly.Block
-	connection  *js.Object    `js:"connection"`   // Blockly.Connection
+	*js.Object             // Blockly.Input
+	Type        InputType  `js:"type"`
+	Name        InputName  `js:"name"`
+	Align       InputAlign `js:"align"`
+	fieldRow    *js.Object `js:"fieldRow"`     // []*Blockly.Field
+	sourceBlock *js.Object `js:"sourceBlock_"` // *Blockly.Block
+	connection  *js.Object `js:"connection"`   // *Blockly.Connection
 	// custom
 	mutation_ *js.Object `js:"mutation_"` // *InputMutation
 }
@@ -65,6 +65,13 @@ func (in *Input) Connection() *Connection {
 // see also: insertFieldAt
 func (in *Input) AppendField(f *Field) {
 	in.Call("appendField", f.Object)
+}
+
+func (in *Input) Fields() (ret *Fields) {
+	if obj := in.fieldRow; obj != nil && obj.Bool() {
+		ret = &Fields{Object: obj}
+	}
+	return
 }
 
 // insertFieldAt = function(index, field, opt_name) {

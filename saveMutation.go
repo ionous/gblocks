@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
+	"strings"
 )
 
 // Serialize mutations returning XML describing the number and type of user-defined inputs.
@@ -42,7 +43,7 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 
 	kids := dom.Children()
 	for i, cnt := 0, kids.Num(); i < cnt; i++ {
-		if el := kids.Index(i); el.TagName != "atoms" {
+		if el := kids.Index(i); !strings.EqualFold(el.TagName, "atoms") {
 			err = errutil.Append(err, errutil.New("mutation has unexpected child", el.TagName))
 		} else {
 			inputName := InputName(el.GetAttribute("name").String())
@@ -53,7 +54,7 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 			} else {
 				kids := el.Children()
 				for i, cnt := 0, kids.Num(); i < cnt; i++ {
-					if el := kids.Index(i); el.TagName != "atom" {
+					if el := kids.Index(i); !strings.EqualFold(el.TagName, "atom") {
 						err = errutil.Append(err, errutil.New("input has unexpected child", el.TagName))
 					} else if atomType := TypeName(el.GetAttribute("type").String()); len(atomType) == 0 {
 						err = errutil.Append(err, errutil.New("atom has no type", el.TagName))

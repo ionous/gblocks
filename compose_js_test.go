@@ -65,13 +65,21 @@ func TestMutationDecompose(t *testing.T) {
 func reduceInputs(block *Block) (ret []string) {
 	for i, cnt := 0, block.NumInputs(); i < cnt; i++ {
 		in := block.Input(i)
-		var name string
+		// inputs created for fields dont have names
 		if n := in.Name.String(); len(n) > 0 {
-			name = n
-		} else {
-			name = "<field>"
+			if n == "undefined" {
+				panic("field")
+			}
+			ret = append(ret, n)
 		}
-		ret = append(ret, name)
+		fields := in.Fields()
+		for i, cnt := 0, fields.Length(); i < cnt; i++ {
+			field := fields.Field(i)
+			if n := field.Name(); len(n) > 0 {
+				ret = append(ret, n)
+			}
+		}
+
 		in.visitStack(func(b *Block) (keepGoing bool) {
 			ret = append(ret, b.Type.String())
 			return true
@@ -100,8 +108,10 @@ func listConnections(b *Block) (ret []listed) {
 	for mi, mcount := 0, b.NumInputs(); mi < mcount; mi++ {
 		in := b.Input(mi)
 		in.visitStack(func(nextBlock *Block) (keepGoing bool) {
-			targets := nextBlock.connections.blocks()
-			ret = append(ret, listed{nextBlock.Id, targets})
+			if cs := nextBlock.CachedConnections(); cs != nil {
+				targets := cs.blocks()
+				ret = append(ret, listed{nextBlock.Id, targets})
+			}
 			return true
 		})
 	}
@@ -147,7 +157,7 @@ func TestMutationCompose(t *testing.T) {
 			// test the composed block
 			composed := reduceInputs(b)
 			str := strings.Join(composed, ",")
-			require.Equal(t, "INPUT,MUTANT,MUTANT/0/SUB_INPUT,<field>,<field>,<field>", str)
+			require.Equal(t, "INPUT,MUTANT,MUTANT/0/ATOM_INPUT,MUTANT/1/ATOM_FIELD,MUTANT/2/ATOM_FIELD,FIELD", str)
 		}
 	})
 }
@@ -159,7 +169,7 @@ func TestMutationConnections(t *testing.T) {
 		b, e := buildMutation(ws, reg, t)
 		require.NoError(t, e)
 		//
-		in, where := b.InputByName("MUTANT/0/SUB_INPUT")
+		in, where := b.InputByName("MUTANT/0/ATOM_INPUT")
 		require.NotEqual(t, -1, where)
 		require.NotNil(t, in)
 		// connect the first input
@@ -205,7 +215,11 @@ func TestMutationConnections(t *testing.T) {
 		// removing the mui block hasnt changed the atom's number of inputs
 		// removing the first block should act as if the first
 		// compose *might+ happend on block change before save conncetions
-		require.NotNil(t, muiBlock.connections.Connection(0))
+		if cs := muiBlock.CachedConnections(); cs == nil {
+			t.Fatal("no cached connections")
+		} else {
+			require.NotNil(t, cs.Connection(0))
+		}
 
 		// check connections after disconnect
 		if e := b.compose(reg, muiContainer); e != nil {
@@ -223,14 +237,18 @@ func TestMutationConnections(t *testing.T) {
 		}
 
 		// connect block at the end
-		require.NotNil(t, muiBlock.connections.Connection(0), "preconnected")
-		nextNext.Connect(muiBlock.PreviousConnection())
+		if cs := muiBlock.CachedConnections(); cs == nil {
+			t.Fatal("no chaced connections")
+		} else {
+			require.NotNil(t, cs.Connection(0), "preconnected")
+			nextNext.Connect(muiBlock.PreviousConnection())
 
-		require.Equal(t,
-			"MUTANT,mutation_alt_control,mutation_el_control,mutation_el_control",
-			strings.Join(reduceInputs(muiContainer), ","), "after reconnect")
-		require.Equal(t, 1, muiBlock.connections.Length(), "reconnected length")
-		require.NotNil(t, muiBlock.connections.Connection(0), "reconnected")
+			require.Equal(t,
+				"MUTANT,mutation_alt_control,mutation_el_control,mutation_el_control",
+				strings.Join(reduceInputs(muiContainer), ","), "after reconnect")
+			require.Equal(t, 1, cs.Length(), "reconnected length")
+			require.NotNil(t, cs.Connection(0), "reconnected")
+		}
 
 		// check connections
 		if e := b.compose(reg, muiContainer); e != nil {

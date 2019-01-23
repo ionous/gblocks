@@ -29,17 +29,17 @@ type Block struct {
 	nextConnection     *js.Object `js:"nextConnection"`
 	previousConnection *js.Object `js:"previousConnection"`
 
-	inputList    *js.Object   `js:"inputList"`
-	Disabled     bool         `js:"disabled"`
-	Tooltip      string       `js:"tooltip"`
-	ContextMenu  bool         `js:"contextMenu"`
-	Comment      string       `js:"comment"`
-	IsInFlyout   bool         `js:"isInFlyout"`
-	IsInMutator  bool         `js:"isInMutator"`
-	Rtl          bool         `js:"RTL"`
-	InputsInline bool         `js:"inputsInline"`
-	workspace    *js.Object   `js:"workspace"`
-	connections  *Connections `js:"connections_"` // custom field
+	inputList    *js.Object `js:"inputList"`
+	Disabled     bool       `js:"disabled"`
+	Tooltip      string     `js:"tooltip"`
+	ContextMenu  bool       `js:"contextMenu"`
+	Comment      string     `js:"comment"`
+	IsInFlyout   bool       `js:"isInFlyout"`
+	IsInMutator  bool       `js:"isInMutator"`
+	Rtl          bool       `js:"RTL"`
+	InputsInline bool       `js:"inputsInline"`
+	workspace    *js.Object `js:"workspace"`
+	connections_ *js.Object `js:"connections_"` // custom field *Connections
 }
 
 func jsConnection(obj *js.Object) (ret *Connection) {
@@ -62,6 +62,19 @@ func (b *Block) NextConnection() *Connection {
 // connection to a piece in the preceeding line
 func (b *Block) PreviousConnection() *Connection {
 	return jsConnection(b.previousConnection)
+}
+
+// connection to a piece in the preceeding line
+// warning: can return nil.
+func (b *Block) CachedConnections() (ret *Connections) {
+	if obj := b.connections_; obj != nil && obj.Bool() {
+		ret = &Connections{Object: obj}
+	}
+	return
+}
+
+func (b *Block) CacheConnections(c *Connections) {
+	b.connections_ = c.Object
 }
 
 // feels like this should have been asynchronous, hidden

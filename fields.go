@@ -1,5 +1,9 @@
 package gblocks
 
+import (
+	"github.com/gopherjs/gopherjs/js"
+)
+
 type FieldAngle float32
 type FieldCheckbox bool
 type FieldColour string //'#rrggbb'
@@ -18,3 +22,14 @@ type FieldImage struct {
 type FieldText string // field_input, FieldTextInput; pre-existing validators inclde numberValidator, nongenativeIntegerValidator
 type FieldNumber float32
 type FieldVariable string
+
+type Fields struct {
+	*js.Object
+}
+
+func (f *Fields) Field(i int) (ret *Field) {
+	if obj := f.Index(i); obj != nil && obj.Bool() {
+		ret = &Field{Object: obj}
+	}
+	return
+}
