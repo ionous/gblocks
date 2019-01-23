@@ -3,6 +3,7 @@ package gblocks
 import (
 	r "reflect"
 	"strconv"
+	"strings"
 )
 
 type Attrs map[string]string
@@ -24,7 +25,7 @@ func NewTools(parent *XmlElement, content ...interface{}) *XmlElement {
 			parent.AppendChild(child)
 		} else {
 			v := r.ValueOf(c).Elem()
-			parent.AppendChild(toolboxData(v))
+			parent.AppendChild(toolboxBlock(v))
 		}
 	}
 	return parent
@@ -46,8 +47,7 @@ func unpack(v r.Value) (ret r.Value) {
 // name is input name
 func appendMutation(name string, slice r.Value, out *XmlElement) {
 	if cnt := slice.Len(); cnt > 0 {
-		atoms := out.AppendChild(NewXmlElement("atoms"))
-		atoms.SetAttribute("name", name)
+		atoms := out.AppendChild(NewXmlElement("atoms", Attrs{"name": name}))
 		for i := 0; i < cnt; i++ {
 			el := unpack(slice.Index(i))
 			typeName := toTypeName(el.Type())
@@ -57,10 +57,15 @@ func appendMutation(name string, slice r.Value, out *XmlElement) {
 	}
 }
 
-func toolboxData(v r.Value) *XmlElement {
+func toolboxBlock(v r.Value) *XmlElement {
 	t := v.Type()
 	n := toTypeName(t)
 	el := NewXmlElement("block", Attrs{"type": n.String()})
+	toolboxFields(el, "", v, t)
+	return el
+}
+
+func toolboxFields(el *XmlElement, prefix string, v r.Value, t r.Type) {
 	var mutationEl *XmlElement
 	//
 	for i, cnt := 0, t.NumField(); i < cnt; i++ {
@@ -73,10 +78,10 @@ func toolboxData(v r.Value) *XmlElement {
 				// <next>, recursive
 				if nv := v.FieldByIndex(f.Index); !nv.IsNil() {
 					nextEl := el.AppendChild(NewXmlElement("next"))
-					nextEl.AppendChild(toolboxData(unpack(nv)))
+					nextEl.AppendChild(toolboxBlock(unpack(nv)))
 				}
 			default:
-				name := pascalToCaps(f.Name)
+				name := prefix + pascalToCaps(f.Name)
 				nv := v.FieldByIndex(f.Index)
 
 				// see if the type implements the stringer, for instance an enum.
@@ -84,6 +89,7 @@ func toolboxData(v r.Value) *XmlElement {
 				if str, ok := nv.Interface().(stringer); ok {
 					el.AppendChild(toolboxField(name, str.String()))
 				} else {
+
 					switch k := f.Type.Kind(); k {
 					case r.Bool:
 						field := toolboxField(name, strconv.FormatBool(nv.Bool()))
@@ -102,29 +108,40 @@ func toolboxData(v r.Value) *XmlElement {
 						el.AppendChild(field)
 
 					// input containing another block
-					case r.Ptr:
-					case r.Interface:
+					case r.Ptr, r.Interface:
+						// ATOM_INPUT 0 ptr
+						// ATOM_FIELD 0 string
+						// ATOM_INPUT 0 ptr
 						if !nv.IsNil() {
 							valEl := el.AppendChild(NewXmlElement("value", Attrs{"name": name}))
-							valEl.AppendChild(toolboxData(unpack(nv)))
+							valEl.AppendChild(toolboxBlock(unpack(nv)))
 						}
 
 					case r.Slice:
 						if !nv.IsNil() {
-							if _, ok := f.Tag.Lookup(tag_mutation); ok {
+							if _, ok := f.Tag.Lookup(tag_mutation); !ok {
+								top := el.AppendChild(NewXmlElement("statement", Attrs{"name": name}))
+								next := false
+								for i, cnt := 0, nv.Len(); i < cnt; i++ {
+									if next {
+										top = top.AppendChild(NewXmlElement("next"))
+									}
+									top = top.AppendChild(toolboxBlock(unpack(nv.Index(i))))
+									next = true
+								}
+							} else {
 								if mutationEl == nil {
 									mutationEl = el.AppendChild(NewXmlElement("mutation"))
 								}
 								appendMutation(name, nv, mutationEl)
-							}
-							top := el.AppendChild(NewXmlElement("statement", Attrs{"name": name}))
-							next := false
-							for i, cnt := 0, nv.Len(); i < cnt; i++ {
-								if next {
-									top = top.AppendChild(NewXmlElement("next"))
+
+								// we have to look at each atom to determine what to add
+								for i, cnt := 0, nv.Len(); i < cnt; i++ {
+									// prefix - ex. MUTANT/2/
+									prefix := strings.Join([]string{name, strconv.Itoa(i), ""}, "/")
+									elv := unpack(nv.Index(i))
+									toolboxFields(el, prefix, elv, elv.Type())
 								}
-								top = top.AppendChild(toolboxData(unpack(nv.Index(i))))
-								next = true
 							}
 						}
 
@@ -138,7 +155,6 @@ func toolboxData(v r.Value) *XmlElement {
 			}
 		}
 	}
-	return el
 }
 
 func toolboxField(name, val string) *XmlElement {

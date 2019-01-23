@@ -5,14 +5,15 @@ import (
 	"github.com/ionous/errutil"
 )
 
+// InputType - describes both inputs and connections
 type InputType int
 
 //go:generate stringer -type=InputType
 const (
 	InputValue InputType = iota + 1
 	OutputValue
-	NextStatement
-	PreviousStatement
+	NextStatement     // used for connections between blocks, and for statement inputs
+	PreviousStatement // used for connections between blocks
 	DummyInput
 )
 
@@ -25,15 +26,15 @@ const (
 	AlignRight
 )
 
-// InputNames are caps case. ex. INPUT_NAME
+// InputName - assumes caps case. ex. INPUT_NAME
 type InputName string
 
-// Friendly returns the name in spaces.
+// Friendly returns the name in spaces. ex. "Input Name"
 func (n InputName) Friendly() string {
 	return pascalToSpace(underscoreToPascal(n.String()))
 }
 
-// String returns the name in default (uppercase)
+// String returns the name in default (caps ) ex. "INPUT_NAME"
 func (n InputName) String() (ret string) {
 	if len(n) > 0 {
 		ret = string(n)

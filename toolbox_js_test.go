@@ -86,7 +86,7 @@ func TestToolFieldBlock(t *testing.T) {
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
-func xTestToolMutation(t *testing.T) {
+func TestToolMutation(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/**/ `<block type="shape_test">` +
@@ -97,16 +97,16 @@ func xTestToolMutation(t *testing.T) {
 			/*   */ `<atom type="atom_test"/>` +
 			/*  */ `</atoms>` +
 			/* */ `</mutation>` +
-			/* */ `<value name="MUTANT/0/ATOM_INPUT">` +
-			/* */ `</value>` +
+			/* */ `<field name="MUTANT/1/ATOM_FIELD">Text</field>` +
 			/* */ `<value name="MUTANT/2/ATOM_INPUT">` +
+			/*  */ `<block type="shape_test"/>` +
 			/* */ `</value>` +
 			/**/ `</block>` +
 			`</xml>`
 	elm := NewTools(
 		NewXmlElement("xml"),
 		&ShapeTest{Mutant: []interface{}{
-			&AtomTest{&ShapeTest{}},
+			&AtomTest{}, // has no contents, so wont appear in the xml
 			&AtomAltTest{"Text"},
 			&AtomTest{&ShapeTest{}},
 		}})
