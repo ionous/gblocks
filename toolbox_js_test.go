@@ -5,12 +5,11 @@ import (
 	"testing"
 )
 
-func xTestToolText(t *testing.T) {
+func TestToolText(t *testing.T) {
 	expected :=
 		`<xml id="toolbox" style="display: none">` +
 			/**/ `<category name="Logic" colour="%{BKY_LOGIC_HUE}">` +
-			/* */ `<category name="If">` +
-			/* */ `</category>` +
+			/* */ `<category name="If"/>` +
 			/**/ `</category>` +
 			`</xml>`
 	elm := Toolbox("xml", Attrs{"id": "toolbox", "style": "display: none"},
@@ -22,7 +21,7 @@ func xTestToolText(t *testing.T) {
 	require.Equal(t, expected, html)
 }
 
-func xTestToolStack(t *testing.T) {
+func TestToolStack(t *testing.T) {
 	// text generated from blockly developer tools
 	// https://blockly-demo.appspot.com/static/demos/blockfactory/index.html
 	expected :=
@@ -31,8 +30,7 @@ func xTestToolStack(t *testing.T) {
 			/**/ `<next>` +
 			/* */ `<block type="stack_block">` +
 			/*   */ `<next>` +
-			/*    */ `<block type="stack_block">` +
-			/*    */ `</block>` +
+			/*    */ `<block type="stack_block"/>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
 			/* */ `</next>` +
@@ -49,15 +47,14 @@ func xTestToolStack(t *testing.T) {
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
-func xTestToolRow(t *testing.T) {
+func TestToolRow(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/* */ `<block type="row_block">` +
 			/*  */ `<value name="INPUT">` +
 			/*   */ `<block type="row_block">` +
 			/*    */ `<value name="INPUT">` +
-			/*     */ `<block type="row_block">` +
-			/*     */ `</block>` +
+			/*     */ `<block type="row_block"/>` +
 			/*    */ `</value>` +
 			/*   */ `</block>` +
 			/*  */ `</value>` +
@@ -74,7 +71,7 @@ func xTestToolRow(t *testing.T) {
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
-func xTestToolFieldBlock(t *testing.T) {
+func TestToolFieldBlock(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/**/ `<block type="field_block">` +
@@ -89,19 +86,20 @@ func xTestToolFieldBlock(t *testing.T) {
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
-func xTestToolMutation(t *testing.T) {
+func TestToolMutation(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/**/ `<block type="shape_test">` +
 			/* */ `<mutation>` +
-			/*  */ `<data name="MUTANT" types="mutation_el,mutation_alt" elements="0,1">` +
-			/*  */ `</data>` +
+			/*  */ `<atoms name="MUTANT">` +
+			/*   */ `<atom type="atom_test"/>` +
+			/*   */ `<atom type="atom_alt_test"/>` +
+			/*  */ `</atoms>` +
 			/* */ `</mutation>` +
 			/* */ `<statement name="MUTANT">` +
-			/*  */ `<block type="mutation_el">` +
+			/*  */ `<block type="atom_test">` +
 			/*   */ `<next>` +
-			/*    */ `<block type="mutation_alt">` +
-			/*    */ `</block>` +
+			/*    */ `<block type="atom_alt_test"/>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
 			/* */ `</statement>` +
@@ -120,15 +118,14 @@ type StatementBlock struct {
 	Do []interface{}
 }
 
-func xTestToolStatement(t *testing.T) {
+func TestToolStatement(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/**/ `<block type="statement_block">` +
 			/* */ `<statement name="DO">` +
 			/*   */ `<block type="stack_block">` +
 			/*    */ `<next>` +
-			/*     */ `<block type="stack_block">` +
-			/*     */ `</block>` +
+			/*     */ `<block type="stack_block"/>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
 			/* */ `</statement>` +
@@ -145,7 +142,7 @@ func xTestToolStatement(t *testing.T) {
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
-func xTestToolEnum(t *testing.T) {
+func TestToolEnum(t *testing.T) {
 	expected :=
 		`<xml>` +
 			/**/ `<block type="enum_statement">` +

@@ -43,31 +43,17 @@ func unpack(v r.Value) (ret r.Value) {
 }
 
 // shared with toolbox creation
+// name is input name
 func appendMutation(name string, slice r.Value, out *XmlElement) {
 	if cnt := slice.Len(); cnt > 0 {
-		elements := make([]int, cnt)
-		nameToIndex := make(map[r.Type]int)
-		var typeNames []TypeName
+		atoms := out.AppendChild(NewXmlElement("atoms"))
+		atoms.SetAttribute("name", name)
 		for i := 0; i < cnt; i++ {
-			// note: we have to deref the element into its actual value before asking for its type.
-			iface := slice.Index(i)
-			ptr := iface.Elem()
-			el := ptr.Elem()
-			t := el.Type()
-			typeIndex := len(nameToIndex)
-			if existingIndex, ok := nameToIndex[t]; ok {
-				typeIndex = existingIndex
-			} else {
-				nameToIndex[t] = typeIndex
-				typeName := toTypeName(t)
-				typeNames = append(typeNames, typeName)
-			}
-			elements[i] = typeIndex
+			el := unpack(slice.Index(i))
+			typeName := toTypeName(el.Type())
+			atom := NewXmlElement("atom", Attrs{"type": typeName.String()})
+			atoms.AppendChild(atom)
 		}
-		el := out.AppendChild(NewXmlElement("data"))
-		el.SetAttribute("name", name)
-		el.SetAttribute("types", typeNames)
-		el.SetAttribute("elements", elements)
 	}
 }
 
@@ -89,7 +75,6 @@ func toolboxData(v r.Value) *XmlElement {
 					nextEl := el.AppendChild(NewXmlElement("next"))
 					nextEl.AppendChild(toolboxData(unpack(nv)))
 				}
-
 			default:
 				name := pascalToCaps(f.Name)
 				nv := v.FieldByIndex(f.Index)
