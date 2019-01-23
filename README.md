@@ -11,3 +11,12 @@ Gblocks, the editor, and iffy are all works in progress.
 3. Build [toolboxes](https://developers.google.com/blockly/guides/configure/web/toolbox) from Go-lang instances.
 4. Mirror Go-lang data to/from Blocky blocks ( to provide alternative serialization and processing. )
 
+## In progress
+
+* refactor to omit mirror: esp. domToMutation, mutationToDom, decompose, compose, saveConnections, toolbox instance generation.
+  * this should fix the issues with temporary blocks on flyouts not being able to mirror properly.
+* consider changing mutation lists to next/prev to properly handle the first block check statements in mutation ui
+* consider changing registration to implicitly register blocks via toolbox, and mutation palette definitions
+* evaluate possibly unification of compose and domToMutation in some fashion.
+* future: re-enable mirroring
+
