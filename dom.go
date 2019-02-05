@@ -84,6 +84,14 @@ func (m *XmlElement) SetInnerHTML(text string) {
 	m.Set("innerHTML", text)
 }
 
+//HTMLCollection
+func (m *XmlElement) GetElementsByTagName(tagName string) (ret *HtmlCollection) {
+	if obj := m.Call("getElementsByTagName", tagName); obj != nil && obj.Bool() {
+		ret = &HtmlCollection{Object: obj}
+	}
+	return
+}
+
 func (a *HtmlCollection) Num() int {
 	return a.Get("length").Int()
 }

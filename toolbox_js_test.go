@@ -97,19 +97,38 @@ func TestToolMutation(t *testing.T) {
 			/*   */ `<atom type="atom_test"/>` +
 			/*  */ `</atoms>` +
 			/* */ `</mutation>` +
-			/* */ `<field name="MUTANT/1/ATOM_FIELD">Text</field>` +
-			/* */ `<value name="MUTANT/2/ATOM_INPUT">` +
-			/*  */ `<block type="shape_test"/>` +
+			/* */ `<value name="MUTANT">` +
+			/*  */ `<block type="atom_test">` +
+			/*   */ `<next>` +
+			/*    */ `<block type="atom_alt_test">` +
+			/*     */ `<field name="ATOM_FIELD">Text</field>` +
+			/*     */ `<next>` +
+			/*      */ `<block type="atom_test">` +
+			/*       */ `<value name="ATOM_INPUT">` +
+			/*        */ `<block type="shape_test">` +
+			/*         */ `<mutation/>` +
+			/*        */ `</block>` +
+			/*       */ `</value>` +
+			/*      */ `</block>` +
+			/*     */ `</next>` +
+			/*    */ `</block>` +
+			/*   */ `</next>` +
+			/*  */ `</block>` +
 			/* */ `</value>` +
 			/**/ `</block>` +
 			`</xml>`
 	elm := NewTools(
 		NewXmlElement("xml"),
-		&ShapeTest{Mutant: []interface{}{
-			&AtomTest{}, // has no contents, so wont appear in the xml
-			&AtomAltTest{"Text"},
-			&AtomTest{&ShapeTest{}},
-		}})
+		&ShapeTest{
+			Mutant: &AtomTest{
+				NextStatement: &AtomAltTest{
+					AtomField: "Text",
+					NextStatement: &AtomTest{
+						AtomInput:     &ShapeTest{},
+						NextStatement: nil,
+					}},
+			},
+		})
 	require.Equal(t, expected, elm.OuterHTML())
 }
 

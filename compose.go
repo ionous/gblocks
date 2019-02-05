@@ -20,11 +20,13 @@ func (b *Block) removeAtoms() {
 	}
 }
 
-//  workspace -> mutation ui
+// Build a mutation ui from existing workspace blocks.
+// Called once, each time the mutation ui is opened by the user.
+// ( as opposed to compose which gets called repeatedly )
 func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error) {
 	if mui == nil {
 		err = errutil.New("decompose into nil workspace")
-	} else if muiContainer, e := mui.NewBlock(b.Type + "$mutation"); e != nil {
+	} else if muiContainer, e := mui.NewBlock(b.MutationType()); e != nil {
 		err = e // couldnt get the predefined mutator block used for the dialog
 	} else {
 		muiContainer.InitSvg()
@@ -46,7 +48,7 @@ func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error)
 				for i, cnt := 0, m.NumAtoms(); i < cnt; i++ {
 					atom := m.Atom(i)
 					if mutationType, ok := mutationTypes.findMutationType(atom.Type); !ok {
-						err = errutil.Append(err, errutil.New("couldnt type for atom", atom.Type))
+						err = errutil.Append(err, errutil.New("couldnt find mui type for atom", atom.Type))
 					} else if muiBlock, e := mui.NewBlock(mutationType); e != nil {
 						err = errutil.Append(err, e)
 					} else {

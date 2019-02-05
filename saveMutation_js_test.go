@@ -44,7 +44,7 @@ func TestShapeAddAtom(t *testing.T) {
 			t.Log("first")
 			{
 				numInputs, e := m.addAtom(reg, "atom_test")
-				require.NoError(t, e, "added atom", 1)
+				require.NoErrorf(t, e, "added atom %d", 1)
 				require.Equal(t, 1, numInputs, "added inputs")
 				//
 				require.Equal(t, b.NumInputs(), 4, "expanded inputs")
@@ -54,7 +54,7 @@ func TestShapeAddAtom(t *testing.T) {
 			t.Log("second")
 			{
 				numInputs, e := m.addAtom(reg, "atom_alt_test")
-				require.NoError(t, e, "added atom", 1)
+				require.NoError(t, e, "added atom %d", 2)
 				require.Equal(t, 1, numInputs, "added inputs")
 				//
 				require.Equal(t, b.NumInputs(), 5, "expanded inputs")
@@ -64,7 +64,7 @@ func TestShapeAddAtom(t *testing.T) {
 			t.Log("third")
 			{
 				numInputs, e := m.addAtom(reg, "atom_test")
-				require.NoError(t, e, "added atom", 1)
+				require.NoError(t, e, "added atom %d", 3)
 				require.Equal(t, 1, numInputs, "added inputs")
 				//
 				// note: unfortunately, fields dont keep their names; so the last input is nil

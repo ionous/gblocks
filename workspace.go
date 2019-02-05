@@ -58,7 +58,7 @@ func NewWorkspace(elementId, mediaPath string, tools interface{}) (ret *Workspac
 	// - Blockly.BlockSvg.mutationToDom
 	// -> registerType's mutationToDom; and TheWorkspace is nil.
 	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
-		obj := blockly.Call("inject", "blockly", map[string]interface{}{
+		obj := blockly.Call("inject", "blockly", Dict{
 			"media":   mediaPath,
 			"toolbox": tools,
 		})

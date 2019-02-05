@@ -2,9 +2,15 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"strings"
 )
 
 type TypeName string
+
+func SpecialTypeName(parts ...string) TypeName {
+	name := strings.Join(parts, "$")
+	return TypeName(name)
+}
 
 func (n TypeName) StructName() string {
 	return underscoreToPascal(n.String())
@@ -146,7 +152,10 @@ func (b *Block) IsShadow() bool {
 	return b.Call("isShadow").Bool()
 }
 
-//func (b* Block)setShadow  (shadow)  { b.Call("setShadow") }
+func (b *Block) SetShadow(shadow bool) {
+	b.Call("setShadow", shadow)
+}
+
 func (b *Block) IsInsertionMarker() bool {
 	return b.Call("isInsertionMarker").Bool()
 }
@@ -240,13 +249,13 @@ func (b *Block) appendInput(inputType InputType, name InputName) (ret *Input) {
 	return &Input{Object: newInput}
 }
 
-func (b *Block) JsonInit(opt Options) (err error) {
+func (b *Block) JsonInit(opt Dict) (err error) {
 	b.Call("jsonInit", opt)
 	return
 }
 
 //func (b* Block)mixin  (mixinObj, opt_disableCheck)  { b.Call("mixin") }
-func (b *Block) interpolate(msg string, args []Options) {
+func (b *Block) interpolate(msg string, args []Dict) {
 	b.Call("interpolate_", msg, args)
 }
 
@@ -294,15 +303,18 @@ func (b *Block) InputByName(str InputName) (retInput *Input, retIndex int) {
 	return
 }
 
+// MutationType - return the name of the block which appears when the mutator ui gets displayed.
+// see also: block.decompos
 func (b *Block) MutationType() TypeName {
-	return b.Type + "$mutation"
+	return SpecialTypeName("mui_container", b.Type.String())
 }
 
 //func (b* Block)getInputTargetBlock  (name)  { b.Call("getInputTargetBlock") }
 //func (b* Block)getCommentText  ()  { b.Call("getCommentText") }
 //func (b* Block)setCommentText  (text)  { b.Call("setCommentText") }
 //func (b* Block)setWarningText  (_text, _opt_id)  { b.Call("setWarningText") }
-//
+
+// SetMutator - blockly api to display a button which pops up a dialog to customize this block's inputs.
 func (b *Block) SetMutator(mutator *Mutator) {
 	b.Call("setMutator", mutator.Object)
 }

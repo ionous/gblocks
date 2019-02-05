@@ -11,7 +11,7 @@ import (
 
 type ShapeTest struct {
 	Input  *ShapeTest
-	Mutant []interface{} `mutation:"TestMutation"`
+	Mutant NextAtom `mutation:"TestMutation"`
 	Field  string
 }
 
@@ -20,13 +20,24 @@ func (n *ShapeTest) Output() *ShapeTest {
 	return n
 }
 
-type AtomTest struct {
-	AtomInput *ShapeTest
+// NextAtom
+type NextAtom interface {
+	NextAtom() NextAtom
 }
 
-type AtomAltTest struct {
-	AtomField string
+type AtomTest struct {
+	AtomInput     *ShapeTest
+	NextStatement NextAtom
 }
+
+func (a *AtomTest) NextAtom() NextAtom { return a.NextStatement }
+
+type AtomAltTest struct {
+	AtomField     string
+	NextStatement NextAtom
+}
+
+func (a *AtomAltTest) NextAtom() NextAtom { return a.NextStatement }
 
 type orderedGenerator struct {
 	name string
@@ -40,29 +51,24 @@ func (o *orderedGenerator) NewId() string {
 
 func TestShapeCreate(t *testing.T) {
 	var reg Registry
-	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, reg.RegisterMutation("TestMutation",
-		nil, (*MutationElControl)(nil),
-		(*AtomTest)(nil), (*MutationElControl)(nil),
-		(*AtomAltTest)(nil), (*MutationAltControl)(nil),
-	), "register mutations")
-	require.NoError(t, reg.RegisterBlocks(nil,
-		(*ShapeTest)(nil),
-		(*AtomTest)(nil),
-		(*AtomAltTest)(nil),
-		(*MutationElControl)(nil),
-		(*MutationAltControl)(nil),
-	), "register blocks")
 	//
-	var testShape = map[string]interface{}{
+	require.NoError(t,
+		reg.RegisterMutation("TestMutation"),
+		"register mutations")
+	//
+	require.NoError(t,
+		reg.RegisterBlock((*ShapeTest)(nil), nil),
+		"register blocks")
+	//
+	var testShape = Dict{
 		"type":     TypeName("shape_test"),
 		"message0": "%1 %2 %3",
 		"output":   TypeName("shape_test"),
-		"args0": []Options{
+		"args0": []Dict{
 			{
 				"name":  "INPUT",
 				"type":  "input_value",
-				"check": TypeName("shape_test"),
+				"check": []TypeName{"shape_test"},
 			},
 			{
 				"mutation": "TestMutation",
@@ -76,8 +82,8 @@ func TestShapeCreate(t *testing.T) {
 			},
 		},
 	}
-	opt := make(map[string]interface{})
-	reg.initJson(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
+	opt := make(Dict)
+	reg.buildBlockDesc(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
 	if v := pretty.Diff(opt, testShape); len(v) != 0 {
 		t.Log(pretty.Sprint(opt))
 		t.Fatal(v)
@@ -86,19 +92,16 @@ func TestShapeCreate(t *testing.T) {
 
 func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 	reg := new(Registry)
-	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, reg.RegisterMutation("TestMutation",
-		nil, (*MutationElControl)(nil),
-		(*AtomTest)(nil), (*MutationElControl)(nil),
-		(*AtomAltTest)(nil), (*MutationAltControl)(nil),
-	), "register mutations")
+	require.NoError(t,
+		reg.RegisterMutation("TestMutation",
+			Mutation{"atom", (*AtomTest)(nil)},
+			Mutation{"alt", (*AtomAltTest)(nil)},
+		), "register mutations")
 	//
 	require.NoError(t, reg.RegisterBlocks(nil,
 		(*ShapeTest)(nil),
 		(*AtomTest)(nil),
 		(*AtomAltTest)(nil),
-		(*MutationElControl)(nil),
-		(*MutationAltControl)(nil),
 	), "register blocks")
 	ws := NewBlankWorkspace(false)
 	ws.idGen = &orderedGenerator{name: "main"}

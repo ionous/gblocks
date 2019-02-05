@@ -9,20 +9,13 @@ import (
 	"testing"
 )
 
-type MutationElControl struct {
-	PreviousStatement, NextStatement interface{}
-}
-type MutationAltControl struct {
-	PreviousStatement, NextStatement interface{}
-}
-
 func buildMutation(ws *Workspace, reg *Registry, t *testing.T) (ret *Block, err error) {
 	if b, e := ws.NewBlock((*ShapeTest)(nil)); e != nil {
 		err = e
 	} else if in, index := b.InputByName("MUTANT"); index < 0 {
-		err = errutil.New("missing input")
+		err = errutil.New("buildMutationmissing input")
 	} else if m := in.Mutation(); m == nil {
-		err = errutil.New("missing mutation")
+		err = errutil.New("buildMutation missing mutation")
 	} else {
 		for _, atomType := range []TypeName{"atom_test", "atom_alt_test", "atom_test"} {
 			if numInputs, e := m.addAtom(reg, atomType); e != nil {
@@ -57,7 +50,7 @@ func TestMutationDecompose(t *testing.T) {
 		//
 		t.Log("matching", mutationString)
 		require.Equal(t, []string{
-			"MUTANT", "mutation_el_control", "mutation_alt_control", "mutation_el_control",
+			"MUTANT", "mui$TestMutation$atom_test", "mui$TestMutation$atom_alt_test", "mui$TestMutation$atom_test",
 		}, mutationString)
 	})
 }
@@ -124,14 +117,14 @@ func TestMutationCompose(t *testing.T) {
 		// create mutation blocks
 		mui := NewBlankWorkspace(true)
 		mui.idGen = &orderedGenerator{name: "mui"}
-		muiContainer, err := mui.NewBlock("shape_test$mutation")
+		muiContainer, err := mui.NewBlock(SpecialTypeName("mui_container", "shape_test"))
 		require.NoError(t, err)
 
 		var muiBlocks [3](*Block)
-		src := [3]interface{}{
-			(*MutationElControl)(nil),
-			(*MutationAltControl)(nil),
-			(*MutationAltControl)(nil),
+		src := [3]TypeName{
+			SpecialTypeName("mui", "TestMutation", "atom_test"),
+			SpecialTypeName("mui", "TestMutation", "atom_alt_test"),
+			SpecialTypeName("mui", "TestMutation", "atom_alt_test"),
 		}
 
 		t.Log("building blocks")
@@ -186,7 +179,7 @@ func TestMutationConnections(t *testing.T) {
 		} else {
 			e := b.saveConnections(muiContainer)
 			require.NoError(t, e, "initial save")
-			// println(muiContainer.Input(0).Connection().TargetBlock().connections.Connection(0))
+			//
 			targets := listConnections(muiContainer)
 			t.Log("initial targets:", pretty.Sprint(targets))
 			require.Len(t, targets, 3)
@@ -205,12 +198,12 @@ func TestMutationConnections(t *testing.T) {
 		nextNext := muiBlock.GetNextBlock().GetNextBlock().NextConnection() // remember this one
 
 		require.Equal(t,
-			"MUTANT,mutation_el_control,mutation_alt_control,mutation_el_control",
-			strings.Join(reduceInputs(muiContainer), ","), "before unplug")
+			[]string{"MUTANT", "mui$TestMutation$atom_test", "mui$TestMutation$atom_alt_test", "mui$TestMutation$atom_test"},
+			reduceInputs(muiContainer), "before unplug")
 		muiBlock.Unplug(true)
 		require.Equal(t,
-			"MUTANT,mutation_alt_control,mutation_el_control",
-			strings.Join(reduceInputs(muiContainer), ","), "after unplug")
+			[]string{"MUTANT", "mui$TestMutation$atom_alt_test", "mui$TestMutation$atom_test"},
+			reduceInputs(muiContainer), "after unplug")
 
 		// removing the mui block hasnt changed the atom's number of inputs
 		// removing the first block should act as if the first
@@ -244,8 +237,8 @@ func TestMutationConnections(t *testing.T) {
 			nextNext.Connect(muiBlock.PreviousConnection())
 
 			require.Equal(t,
-				"MUTANT,mutation_alt_control,mutation_el_control,mutation_el_control",
-				strings.Join(reduceInputs(muiContainer), ","), "after reconnect")
+				[]string{"MUTANT", "mui$TestMutation$atom_alt_test", "mui$TestMutation$atom_test", "mui$TestMutation$atom_test"},
+				reduceInputs(muiContainer), "after reconnect")
 			require.Equal(t, 1, cs.Length(), "reconnected length")
 			require.NotNil(t, cs.Connection(0), "reconnected")
 		}

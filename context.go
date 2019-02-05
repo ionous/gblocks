@@ -30,7 +30,7 @@ package gblocks
 // 			ret = field
 // 		} else if len(subs) == 3 {
 // 			if i, e := strconv.Atoi(subs[1]); e == nil {
-// 				atom := unpack(field.Index(i))
+// 				atom := unpackValue(field.Index(i))
 // 				ret = atom.FieldByName(subs[2])
 // 			}
 // 		}

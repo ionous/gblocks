@@ -75,8 +75,8 @@ func (m *InputMutation) addAtom(reg *Registry, atomType TypeName) (ret int, err 
 	b := in.Block() // atoms expand into their block
 	if rtype, exists := reg.types[atomType]; !exists {
 		// ^ find the atom type in order to generate inputs
-		err = errutil.New("unknown atom", atomType)
-	} else if msg, args, _, e := reg.makeArgs(rtype, m.Path(atomIndex)); e != nil {
+		err = errutil.New("atom not registered", atomType)
+	} else if msg, args, _, e := reg.buildArgs(rtype, m.Path(atomIndex)); e != nil {
 		// ^ expansion of atom into blockly inputs, etc.
 		err = e
 	} else if _, m_index := b.InputByName(in.Name); m_index < 0 {

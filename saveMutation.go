@@ -36,7 +36,8 @@ func (m *InputMutation) mutationToDom() (ret *XmlElement) {
 }
 
 // Deserialize mutations by expanding XML into atoms.
-// returns the total number of inputs added
+// The atoms generate inputs for the block, which are filled by blockly during the next stage of deserializing.
+// Returns the total number of inputs added
 func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err error) {
 	// we are "reloading" the mutations; remove all dynamic inputs
 	b.removeAtoms()

@@ -25,7 +25,6 @@ func (i Enum) String() (ret string) {
 
 type EnumStatement struct {
 	Enum
-	PreviousStatement, NextStatement *EnumStatement
 }
 
 func TestEnumLabels(t *testing.T) {
@@ -34,25 +33,24 @@ func TestEnumLabels(t *testing.T) {
 		DefaultChoice:     "default",
 		AlternativeChoice: "alt",
 	})
-	opt := make(map[string]interface{})
-	reg.initJson(r.TypeOf((*EnumStatement)(nil)).Elem(), opt)
-	expected := map[string]interface{}{
+	desc := make(Dict)
+	reg.buildBlockDesc(r.TypeOf((*EnumStatement)(nil)).Elem(), desc)
+	t.Log(pretty.Sprint(desc))
+	expected := Dict{
 		"message0": "%1",
-		"args0": []Options{
+		"args0": []Dict{
 			{
 				"name": "ENUM",
 				"type": "field_dropdown",
-				"options": []stringPair{
+				"options": []EnumPair{
 					{"default", "DefaultChoice"},
 					{"alt", "AlternativeChoice"},
 				},
 			},
 		},
-		"previousStatement": TypeName("enum_statement"),
-		"nextStatement":     TypeName("enum_statement"),
-		"type":              TypeName("enum_statement"),
+		"type": TypeName("enum_statement"),
 	}
-	v := pretty.Diff(opt, expected)
+	v := pretty.Diff(desc, expected)
 	if len(v) != 0 {
 		t.Fatal(v)
 	}
