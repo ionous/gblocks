@@ -9,7 +9,7 @@ type Mutator struct {
 }
 
 func NewMutator(quarkNames []TypeName) (ret *Mutator) {
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("Mutator").New(quarkNames)
 		ret = &Mutator{Object: obj}
 	}

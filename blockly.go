@@ -7,6 +7,7 @@ import (
 type Blockly struct {
 	*js.Object
 	blocks *js.Object `js:"Blocks"`
+	xml    *js.Object `js:"Xml"`
 }
 
 func GetBlockly() (ret *Blockly) {
@@ -18,4 +19,8 @@ func GetBlockly() (ret *Blockly) {
 
 func (b *Blockly) AddBlock(typeName TypeName, fns Dict) {
 	b.blocks.Set(typeName.String(), fns)
+}
+
+func (b *Blockly) Xml() *Xml {
+	return &Xml{Object: b.xml}
 }

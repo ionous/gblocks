@@ -23,12 +23,16 @@ func NewTools(parent *XmlElement, content ...interface{}) *XmlElement {
 		if child, ok := c.(*XmlElement); ok {
 			parent.AppendChild(child)
 		} else {
-			v := r.ValueOf(c).Elem()
-			kid := toolboxBlock(v, NoShadow)
+			kid := NewTool(c)
 			parent.AppendChild(kid)
 		}
 	}
 	return parent
+}
+
+func NewTool(content interface{}) *XmlElement {
+	v := r.ValueOf(content).Elem()
+	return toolboxBlock(v, NoShadow)
 }
 
 // access the underlying value that a pointer or interface refers to

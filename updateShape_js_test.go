@@ -1,7 +1,6 @@
 package gblocks
 
 import (
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
@@ -105,12 +104,6 @@ func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 	), "register blocks")
 	ws := NewBlankWorkspace(false)
 	ws.idGen = &orderedGenerator{name: "main"}
-	// replace timed event queue with direct event queue
-	events := GetEvents()
-	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
-		events.TestFire(args[0])
-		return nil
-	}))
 	fn(ws, reg)
 	ws.Dispose()
 }

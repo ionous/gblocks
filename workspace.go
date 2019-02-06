@@ -41,7 +41,7 @@ type Workspace struct {
 }
 
 func NewBlankWorkspace(isMutator bool) (ret *Workspace) {
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("Workspace").New()
 		ret = &Workspace{Object: obj}
 		ret.IsMutator = isMutator
@@ -57,7 +57,7 @@ func NewWorkspace(elementId, mediaPath string, tools interface{}) (ret *Workspac
 	// - Object.Blockly.Xml.blockToDom
 	// - Blockly.BlockSvg.mutationToDom
 	// -> registerType's mutationToDom; and TheWorkspace is nil.
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Call("inject", "blockly", Dict{
 			"media":   mediaPath,
 			"toolbox": tools,
@@ -344,7 +344,7 @@ func (ws *Workspace) ClearUndo() {
 // 			}
 // 		}
 
-// 		if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+// 		if blockly := GetBlockly(); blockly!= nil  {
 // 			xml := blockly.Get("Xml")
 // 			data := xml.Call("workspaceToDom", ws)
 // 			text := blockly.Get("Xml").Call("domToText", data)

@@ -57,217 +57,221 @@ func (reg *Registry) RegisterBlocks(blockDesc map[string]Dict, blocks ...interfa
 }
 
 func (reg *Registry) RegisterMutation(mutationName string, muiBlocks ...Mutation) (err error) {
-
-	// add the "tops" of the prototypes to the pool we pull from to connect "next" blocks.
-	types := make(RegisteredTypes)
-	for _, el := range muiBlocks {
-		prototype := el.Creates
-		types.RegisterType(r.TypeOf(prototype))
-	}
-
-	// now, walk those prototypes again
-	var quarks []TypeName
-	blocks := make(map[TypeName]*MutationBlock)
-	blockly := GetBlockly()
-
-	for _, muiBlock := range muiBlocks {
-		prototype, label := muiBlock.Creates, muiBlock.Label
-		rtype := r.TypeOf(prototype).Elem()
-		typeName := toTypeName(rtype)
-
-		// scan to the end of the prototype's NextStatement stack
-		// lastVal := val
-		// var lastField []int
-		// for {
-		// 	lastType := lastVal.Type()
-		// 	if f, ok := lastType.FieldByName(NextField); !ok {
-		// 		lastField = nil // there is no next field; clear anything from a previous block in the chain
-		// 		break
-		// 	} else if nextVal := val.FieldByIndex(f.Index); !nextVal.IsValid() || nextVal.IsNil() {
-		// 		lastField = f.Index
-		// 		break
-		// 	} else {
-		// 		lastVal = nextVal.Elem()
-		// 		lastType = nextVal.Type()
-		// 	}
-		// }
-		// var constraints Constraints
-		// if len(lastField) > 0 {
-		// 	if c, e := types.CheckStructField(lastVal.Type().FieldByIndex(lastField)); e != nil {
-		// 		err = errutil.Append(err, e)
-		// 	} else {
-		// 		constraints = c
-		// 	}
-		// }
-
-		// future: prototype into dom tree
-		// xml := ValueToDom(v, true)
-		// // does the element have sub-elements (or is it just one block?)
-		// var subElements int
-		// if shadows := xml.GetElementsByTagName("shadow"); shadows != nil {
-		// 	subElements = shadows.Num()
-		// }
-
-		if constraints, e := types.CheckField(rtype, NextField); e != nil {
-			err = errutil.Append(err, e)
-		} else {
-
-			muiType := SpecialTypeName("mui", mutationName, typeName.String())
-			muiBlock := &MutationBlock{
-				MuiLabel:      label,
-				MuiType:       muiType,
-				WorkspaceType: typeName,
-				Constraints:   constraints,
-				//		BlockXml:      xml,
-			}
-			blockly.AddBlock(muiType, muiBlock.BlockFns())
-			quarks = append(quarks, muiType)
-			blocks[muiType] = muiBlock
+	if blockly := GetBlockly(); blockly == nil {
+		err = errutil.New("blockly doesnt exist")
+	} else {
+		// add the "tops" of the prototypes to the pool we pull from to connect "next" blocks.
+		types := make(RegisteredTypes)
+		for _, el := range muiBlocks {
+			structType := r.TypeOf(el.Creates).Elem()
+			types.RegisterType(structType)
 		}
 
-		//
-		// if !dupes[typeName] {
-		// 	// if there are sub-elements; then we have also register the first block
-		// 	if isAtom := subElements == 0; !isAtom {
-		// 		muiType := SpecialTypeName"mui", name, el.Name, "atom")
-		// 		b := &MutationBlock{
-		// 			MuiLabel: typeName.Friendly(),
-		// 			WorkspaceType: typeName,
-		// 			BlockXml:      xml,
-		// 			// FIXXXX -- these constraints are probably wrong...
-		// 			Constraints: constraints,
-		// 		}
-		// 		blockly.AddBlock(muiType, b.BlockFns())
-		// 		atoms = append(atoms, muiType)
+		// now, walk those prototypes again
+		var quarks []TypeName
+		blocks := make(map[TypeName]*MutationBlock)
 
-		// 	}
-		// 	// regardless, we either have added the atom, or the block itself was an atom.
-		// 	dupes[typeName] = true
-		// }
+		for _, muiBlock := range muiBlocks {
+			prototype, label := muiBlock.Creates, muiBlock.Label
+			structType := r.TypeOf(prototype).Elem()
+			typeName := toTypeName(structType)
 
+			// scan to the end of the prototype's NextStatement stack
+			// lastVal := val
+			// var lastField []int
+			// for {
+			// 	lastType := lastVal.Type()
+			// 	if f, ok := lastType.FieldByName(NextField); !ok {
+			// 		lastField = nil // there is no next field; clear anything from a previous block in the chain
+			// 		break
+			// 	} else if nextVal := val.FieldByIndex(f.Index); !nextVal.IsValid() || nextVal.IsNil() {
+			// 		lastField = f.Index
+			// 		break
+			// 	} else {
+			// 		lastVal = nextVal.Elem()
+			// 		lastType = nextVal.Type()
+			// 	}
+			// }
+			// var constraints Constraints
+			// if len(lastField) > 0 {
+			// 	if c, e := types.CheckStructField(lastVal.Type().FieldByIndex(lastField)); e != nil {
+			// 		err = errutil.Append(err, e)
+			// 	} else {
+			// 		constraints = c
+			// 	}
+			// }
+
+			// future: prototype into dom tree
+			// xml := ValueToDom(v, true)
+			// // does the element have sub-elements (or is it just one block?)
+			// var subElements int
+			// if shadows := xml.GetElementsByTagName("shadow"); shadows != nil {
+			// 	subElements = shadows.Num()
+			// }
+
+			if constraints, e := types.CheckField(structType, NextField); e != nil {
+				err = errutil.Append(err, e)
+			} else {
+				muiType := SpecialTypeName("mui", mutationName, typeName.String())
+				muiBlock := &MutationBlock{
+					MuiLabel:      label,
+					MuiType:       muiType,
+					WorkspaceType: typeName,
+					Constraints:   constraints,
+					//		BlockXml:      xml,
+				}
+				blockly.AddBlock(muiType, muiBlock.BlockFns())
+				quarks = append(quarks, muiType)
+				blocks[muiType] = muiBlock
+			}
+
+			//
+			// if !dupes[typeName] {
+			// 	// if there are sub-elements; then we have also register the first block
+			// 	if isAtom := subElements == 0; !isAtom {
+			// 		muiType := SpecialTypeName"mui", name, el.Name, "atom")
+			// 		b := &MutationBlock{
+			// 			MuiLabel: typeName.Friendly(),
+			// 			WorkspaceType: typeName,
+			// 			BlockXml:      xml,
+			// 			// FIXXXX -- these constraints are probably wrong...
+			// 			Constraints: constraints,
+			// 		}
+			// 		blockly.AddBlock(muiType, b.BlockFns())
+			// 		atoms = append(atoms, muiType)
+
+			// 	}
+			// 	// regardless, we either have added the atom, or the block itself was an atom.
+			// 	dupes[typeName] = true
+			// }
+
+		}
+		// append the atoms at the end of the other blocks
+		// quarkNames, atomNames = append(quarkNames, atomNames...), nil
+
+		// TODO: color code the blocks by the mui's container input -- each input a different set of shades.
+		if reg.mutations == nil {
+			reg.mutations = make(RegisteredMutations)
+		}
+		reg.mutations[mutationName] = &RegisteredMutation{blocks: blocks, quarks: quarks}
 	}
-	// append the atoms at the end of the other blocks
-	// quarkNames, atomNames = append(quarkNames, atomNames...), nil
-
-	// TODO: color code the blocks by the mui's container input -- each input a different set of shades.
-	if reg.mutations == nil {
-		reg.mutations = make(RegisteredMutations)
-	}
-	reg.mutations[mutationName] = &RegisteredMutation{blocks: blocks, quarks: quarks}
 	return
 }
 
 func (reg *Registry) registerType(typeName TypeName, structType r.Type, blockDesc Dict) (err error) {
-	//
-	if reg.types == nil {
-		reg.types = make(RegisteredTypes)
-	}
-	if !reg.types.RegisterType(structType) {
-		panic("type already exists " + typeName)
-	}
-	if blockDesc == nil {
-		blockDesc = make(Dict)
-	}
-	if mui, e := reg.buildBlockDesc(structType, blockDesc); e != nil {
-		err = e
-	} else if blockly := GetBlockly(); blockly == nil {
+	if blockly := GetBlockly(); blockly == nil {
 		err = errutil.New("blockly doesnt exist")
 	} else {
-		// the ui system has "blocks" -- mapping type names to prototypes; standalone tests do not
-		init := js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
-			b := &Block{Object: obj}
-			// create the blockly block
-			if e := b.JsonInit(blockDesc); e != nil {
-				panic(e)
-			} else if len(mui) > 0 {
-				// all of the mutation blocks used by all of the mutable inputs in this block
-				var quarkNames []TypeName
-				// walk all arguments to find mutations: ( FIX: slow, awkward )
-				for _, mi := range mui {
-					inputName, mutationName := mi.inputName, mi.mutationName
-					if registeredMutation, ok := reg.mutations[mutationName]; !ok {
-						panic("unknown mutation " + mutationName)
-					} else if in, index := b.InputByName(inputName); index < 0 {
-						panic("unknown input " + inputName)
-					} else {
-						in.ForceMutation(mutationName)
-						// add to the palette of types shown by the mutator ui
-						quarkNames = append(quarkNames, registeredMutation.quarks...)
+		if reg.types == nil {
+			reg.types = make(RegisteredTypes)
+		}
+		if !reg.types.RegisterType(structType) {
+			err = errutil.New("type already exists " + typeName)
+		} else {
+			if blockDesc == nil {
+				blockDesc = make(Dict)
+			}
+			if mui, e := reg.buildBlockDesc(structType, blockDesc); e != nil {
+				err = e
+			} else {
+				// the ui system has "blocks" -- mapping type names to prototypes; standalone tests do not
+				init := js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+					b := &Block{Object: obj}
+					// create the blockly block
+
+					if e := b.JsonInit(blockDesc); e != nil {
+						panic(e)
+					} else if len(mui) > 0 {
+						// all of the mutation blocks used by all of the mutable inputs in this block
+						var quarkNames []TypeName
+						// walk all arguments to find mutations: ( FIX: slow, awkward )
+						for _, mi := range mui {
+							inputName, mutationName := mi.inputName, mi.mutationName
+							if registeredMutation, ok := reg.mutations[mutationName]; !ok {
+								panic("unknown mutation " + mutationName)
+							} else if in, index := b.InputByName(inputName); index < 0 {
+								panic("unknown input " + inputName)
+							} else {
+								in.ForceMutation(mutationName)
+								// add to the palette of types shown by the mutator ui
+								quarkNames = append(quarkNames, registeredMutation.quarks...)
+							}
+						}
+						b.SetMutator(NewMutator(quarkNames))
+					}
+					return
+				})
+				var fns Dict
+				if len(mui) == 0 {
+					fns = Dict{
+						"init": init,
+					}
+				} else {
+					fns = Dict{
+						"init": init,
+						"mutationToDom": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+							b := &Block{Object: obj}
+							dom := b.mutationToDom()
+							return dom.Object
+						}),
+						"domToMutation": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+							b, xmlElement := &Block{Object: obj}, &XmlElement{Object: parms[0]}
+							if _, e := b.domToMutation(reg, xmlElement); e != nil {
+								panic(e)
+							}
+							return
+						}),
+						"decompose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+							b, mui := &Block{Object: obj}, &Workspace{Object: parms[0]}
+							if muiContainer, e := b.decompose(reg, mui); e != nil {
+								panic(e)
+							} else {
+								ret = muiContainer.Object
+							}
+							return
+						}),
+						"compose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+							b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
+							if e := b.compose(reg, containerBlock); e != nil {
+								panic(e)
+							}
+							return
+						}),
+						"saveConnections": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
+							b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
+							if e := b.saveConnections(containerBlock); e != nil {
+								panic(e)
+							}
+							return
+						}),
 					}
 				}
-				b.SetMutator(NewMutator(quarkNames))
-			}
-			return
-		})
-		var fns Dict
-		if len(mui) == 0 {
-			fns = Dict{
-				"init": init,
-			}
-		} else {
-			fns = Dict{
-				"init": init,
-				"mutationToDom": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
-					b := &Block{Object: obj}
-					dom := b.mutationToDom()
-					return dom.Object
-				}),
-				"domToMutation": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b, xmlElement := &Block{Object: obj}, &XmlElement{Object: parms[0]}
-					if _, e := b.domToMutation(reg, xmlElement); e != nil {
-						panic(e)
-					}
-					return
-				}),
-				"decompose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b, mui := &Block{Object: obj}, &Workspace{Object: parms[0]}
-					if muiContainer, e := b.decompose(reg, mui); e != nil {
-						panic(e)
-					} else {
-						ret = muiContainer.Object
-					}
-					return
-				}),
-				"compose": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
-					if e := b.compose(reg, containerBlock); e != nil {
-						panic(e)
-					}
-					return
-				}),
-				"saveConnections": js.MakeFunc(func(obj *js.Object, parms []*js.Object) (ret interface{}) {
-					b, containerBlock := &Block{Object: obj}, &Block{Object: parms[0]}
-					if e := b.saveConnections(containerBlock); e != nil {
-						panic(e)
-					}
-					return
-				}),
-			}
-		}
 
-		// register things to blockly.
-		reg.types[typeName] = structType
-		blockly.AddBlock(typeName, fns)
+				// register things to blockly.
+				reg.types[typeName] = structType
+				blockly.AddBlock(typeName, fns)
 
-		// create custom mutation container
-		// the container has one input pin for every mutatable field in the workspace block
-		if len(mui) > 0 {
-			fns := Dict{
-				"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
-					muiContainer := &Block{Object: obj}
-					for _, mi := range mui {
-						inputName, _ := mi.inputName, mi.mutationName
-						label := NewFieldLabel(inputName.Friendly(), "")
-						in := muiContainer.AppendStatementInput(inputName)
-						in.AppendField(label.Field)
-						// FIX: check for mutable inputs is whatever matches the field of block
-						// in.SetCheck(mutableInput.check)
+				// create custom mutation container
+				// the container has one input pin for every mutatable field in the workspace block
+				if len(mui) > 0 {
+					fns := Dict{
+						"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
+							muiContainer := &Block{Object: obj}
+							for _, mi := range mui {
+								inputName, _ := mi.inputName, mi.mutationName
+								label := NewFieldLabel(inputName.Friendly(), "")
+								in := muiContainer.AppendStatementInput(inputName)
+								in.AppendField(label.Field)
+								// FIX: check for mutable inputs is whatever matches the field of block
+								// in.SetCheck(mutableInput.check)
+							}
+							return
+						}),
 					}
-					return
-				}),
+					name := SpecialTypeName("mui_container", typeName.String())
+					blockly.AddBlock(name, fns)
+				}
 			}
-			name := SpecialTypeName("mui_container", typeName.String())
-			blockly.AddBlock(name, fns)
 		}
 	}
 	return
@@ -434,6 +438,19 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string) (argDesc Dict, m
 				}
 			}
 
+			// case r.Struct:
+			// mutationName := typeName.String()
+			// if cs, e := reg.types.CheckType(f.Type); e != nil {
+			// 	err = errutil.New(f.Name, e)
+			// } else {
+			// 	if _, ok := reg.mutations[mutationName]; !ok {
+			// 		err = errutil.New("unknown mutation", name, mutationName)
+			// 	} else {
+			// 		argDesc.Insert(opt_type, input_dummy)
+			// 		mui = &mutationInput{InputName(name), mutationName, cs}
+			// 	}
+			// }
+
 		// input containing another block
 		case r.Ptr, r.Interface:
 			if cs, e := reg.types.CheckType(f.Type); e != nil {
@@ -496,7 +513,6 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string) (argDesc Dict, m
 		// 	Src           string
 		// 	Alt           string
 		// }
-
 	}
 	return
 }

@@ -13,4 +13,11 @@ if (typeof window === "undefined") {
 	global.document = dom.window.document;
 
 	const jsblockly = require("blockly/blockly_uncompressed.js");
+	var ns = jsblockly.Events;
+	ns.fire= function(evt) {
+		if (ns.isEnabled) {
+			ns.FIRE_QUEUE_.push(evt);
+			ns.fireNow_();
+		}
+	}
 }

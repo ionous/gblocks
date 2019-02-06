@@ -37,7 +37,7 @@ func (b *RowBlock) Output() interface{} {
 // 	require.NoError(t, RegisterBlock((*FieldBlock)(nil), nil), "register fields")
 // 	ws := NewBlankWorkspace(false)
 // 	// replace timed event queue with direct event queue
-// 	events := GetEvents()
+// 	GetBlockly().Events().EnableTestFiring()
 // 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
 // 		events.TestFire(args[0])
 // 		return nil

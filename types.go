@@ -71,7 +71,8 @@ func (ts RegisteredTypes) CheckType(t r.Type) (ret Constraints, err error) {
 			ret.AddConstraint("")
 		} else {
 			for typeName, srcType := range ts {
-				if srcType.Implements(t) {
+				// registered types hold structType, for implementation we expect func (*struct) interface{}.
+				if r.PtrTo(srcType).Implements(t) {
 					ret.AddConstraint(typeName)
 				}
 			}

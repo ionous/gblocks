@@ -15,7 +15,7 @@ type FieldLabel struct {
 }
 
 func NewFieldLabel(txt, cls string) (ret *FieldLabel) {
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("FieldLabel").New(txt, cls)
 		ret = &FieldLabel{Field: &Field{Object: obj}}
 	}
