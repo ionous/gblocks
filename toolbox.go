@@ -61,27 +61,6 @@ func unpackValue(v r.Value) (ret r.Value) {
 	return
 }
 
-// shared with toolbox creation
-// name is input name
-func addMutation(name string, el r.Value, out *XmlElement) {
-	if !el.IsNil() {
-		atoms := NewXmlElement("atoms", Attrs{"name": name})
-		out.AppendChild(atoms)
-		for {
-			el = unpackValue(el)
-			typeName := toTypeName(el.Type())
-			atom := NewXmlElement("atom", Attrs{"type": typeName.String()})
-			atoms.AppendChild(atom)
-
-			if next := el.FieldByName(NextField); !next.IsValid() || next.IsNil() {
-				break
-			} else {
-				el = next
-			}
-		}
-	}
-}
-
 // Shadowing - when creating xml from golang types should we create shadow blocks
 // https://developers.google.com/blockly/guides/configure/web/toolbox#shadow_blocks
 type Shadowing int
@@ -120,15 +99,16 @@ func ValueToDom(v r.Value, useShadowing bool) *XmlElement {
 	return toolboxBlock(v, shadowing)
 }
 
+// returns a <block> (or <shadow>)
 func toolboxBlock(v r.Value, shadowing Shadowing) *XmlElement {
 	t := v.Type()
 	n := toTypeName(t)
 	el := NewXmlElement(shadowing.Tag(), Attrs{"type": n.String()})
-	toolboxFields(el, v, t, shadowing)
+	toolboxFields(el, v, t, "", shadowing)
 	return el
 }
 
-func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing) {
+func toolboxFields(el *XmlElement, v r.Value, t r.Type, parentName string, shadowing Shadowing) {
 	var mutationEl *XmlElement
 	//
 	for i, cnt := 0, t.NumField(); i < cnt; i++ {
@@ -140,9 +120,14 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing) {
 			case NextField:
 				// <next>, recursive
 				if nv := v.FieldByIndex(f.Index); !nv.IsNil() {
-					nextEl := el.AppendChild(NewXmlElement("next"))
 					kid := toolboxBlock(unpackValue(nv), shadowing.Children())
-					nextEl.AppendChild(kid)
+					var parent *XmlElement
+					if len(parentName) > 0 {
+						parent = NewXmlElement("value", Attrs{"name": parentName})
+					} else {
+						parent = NewXmlElement("next")
+					}
+					el.AppendChild(parent).AppendChild(kid)
 				}
 			default:
 				name := pascalToCaps(f.Name)
@@ -170,15 +155,17 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing) {
 						field := toolboxField(name, strconv.FormatFloat(nv.Float(), 'g', -1, 32))
 						el.AppendChild(field)
 
+					case r.Struct:
+						if mutationEl == nil {
+							mutationEl = el.AppendChild(NewXmlElement("mutation"))
+						}
+						toolboxMutation(name, nv, mutationEl)
+						// we want to expand all of the fields directly into the current node.
+						// except for "next" -- which we want to go into value=fieldName at the right spot.
+						toolboxFields(el, nv, nv.Type(), name, shadowing)
+
 					// input containing another block
 					case r.Ptr, r.Interface:
-						// mutation
-						if _, ok := f.Tag.Lookup(tag_mutation); ok {
-							if mutationEl == nil {
-								mutationEl = el.AppendChild(NewXmlElement("mutation"))
-							}
-							addMutation(name, nv, mutationEl)
-						}
 						if !nv.IsNil() {
 							valEl := el.AppendChild(NewXmlElement("value", Attrs{"name": name}))
 							kid := toolboxBlock(unpackValue(nv), shadowing.Children())
@@ -207,6 +194,27 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing) {
 					}
 				}
 			}
+		}
+	}
+}
+
+func nextField(structValue r.Value) (ret r.Value, okay bool) {
+	next := structValue.FieldByName(NextField)
+	if next.IsValid() && !next.IsNil() {
+		ret, okay = unpackValue(next), true
+	}
+	return
+}
+
+// name is the field name of the mutation struct
+func toolboxMutation(name string, mutationStruct r.Value, parent *XmlElement) {
+	if next, ok := nextField(mutationStruct); ok {
+		atoms := NewXmlElement("atoms", Attrs{"name": name})
+		parent.AppendChild(atoms)
+		for ; ok; next, ok = nextField(next) {
+			typeName := toTypeName(next.Type())
+			atom := NewXmlElement("atom", Attrs{"type": typeName.String()})
+			atoms.AppendChild(atom)
 		}
 	}
 }

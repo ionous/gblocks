@@ -120,14 +120,14 @@ func TestToolMutation(t *testing.T) {
 	elm := NewTools(
 		NewXmlElement("xml"),
 		&ShapeTest{
-			Mutant: &AtomTest{
+			Mutant: TestMutation{&AtomTest{
 				NextStatement: &AtomAltTest{
 					AtomField: "Text",
 					NextStatement: &AtomTest{
 						AtomInput:     &ShapeTest{},
 						NextStatement: nil,
 					}},
-			},
+			}},
 		})
 	require.Equal(t, expected, elm.OuterHTML())
 }

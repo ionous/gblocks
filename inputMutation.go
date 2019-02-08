@@ -13,7 +13,7 @@ import (
 type InputMutation struct {
 	*js.Object
 	input        *js.Object `js:"input"` // *Blockly.Input containing this mutation
-	MutationName string     `js:"name"`  // name of the mutation, ex. TestMutation
+	MutationName TypeName   `js:"name"`  // name of the mutation, ex. TestMutation
 	atoms        *js.Object `js:"atoms"` // []
 	TotalInputs  int        `js:"totalInputs"`
 }
@@ -24,7 +24,7 @@ type Atom struct {
 	NumInputs int      `js:"totalInputs"`
 }
 
-func NewInputMutation(in *Input, name string) *InputMutation {
+func NewInputMutation(in *Input, name TypeName) *InputMutation {
 	m := &InputMutation{Object: new(js.Object)}
 	m.input = in.Object
 	m.MutationName = name
@@ -70,50 +70,54 @@ func (m *InputMutation) Atom(i int) (ret *Atom) {
 
 // AddAtom - some number of contiguous inputs (already added to the parent block).
 func (m *InputMutation) addAtom(reg *Registry, atomType TypeName) (ret int, err error) {
-	atomIndex := m.NumAtoms()
-	in := m.Input()
-	b := in.Block() // atoms expand into their block
+	// find the atom type in order to generate inputs
 	if rtype, exists := reg.types[atomType]; !exists {
-		// ^ find the atom type in order to generate inputs
 		err = errutil.New("atom not registered", atomType)
-	} else if msg, args, _, e := reg.buildArgs(rtype, m.Path(atomIndex)); e != nil {
-		// ^ expansion of atom into blockly inputs, etc.
-		err = e
-	} else if _, m_index := b.InputByName(in.Name); m_index < 0 {
-		// ^ the atom inputs will be placed directly after this input
-		err = errutil.New("input missing from owner block", in.Name)
 	} else {
-		// generate new inputs from the atom
-		oldLen := b.NumInputs()
-		b.interpolate(msg, args)
-		newLen := b.NumInputs()
-		numInputs := newLen - oldLen
-		// reorder inputs so that the atom's inputs follow the mutation's inputs.
-		if numInputs > 0 {
-			// record the desired order
-			scratch := make([]*Input, 0, newLen)
-			// there are three sections
-			// 1. up-to-and-including the mutation input
-			// 2. the atom's added inputs ( which were appened to the input list )
-			// 3. the inputs originally following the mutation input
-			end := m_index + m.TotalInputs + 1
-			for _, rng := range [][]int{{0, end}, {oldLen, newLen}, {end, oldLen}} {
-				for i, last := rng[0], rng[1]; i < last; i++ {
-					scratch = append(scratch, b.Input(i))
+		in := m.Input()
+		b := in.Block()
+		// the atom inputs will be placed directly after this input
+		if _, m_index := b.InputByName(in.Name); m_index < 0 {
+			err = errutil.New("input missing from owner block", in.Name)
+		} else {
+			atomIndex := m.NumAtoms()
+			// expansion of atom into blockly inputs, etc.
+			if args, e := reg.buildArgs(rtype, m.Path(atomIndex)); e != nil {
+				err = e
+			} else {
+				// generate new inputs from the atom
+				oldLen := b.NumInputs()
+				b.interpolate(args.message(), args.list)
+				newLen := b.NumInputs()
+				numInputs := newLen - oldLen
+				// reorder inputs so that the atom's inputs follow the mutation's inputs.
+				if numInputs > 0 {
+					// record the desired order
+					scratch := make([]*Input, 0, newLen)
+					// there are three sections
+					// 1. up-to-and-including the mutation input
+					// 2. the atom's added inputs ( which were appened to the input list )
+					// 3. the inputs originally following the mutation input
+					end := m_index + m.TotalInputs + 1
+					for _, rng := range [][]int{{0, end}, {oldLen, newLen}, {end, oldLen}} {
+						for i, last := rng[0], rng[1]; i < last; i++ {
+							scratch = append(scratch, b.Input(i))
+						}
+					}
+					// rewrite the input order
+					for i, in := range scratch {
+						b.setInput(i, in)
+					}
 				}
-			}
-			// rewrite the input order
-			for i, in := range scratch {
-				b.setInput(i, in)
+				// record the atom
+				a := &Atom{Object: new(js.Object)}
+				a.Type = atomType
+				a.NumInputs = numInputs
+				m.atoms.SetIndex(atomIndex, a)
+				m.TotalInputs += numInputs
+				ret = numInputs
 			}
 		}
-		// record the atom
-		a := &Atom{Object: new(js.Object)}
-		a.Type = atomType
-		a.NumInputs = numInputs
-		m.atoms.SetIndex(atomIndex, a)
-		m.TotalInputs += numInputs
-		ret = numInputs
 	}
 	return
 }

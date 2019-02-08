@@ -79,7 +79,7 @@ func TestShapeAddAtom(t *testing.T) {
 
 func TestShapeSave(t *testing.T) {
 	testShape(t, func(ws *Workspace, reg *Registry) {
-		b, e := buildMutation(ws, reg, t)
+		b, e := addTestAtoms(ws, reg, t)
 		require.NoError(t, e)
 		//
 		el := b.mutationToDom()

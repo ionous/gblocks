@@ -184,8 +184,8 @@ func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, e
 	// pattern for handling thrown errors
 	defer func() {
 		if e := recover(); e != nil {
-			if e, ok := e.(*js.Error); ok {
-				err = e
+			if jserror, ok := e.(*js.Error); ok {
+				err = jserror
 			} else {
 				panic(e)
 			}

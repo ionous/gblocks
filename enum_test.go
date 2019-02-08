@@ -29,7 +29,7 @@ type EnumStatement struct {
 
 func TestEnumLabels(t *testing.T) {
 	var reg Registry
-	reg.registerEnum(map[Enum]string{
+	reg.enums.registerEnum(map[Enum]string{
 		DefaultChoice:     "default",
 		AlternativeChoice: "alt",
 	})

@@ -39,7 +39,7 @@ func (b *Block) decompose(reg *Registry, mui *Workspace) (ret *Block, err error)
 			} else if m := blockInput.Mutation(); m == nil {
 				// ^ the mutation data for the input in the workspace
 				err = errutil.Append(err, errutil.New("input isnt mutable", muiInput.Name))
-			} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
+			} else if mutationTypes, ok := reg.mutations.GetMutation(m.MutationName); !ok {
 				// ^ the data needed to create mutation ui blocks from atoms
 				err = errutil.Append(err, errutil.New("input", muiInput.Name, "has unknown mutation", m.MutationName))
 			} else {
@@ -125,7 +125,7 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 			// ^ the mutation data for the input in the workspace
 			e := errutil.New("input isnt mutable", muiInput.Name)
 			err = errutil.Append(err, e)
-		} else if mutationTypes, ok := reg.mutations[m.MutationName]; !ok {
+		} else if mutationTypes, ok := reg.mutations.GetMutation(m.MutationName); !ok {
 			// ^ the data needed to create workspace atoms from mutation ui blocks
 			e := errutil.New("input", muiInput.Name, "has unknown mutation", m.MutationName)
 			err = errutil.Append(err, e)

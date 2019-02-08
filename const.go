@@ -16,6 +16,7 @@ const (
 	opt_text      = "text"
 	opt_precision = "precision"
 	opt_readOnly  = "readOnly"
+	opt_mutation  = "mutation"
 
 	tag_mutation = "mutation"
 

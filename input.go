@@ -92,7 +92,7 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 })
 
 // ForceMutation - name is mutation name. see RegisterMutation
-func (in *Input) ForceMutation(name string) {
+func (in *Input) ForceMutation(name TypeName) {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
 	in.mutation_ = NewInputMutation(in, name).Object

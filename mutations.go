@@ -2,8 +2,11 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/ionous/errutil"
+	r "reflect"
 )
 
+// Mutator -- blockly api
 type Mutator struct {
 	*js.Object
 }
@@ -14,6 +17,35 @@ func NewMutator(quarkNames []TypeName) (ret *Mutator) {
 		ret = &Mutator{Object: obj}
 	}
 	return
+}
+
+// Mutation - user specification of a mutation block.
+type Mutation struct {
+	Label   string
+	Creates interface{}
+}
+
+// MutationBlock - gblocks internal description for the palette of a mutation ui popup
+// the mutation ui blocks are auto-generated and limited in appearance:
+// a name, a generic previous connection, a possible next connection.
+type MutationBlock struct {
+	MuiLabel      string // used as the label for the block in the ui
+	MuiType       TypeName
+	WorkspaceType TypeName // type of the top block created by block xml; same as Xml["type"]
+	Constraints            // mutation ui block types permitted to follow this block.
+	//BlockXml      *XmlElement // workspace block xml duplicated the when the mutaiton block gets newly placed.
+}
+
+// RegisteredMutation - gblocks internal description of the palette used by a mutation popup.
+type RegisteredMutation struct {
+	// MuiType -> MutationBlock
+	blocks map[TypeName]*MutationBlock
+	quarks []TypeName // keys of blocks in display order.
+}
+
+// RegisteredMutations -
+type RegisteredMutations struct {
+	typeToMutation map[TypeName]*RegisteredMutation
 }
 
 /**
@@ -38,23 +70,6 @@ func reconnect(block *Block, i int, tgtConnection *Connection) (okay bool) {
 		}
 	}
 	return
-}
-
-// Mutation - user specification of a mutation block.
-type Mutation struct {
-	Label   string
-	Creates interface{}
-}
-
-// MutationBlock - internal description for the palette of a mutation ui popup
-// the mutation ui blocks are auto-generated and limited in appearance:
-// a name, a generic previous connection, a possible next connection.
-type MutationBlock struct {
-	MuiLabel      string // used as the label for the block in the ui
-	MuiType       TypeName
-	WorkspaceType TypeName // type of the top block created by block xml; same as Xml["type"]
-	Constraints            // mutation ui block types permitted to follow this block.
-	//BlockXml      *XmlElement // workspace block xml duplicated the when the mutaiton block gets newly placed.
 }
 
 //
@@ -84,14 +99,123 @@ func (m *MutationBlock) BlockFns() Dict {
 	}
 }
 
-// RegisteredMutation - internal description of the palette used by a mutation popup.
-type RegisteredMutation struct {
-	// MuiType -> MutationBlock
-	blocks map[TypeName]*MutationBlock
-	quarks []TypeName // keys of blocks in display order.
+func (reg *RegisteredMutations) Contains(mutation TypeName) (okay bool) {
+	if _, ok := reg.typeToMutation[mutation]; ok {
+		okay = true
+	}
+	return
 }
 
-type RegisteredMutations map[string]*RegisteredMutation
+func (reg *RegisteredMutations) GetMutation(mutation TypeName) (ret *RegisteredMutation, okay bool) {
+	if r, ok := reg.typeToMutation[mutation]; ok {
+		ret, okay = r, true
+	}
+	return
+}
+
+func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ...Mutation) (err error) {
+	if reg.Contains(mutation) {
+		err = errutil.New("mutation already exists", mutation)
+	} else if blockly := GetBlockly(); blockly == nil {
+		err = errutil.New("blockly doesnt exist")
+	} else {
+		// add the "tops" of the prototypes to the pool we pull from to connect "next" blocks.
+		types := make(RegisteredTypes)
+		for _, el := range muiBlocks {
+			structType := r.TypeOf(el.Creates).Elem()
+			types.RegisterType(structType)
+		}
+
+		// now, walk those prototypes again
+		var quarks []TypeName
+		blocks := make(map[TypeName]*MutationBlock)
+
+		for _, muiBlock := range muiBlocks {
+			prototype, label := muiBlock.Creates, muiBlock.Label
+			structType := r.TypeOf(prototype).Elem()
+			typeName := toTypeName(structType)
+
+			// scan to the end of the prototype's NextStatement stack
+			// lastVal := val
+			// var lastField []int
+			// for {
+			// 	lastType := lastVal.Type()
+			// 	if f, ok := lastType.FieldByName(NextField); !ok {
+			// 		lastField = nil // there is no next field; clear anything from a previous block in the chain
+			// 		break
+			// 	} else if nextVal := val.FieldByIndex(f.Index); !nextVal.IsValid() || nextVal.IsNil() {
+			// 		lastField = f.Index
+			// 		break
+			// 	} else {
+			// 		lastVal = nextVal.Elem()
+			// 		lastType = nextVal.Type()
+			// 	}
+			// }
+			// var constraints Constraints
+			// if len(lastField) > 0 {
+			// 	if c, e := types.CheckStructField(lastVal.Type().FieldByIndex(lastField)); e != nil {
+			// 		err = errutil.Append(err, e)
+			// 	} else {
+			// 		constraints = c
+			// 	}
+			// }
+
+			// future: prototype into dom tree
+			// xml := ValueToDom(v, true)
+			// // does the element have sub-elements (or is it just one block?)
+			// var subElements int
+			// if shadows := xml.GetElementsByTagName("shadow"); shadows != nil {
+			// 	subElements = shadows.Num()
+			// }
+
+			if constraints, e := types.CheckField(structType, NextField); e != nil {
+				err = errutil.Append(err, e)
+			} else {
+				muiType := SpecialTypeName("mui", mutation.String(), typeName.String())
+				muiBlock := &MutationBlock{
+					MuiLabel:      label,
+					MuiType:       muiType,
+					WorkspaceType: typeName,
+					Constraints:   constraints,
+					//		BlockXml:      xml,
+				}
+				blockly.AddBlock(muiType, muiBlock.BlockFns())
+				quarks = append(quarks, muiType)
+				blocks[muiType] = muiBlock
+			}
+
+			//
+			// if !dupes[typeName] {
+			// 	// if there are sub-elements; then we have also register the first block
+			// 	if isAtom := subElements == 0; !isAtom {
+			// 		muiType := SpecialTypeName"mui", name, el.Name, "atom")
+			// 		b := &MutationBlock{
+			// 			MuiLabel: typeName.Friendly(),
+			// 			WorkspaceType: typeName,
+			// 			BlockXml:      xml,
+			// 			// FIXXXX -- these constraints are probably wrong...
+			// 			Constraints: constraints,
+			// 		}
+			// 		blockly.AddBlock(muiType, b.BlockFns())
+			// 		atoms = append(atoms, muiType)
+
+			// 	}
+			// 	// regardless, we either have added the atom, or the block itself was an atom.
+			// 	dupes[typeName] = true
+			// }
+
+		}
+		// append the atoms at the end of the other blocks
+		// quarkNames, atomNames = append(quarkNames, atomNames...), nil
+
+		// TODO: color code the blocks by the mui's container input -- each input a different set of shades.
+		if reg.typeToMutation == nil {
+			reg.typeToMutation = make(map[TypeName]*RegisteredMutation)
+		}
+		reg.typeToMutation[mutation] = &RegisteredMutation{blocks: blocks, quarks: quarks}
+	}
+	return
+}
 
 // what kind of workspace block/s the mutation element represent*
 func (mm *RegisteredMutation) findMutationType(wsType TypeName) (ret TypeName, okay bool) {
@@ -112,11 +236,4 @@ func (mm *RegisteredMutation) findAtomType(muiType TypeName) (ret TypeName, okay
 		okay = true
 	}
 	return
-}
-
-// could be a map, except maps arent ordered.
-type mutationInput struct {
-	inputName    InputName //
-	mutationName string    // the name as per RegisterMutation, and the struct tags
-	constraints  Constraints
 }

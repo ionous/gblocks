@@ -10,8 +10,12 @@ import (
 
 type ShapeTest struct {
 	Input  *ShapeTest
-	Mutant NextAtom `mutation:"TestMutation"`
+	Mutant TestMutation
 	Field  string
+}
+
+type TestMutation struct {
+	NextStatement NextAtom
 }
 
 // Output - implement a generic output
@@ -52,7 +56,7 @@ func TestShapeCreate(t *testing.T) {
 	var reg Registry
 	//
 	require.NoError(t,
-		reg.RegisterMutation("TestMutation"),
+		reg.RegisterMutation((*TestMutation)(nil)),
 		"register mutations")
 	//
 	require.NoError(t,
@@ -70,9 +74,9 @@ func TestShapeCreate(t *testing.T) {
 				"check": []TypeName{"shape_test"},
 			},
 			{
-				"mutation": "TestMutation",
 				"name":     "MUTANT",
 				"type":     "input_dummy",
+				"mutation": TypeName("test_mutation"),
 			},
 			{
 				"name": "FIELD",
@@ -92,7 +96,7 @@ func TestShapeCreate(t *testing.T) {
 func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
 	reg := new(Registry)
 	require.NoError(t,
-		reg.RegisterMutation("TestMutation",
+		reg.RegisterMutation((*TestMutation)(nil),
 			Mutation{"atom", (*AtomTest)(nil)},
 			Mutation{"alt", (*AtomAltTest)(nil)},
 		), "register mutations")
