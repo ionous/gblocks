@@ -19,7 +19,13 @@ type Xml struct {
 // func (x *Xml) cloneShadow_ (shadow) {
 // func (x *Xml) domToText (dom) {
 // func (x *Xml) domToPrettyText (dom) {
-// func (x *Xml) textToDom (text) {
+func (x *Xml) TextToDom(text string) (ret *XmlElement) {
+	if obj := x.Call("textToDom", text); obj != nil && obj.Bool() {
+		ret = &XmlElement{Object: obj}
+	}
+	return
+}
+
 // func (x *Xml) clearWorkspaceAndLoadFromXml (xml, workspace) {
 // func (x *Xml) domToWorkspace (xml, workspace) {
 // func (x *Xml) appendDomToWorkspace (xml, workspace) {

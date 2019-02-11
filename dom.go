@@ -67,6 +67,13 @@ func (m *XmlElement) GetAttribute(k string) (ret *Attribute) {
 	return
 }
 
+func (m *XmlElement) FirstElementChild() (ret *XmlElement) {
+	if obj := m.Get("firstElementChild"); obj.Bool() {
+		ret = &XmlElement{Object: obj}
+	}
+	return
+}
+
 func (m *XmlElement) Children() *HtmlCollection {
 	obj := m.Get("children")
 	return &HtmlCollection{Object: obj}

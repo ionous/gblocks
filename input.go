@@ -132,8 +132,6 @@ func (in *Input) SetAlign(a InputAlign) {
 	in.Call("setAlign", a)
 }
 
-// init = function() {
-
 func (in *Input) Dispose() {
 	in.Call("dispose")
 }
