@@ -9,8 +9,7 @@ func TestToolText(t *testing.T) {
 	expected :=
 		`<xml id="toolbox" style="display: none">` +
 			/**/ `<category name="Logic" colour="%{BKY_LOGIC_HUE}">` +
-			/* */ `<category name="If">` +
-			/* */ `</category>` +
+			/* */ `<category name="If"/>` +
 			/**/ `</category>` +
 			`</xml>`
 	elm := Toolbox("xml", Attrs{"id": "toolbox", "style": "display: none"},
@@ -31,8 +30,7 @@ func TestToolStack(t *testing.T) {
 			/**/ `<next>` +
 			/* */ `<block type="stack_block">` +
 			/*   */ `<next>` +
-			/*    */ `<block type="stack_block">` +
-			/*    */ `</block>` +
+			/*    */ `<block type="stack_block"/>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
 			/* */ `</next>` +
@@ -56,8 +54,7 @@ func TestToolRow(t *testing.T) {
 			/*  */ `<value name="INPUT">` +
 			/*   */ `<block type="row_block">` +
 			/*    */ `<value name="INPUT">` +
-			/*     */ `<block type="row_block">` +
-			/*     */ `</block>` +
+			/*     */ `<block type="row_block"/>` +
 			/*    */ `</value>` +
 			/*   */ `</block>` +
 			/*  */ `</value>` +
@@ -94,25 +91,44 @@ func TestToolMutation(t *testing.T) {
 		`<xml>` +
 			/**/ `<block type="shape_test">` +
 			/* */ `<mutation>` +
-			/*  */ `<data name="MUTANT" types="mutation_el,mutation_alt" elements="0,1">` +
-			/*  */ `</data>` +
+			/*  */ `<atoms name="MUTANT">` +
+			/*   */ `<atom type="atom_test"/>` +
+			/*   */ `<atom type="atom_alt_test"/>` +
+			/*   */ `<atom type="atom_test"/>` +
+			/*  */ `</atoms>` +
 			/* */ `</mutation>` +
-			/* */ `<statement name="MUTANT">` +
-			/*  */ `<block type="mutation_el">` +
+			/* */ `<value name="MUTANT">` +
+			/*  */ `<block type="atom_test">` +
 			/*   */ `<next>` +
-			/*    */ `<block type="mutation_alt">` +
+			/*    */ `<block type="atom_alt_test">` +
+			/*     */ `<field name="ATOM_FIELD">Text</field>` +
+			/*     */ `<next>` +
+			/*      */ `<block type="atom_test">` +
+			/*       */ `<value name="ATOM_INPUT">` +
+			/*        */ `<block type="shape_test">` +
+			/*         */ `<mutation/>` +
+			/*        */ `</block>` +
+			/*       */ `</value>` +
+			/*      */ `</block>` +
+			/*     */ `</next>` +
 			/*    */ `</block>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
-			/* */ `</statement>` +
+			/* */ `</value>` +
 			/**/ `</block>` +
 			`</xml>`
 	elm := NewTools(
-		NewDomElement("xml"),
-		&ShapeTest{Mutant: []interface{}{
-			&MutationEl{},
-			&MutationAlt{},
-		}})
+		NewXmlElement("xml"),
+		&ShapeTest{
+			Mutant: TestMutation{&AtomTest{
+				NextStatement: &AtomAltTest{
+					AtomField: "Text",
+					NextStatement: &AtomTest{
+						AtomInput:     &ShapeTest{},
+						NextStatement: nil,
+					}},
+			}},
+		})
 	require.Equal(t, expected, elm.OuterHTML())
 }
 
@@ -127,8 +143,7 @@ func TestToolStatement(t *testing.T) {
 			/* */ `<statement name="DO">` +
 			/*   */ `<block type="stack_block">` +
 			/*    */ `<next>` +
-			/*     */ `<block type="stack_block">` +
-			/*     */ `</block>` +
+			/*     */ `<block type="stack_block"/>` +
 			/*   */ `</next>` +
 			/*  */ `</block>` +
 			/* */ `</statement>` +

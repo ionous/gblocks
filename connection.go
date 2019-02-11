@@ -26,7 +26,7 @@ func (c *Connection) IsConnected() bool {
 	return c.Call("isConnected").Bool()
 }
 
-func (c *Connection) UsConnectionAllowed() bool {
+func (c *Connection) IsConnectionAllowed() bool {
 	return c.Call("isConnectionAllowed").Bool()
 }
 

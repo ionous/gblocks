@@ -3,17 +3,17 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
-	"strings"
 )
 
+// InputType - describes both inputs and connections
 type InputType int
 
 //go:generate stringer -type=InputType
 const (
 	InputValue InputType = iota + 1
 	OutputValue
-	NextStatement
-	PreviousStatement
+	NextStatement     // used for connections between blocks, and for statement inputs
+	PreviousStatement // used for connections between blocks
 	DummyInput
 )
 
@@ -26,24 +26,15 @@ const (
 	AlignRight
 )
 
-// InputNames are caps case. ex. INPUT_NAME
+// InputName - assumes caps case. ex. INPUT_NAME
 type InputName string
 
-// FieldPath returns the name of the go struct field.
-func (n InputName) FieldPath() string {
-	slashes := strings.Split(n.String(), "/")
-	for i, s := range slashes {
-		slashes[i] = underscoreToPascal(s)
-	}
-	return strings.Join(slashes, "/")
-}
-
-// Friendly returns the name in spaces.
+// Friendly returns the name in spaces. ex. "Input Name"
 func (n InputName) Friendly() string {
 	return pascalToSpace(underscoreToPascal(n.String()))
 }
 
-// String returns the name in default (uppercase)
+// String returns the name in default (caps ) ex. "INPUT_NAME"
 func (n InputName) String() (ret string) {
 	if len(n) > 0 {
 		ret = string(n)
@@ -52,13 +43,19 @@ func (n InputName) String() (ret string) {
 }
 
 type Input struct {
-	*js.Object               // Blockly.Input
-	Type       InputType     `js:"type"`
-	Name       InputName     `js:"name"`
-	Align      InputAlign    `js:"align"`
-	FieldRow   []interface{} `js:"fieldRow"`   // array of Blockly.Field
-	connection *js.Object    `js:"connection"` // Blockly.Connection
-	mutation_  *js.Object    `js:"mutation_"`  // *InputMutation
+	*js.Object             // Blockly.Input
+	Type        InputType  `js:"type"`
+	Name        InputName  `js:"name"`
+	Align       InputAlign `js:"align"`
+	fieldRow    *js.Object `js:"fieldRow"`     // []*Blockly.Field
+	sourceBlock *js.Object `js:"sourceBlock_"` // *Blockly.Block
+	connection  *js.Object `js:"connection"`   // *Blockly.Connection
+	// custom
+	mutation_ *js.Object `js:"mutation_"` // *InputMutation
+}
+
+func (in *Input) Block() *Block {
+	return &Block{Object: in.sourceBlock}
 }
 
 func (in *Input) Connection() *Connection {
@@ -69,6 +66,13 @@ func (in *Input) Connection() *Connection {
 // see also: insertFieldAt
 func (in *Input) AppendField(f *Field) {
 	in.Call("appendField", f.Object)
+}
+
+func (in *Input) Fields() (ret *Fields) {
+	if obj := in.fieldRow; obj != nil && obj.Bool() {
+		ret = &Fields{Object: obj}
+	}
+	return
 }
 
 // insertFieldAt = function(index, field, opt_name) {
@@ -87,12 +91,11 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 	return false
 })
 
-func (in *Input) ForceMutation(name string) {
+// ForceMutation - name is mutation name. see RegisterMutation
+func (in *Input) ForceMutation(name TypeName) {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
-	m := &InputMutation{Object: new(js.Object)}
-	m.name = name
-	in.mutation_ = m.Object
+	in.mutation_ = NewInputMutation(in, name).Object
 }
 
 func (in *Input) Mutation() (ret *InputMutation) {
@@ -129,8 +132,29 @@ func (in *Input) SetAlign(a InputAlign) {
 	in.Call("setAlign", a)
 }
 
-// init = function() {
-
 func (in *Input) Dispose() {
 	in.Call("dispose")
+}
+
+// iterate over all blocks stacked in this input
+func (in *Input) visitStack(cb func(b *Block) (keepGoing bool)) (exhausted bool) {
+	earlyOut := false
+	// get the input's connection information
+	if c := in.Connection(); c != nil {
+		// for every block connected to the input...
+		for b := c.TargetBlock(); b != nil; {
+			if !cb(b) {
+				earlyOut = true
+				break
+			}
+
+			// move to the next
+			if c := b.NextConnection(); c != nil {
+				b = c.TargetBlock()
+			} else {
+				break
+			}
+		}
+	}
+	return !earlyOut
 }

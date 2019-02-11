@@ -1,25 +1,24 @@
 package gblocks
 
 const (
-	opt_message0 = "message0"
-	opt_args0    = "args0"
-	opt_output   = "output"
-
-	opt_previousStatement = "previousStatement"
-	opt_nextStatement     = "nextStatement"
-	opt_name              = "name"
-	opt_type              = "type"
-	opt_check             = "check"
-	opt_options           = "options"
-	opt_mutation          = "mutation" // custom for type mutation
-
+	opt_message0  = "message0"
+	opt_args0     = "args0"
+	opt_output    = "output"
+	opt_previous  = "previousStatement"
+	opt_next      = "nextStatement"
+	opt_name      = "name"
+	opt_type      = "type"
+	opt_check     = "check"
+	opt_options   = "options"
 	opt_value     = "value"
 	opt_min       = "min"
 	opt_max       = "max"
 	opt_text      = "text"
 	opt_precision = "precision"
 	opt_readOnly  = "readOnly"
-	tag_mutation  = "mutation"
+	opt_mutation  = "mutation"
+
+	tag_mutation = "mutation"
 
 	input_statement = "input_statement"
 	input_value     = "input_value"

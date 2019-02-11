@@ -5,19 +5,19 @@ import (
 	"strings"
 )
 
-type Options map[string]interface{}
+type Dict map[string]interface{}
 
-func (d *Options) contains(key string) (okay bool) {
-	if _, ok := (*d)[key]; ok {
+func (d Dict) Contains(key string) (okay bool) {
+	if _, ok := d[key]; ok {
 		okay = true
 	}
 	return
 }
 
 // add only if the key is new
-func (d *Options) add(key string, value interface{}) (ret interface{}) {
-	if prev, ok := (*d)[key]; !ok {
-		(*d)[key] = value
+func (d Dict) Insert(key string, value interface{}) (ret interface{}) {
+	if prev, ok := d[key]; !ok {
+		d[key] = value
 		ret = value
 	} else {
 		ret = prev
@@ -26,9 +26,9 @@ func (d *Options) add(key string, value interface{}) (ret interface{}) {
 }
 
 // make options map from tags
-// from https://golang.org/pkg/reflect/#StructTag.Get
-func parseTags(tag string) Options {
-	tags := make(Options)
+// based on https://golang.org/pkg/reflect/#StructTag.Get which looks up the value of a single key.
+func parseTags(tag string) Dict {
+	tags := make(Dict)
 	for tag != "" {
 		// Skip leading space.
 		i := 0

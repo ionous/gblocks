@@ -2,9 +2,15 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"strings"
 )
 
 type TypeName string
+
+func SpecialTypeName(parts ...string) TypeName {
+	name := strings.Join(parts, "$")
+	return TypeName(name)
+}
 
 func (n TypeName) StructName() string {
 	return underscoreToPascal(n.String())
@@ -38,10 +44,8 @@ type Block struct {
 	IsInMutator  bool       `js:"isInMutator"`
 	Rtl          bool       `js:"RTL"`
 	InputsInline bool       `js:"inputsInline"`
-
-	// note: this workspace pointer has limited value;
-	// it doesnt point to the Workspace object containing "Context" data
-	workspace_ *js.Object `js:"workspace"`
+	workspace    *js.Object `js:"workspace"`
+	connections_ *js.Object `js:"connections_"` // custom field *Connections
 }
 
 func jsConnection(obj *js.Object) (ret *Connection) {
@@ -64,6 +68,19 @@ func (b *Block) NextConnection() *Connection {
 // connection to a piece in the preceeding line
 func (b *Block) PreviousConnection() *Connection {
 	return jsConnection(b.previousConnection)
+}
+
+// connection to a piece in the preceeding line
+// warning: can return nil.
+func (b *Block) CachedConnections() (ret *Connections) {
+	if obj := b.connections_; obj != nil && obj.Bool() {
+		ret = &Connections{Object: obj}
+	}
+	return
+}
+
+func (b *Block) CacheConnections(c *Connections) {
+	b.connections_ = c.Object
 }
 
 // feels like this should have been asynchronous, hidden
@@ -108,10 +125,7 @@ func (b *Block) GetNextBlock() (ret *Block) {
 
 // Return the connection on the first statement input
 func (b *Block) GetFirstStatementConnection() (ret *Connection) {
-	if obj := b.Call("getFirstStatementConnection"); obj.Bool() {
-		ret = &Connection{Object: obj}
-	}
-	return
+	return jsConnection(b.Call("getFirstStatementConnection"))
 }
 
 func (b *Block) GetRootBlock() (ret *Block) {
@@ -138,7 +152,10 @@ func (b *Block) IsShadow() bool {
 	return b.Call("isShadow").Bool()
 }
 
-//func (b* Block)setShadow  (shadow)  { b.Call("setShadow") }
+func (b *Block) SetShadow(shadow bool) {
+	b.Call("setShadow", shadow)
+}
+
 func (b *Block) IsInsertionMarker() bool {
 	return b.Call("isInsertionMarker").Bool()
 }
@@ -232,18 +249,18 @@ func (b *Block) appendInput(inputType InputType, name InputName) (ret *Input) {
 	return &Input{Object: newInput}
 }
 
-func (b *Block) JsonInit(opt Options) (err error) {
+func (b *Block) JsonInit(opt Dict) (err error) {
 	b.Call("jsonInit", opt)
 	return
 }
 
 //func (b* Block)mixin  (mixinObj, opt_disableCheck)  { b.Call("mixin") }
-func (b *Block) interpolate(msg string, args []Options) {
+func (b *Block) interpolate(msg string, args []Dict) {
 	b.Call("interpolate_", msg, args)
 }
 
 func (b *Block) hasWorkspace() bool {
-	return b.workspace_ != nil && b.workspace_ != js.Undefined
+	return b.workspace != nil && b.workspace.Bool()
 }
 
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }
@@ -260,7 +277,7 @@ func (b *Block) NumInputs() int {
 
 func (b *Block) Input(i int) *Input {
 	if cnt := b.inputList.Length(); i < 0 || i >= cnt {
-		println(i, "of", cnt)
+		println("out of range", i, "of", cnt)
 		panic("out of range")
 	}
 	in := b.inputList.Index(i)
@@ -272,24 +289,32 @@ func (b *Block) setInput(i int, in *Input) {
 }
 
 func (b *Block) InputByName(str InputName) (retInput *Input, retIndex int) {
+	found := false
 	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
 		if in := b.Input(i); in.Name == str {
 			retInput, retIndex = in, i
+			found = true
 			break
 		}
+	}
+	if !found {
+		retIndex = -1
 	}
 	return
 }
 
+// MutationType - return the name of the block which appears when the mutator ui gets displayed.
+// see also: block.decompos
 func (b *Block) MutationType() TypeName {
-	return b.Type + "$mutation"
+	return SpecialTypeName("mui_container", b.Type.String())
 }
 
 //func (b* Block)getInputTargetBlock  (name)  { b.Call("getInputTargetBlock") }
 //func (b* Block)getCommentText  ()  { b.Call("getCommentText") }
 //func (b* Block)setCommentText  (text)  { b.Call("setCommentText") }
 //func (b* Block)setWarningText  (_text, _opt_id)  { b.Call("setWarningText") }
-//
+
+// SetMutator - blockly api to display a button which pops up a dialog to customize this block's inputs.
 func (b *Block) SetMutator(mutator *Mutator) {
 	b.Call("setMutator", mutator.Object)
 }

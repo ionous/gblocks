@@ -4,9 +4,10 @@ import (
 	"github.com/gopherjs/gopherjs/js"
 )
 
-type DomElement struct {
+type XmlElement struct {
 	*js.Object
-	Attributes *Attributes `js:attributes`
+	TagName    string      `js:"tagName"`
+	Attributes *Attributes `js:"attributes"`
 }
 
 // an NamedNodeMap
@@ -25,9 +26,27 @@ type HtmlCollection struct {
 	*js.Object
 }
 
-func NewDomElement(name string, attrs ...Attrs) *DomElement {
-	obj := js.Global.Get("document").Call("createElement", name)
-	dom := &DomElement{Object: obj}
+var _xmlSource *XmlDoc
+
+type XmlDoc struct {
+	*js.Object
+}
+
+func (x *XmlDoc) createElement(tag string) *XmlElement {
+	obj := x.Call("createElement", tag)
+	return &XmlElement{Object: obj}
+}
+
+func xmlSource() *XmlDoc {
+	if _xmlSource == nil {
+		obj := js.Global.Get("document").Get("implementation").Call("createDocument", "", "", nil)
+		_xmlSource = &XmlDoc{Object: obj}
+	}
+	return _xmlSource
+}
+
+func NewXmlElement(name string, attrs ...Attrs) *XmlElement {
+	dom := xmlSource().createElement(name)
 	for _, attrs := range attrs {
 		for k, v := range attrs {
 			dom.SetAttribute(k, v)
@@ -36,42 +55,57 @@ func NewDomElement(name string, attrs ...Attrs) *DomElement {
 	return dom
 }
 
-func (m *DomElement) AppendChild(child *DomElement) *DomElement {
+func (m *XmlElement) AppendChild(child *XmlElement) *XmlElement {
 	m.Call("appendChild", child)
 	return child
 }
 
-func (m *DomElement) GetAttribute(k string) (ret *Attribute) {
+func (m *XmlElement) GetAttribute(k string) (ret *Attribute) {
 	if obj := m.Call("getAttribute", k); obj.Bool() {
 		ret = &Attribute{Object: obj}
 	}
 	return
 }
 
-func (m *DomElement) Children() *HtmlCollection {
+func (m *XmlElement) FirstElementChild() (ret *XmlElement) {
+	if obj := m.Get("firstElementChild"); obj.Bool() {
+		ret = &XmlElement{Object: obj}
+	}
+	return
+}
+
+func (m *XmlElement) Children() *HtmlCollection {
 	obj := m.Get("children")
 	return &HtmlCollection{Object: obj}
 }
 
-func (m *DomElement) OuterHTML() string {
+func (m *XmlElement) OuterHTML() string {
 	return m.Get("outerHTML").String()
 }
 
-func (m *DomElement) SetAttribute(k string, v interface{}) {
+func (m *XmlElement) SetAttribute(k string, v interface{}) {
 	m.Call("setAttribute", k, v)
 }
 
-func (m *DomElement) SetInnerHTML(text string) {
+func (m *XmlElement) SetInnerHTML(text string) {
 	m.Set("innerHTML", text)
+}
+
+//HTMLCollection
+func (m *XmlElement) GetElementsByTagName(tagName string) (ret *HtmlCollection) {
+	if obj := m.Call("getElementsByTagName", tagName); obj != nil && obj.Bool() {
+		ret = &HtmlCollection{Object: obj}
+	}
+	return
 }
 
 func (a *HtmlCollection) Num() int {
 	return a.Get("length").Int()
 }
 
-func (a *HtmlCollection) Index(i int) (ret *DomElement) {
+func (a *HtmlCollection) Index(i int) (ret *XmlElement) {
 	obj := a.Call("item", i)
-	return &DomElement{Object: obj}
+	return &XmlElement{Object: obj}
 }
 
 func (a *Attributes) Num() int {

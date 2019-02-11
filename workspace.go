@@ -2,7 +2,6 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
-	"github.com/ionous/errutil"
 	r "reflect"
 )
 
@@ -15,6 +14,13 @@ const (
 	ToolboxAtRight
 )
 
+type IdGenerator interface {
+	NewId() string
+}
+
+// Workspace - a container for Blockly blocks.
+// The mutation popups, and the main editing space are examples of separate workspaces.
+// ( The toolbox uses the main workspace. )
 type Workspace struct {
 	*js.Object
 	Id               string          `js:"id"`
@@ -28,18 +34,17 @@ type Workspace struct {
 	// workspace svg
 	IsMutator bool `js:"isMutator"`
 
+	idGen IdGenerator
+
 	// custom fields
-	context map[string]*Context // blockId-> context
+	// context map[string]*Context // blockId-> context
 }
 
-var TheWorkspace *Workspace
-
-func NewBlankWorkspace() (ret *Workspace) {
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
+func NewBlankWorkspace(isMutator bool) (ret *Workspace) {
+	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("Workspace").New()
-		ws := initWorkspace(obj)
-		TheWorkspace = ws
-		ret = ws
+		ret = &Workspace{Object: obj}
+		ret.IsMutator = isMutator
 	}
 	return
 }
@@ -51,49 +56,47 @@ func NewWorkspace(elementId, mediaPath string, tools interface{}) (ret *Workspac
 	// - Blockly.Events.Create
 	// - Object.Blockly.Xml.blockToDom
 	// - Blockly.BlockSvg.mutationToDom
-	// -> registerBlock's mutationToDom; and TheWorkspace is nil.
-	if blockly := js.Global.Get("Blockly"); blockly.Bool() {
-		obj := blockly.Call("inject", "blockly", map[string]interface{}{
+	// -> registerType's mutationToDom; and TheWorkspace is nil.
+	if blockly := GetBlockly(); blockly != nil {
+		obj := blockly.Call("inject", "blockly", Dict{
 			"media":   mediaPath,
 			"toolbox": tools,
 		})
-		ws := initWorkspace(obj)
-		TheWorkspace = ws
-		ret = ws
+		ret = &Workspace{Object: obj}
 	}
 	return
 }
 
-func initWorkspace(obj *js.Object) *Workspace {
-	ws := &Workspace{Object: obj}
-	if !ws.IsMutator {
-		ws.AddChangeListener(ws.mirror)
-		ws.context = make(map[string]*Context)
-	}
-	return ws
-}
+// func initWorkspace(obj *js.Object) *Workspace {
+// 	ws := &
+// 	// if !ws.IsMutator {
+// 	// 	ws.AddChangeListener(ws.mirror)
+// 	// 	ws.context = make(map[string]*Context)
+// 	// }
+// 	return ws
+// }
 
-// GetDataById custom function to get go-lang mirror
-func (ws *Workspace) GetDataById(blockId string) (ret interface{}) {
-	if ctx := ws.Context(blockId); ctx != nil {
-		ret = ctx.Ptr().Interface()
-	}
-	return
-}
+// // GetDataById custom function to get go-lang mirror
+// func (ws *Workspace) GetDataById(blockId string) (ret interface{}) {
+// 	if ctx := ws.Context(blockId); ctx != nil {
+// 		ret = ctx.Ptr().Interface()
+// 	}
+// 	return
+// }
 
-// returns pointer to element; returns nil if blockId refers to a mutation block
-func (ws *Workspace) Context(blockId string) (ret *Context) {
-	if !ws.IsMutator {
-		if ctx, ok := ws.context[blockId]; ok {
-			ret = ctx
-		} else if b := ws.GetBlockById(blockId); b != nil {
-			ctx := &Context{block: b}
-			ws.context[blockId] = ctx
-			ret = ctx
-		}
-	}
-	return
-}
+// // returns pointer to element; returns nil if blockId refers to a mutation block
+// func (ws *Workspace) Context(blockId string) (ret *Context) {
+// 	if !ws.IsMutator {
+// 		if ctx, ok := ws.context[blockId]; ok {
+// 			ret = ctx
+// 		} else if b := ws.GetBlockById(blockId); b != nil {
+// 			ctx := &Context{block: b}
+// 			ws.context[blockId] = ctx
+// 			ret = ctx
+// 		}
+// 	}
+// 	return
+// }
 
 func (ws *Workspace) Dispose() {
 	ws.Call("dispose")
@@ -159,7 +162,11 @@ func (ws *Workspace) Dispose() {
 
 // where t is either a TypeName, string, or pointer to type.
 func (ws *Workspace) NewBlock(t interface{}) (*Block, error) {
-	return ws.NewBlockWithId(t, "")
+	var id string
+	if ws.idGen != nil {
+		id = ws.idGen.NewId()
+	}
+	return ws.NewBlockWithId(t, id)
 }
 
 func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, err error) {
@@ -177,8 +184,8 @@ func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, e
 	// pattern for handling thrown errors
 	defer func() {
 		if e := recover(); e != nil {
-			if e, ok := e.(*js.Error); ok {
-				err = e
+			if jserror, ok := e.(*js.Error); ok {
+				err = jserror
 			} else {
 				panic(e)
 			}
@@ -244,102 +251,106 @@ func (ws *Workspace) ClearUndo() {
 	ws.Call("clearUndo")
 }
 
-// func (ws* Workspace) addChangeListener= function() {
-// func (ws* Workspace) removeChangeListener= function() {
-
 // listen to changes in the workspace, reflect them into the go-data.
-func (ws *Workspace) mirror(evt interface{}) {
-	switch evt := evt.(type) {
-	case *BlockDelete:
-		// ids is an array of js strings
-		for i := 0; i < evt.Ids.Length(); i++ {
-			key := evt.Ids.Index(i).String()
-			delete(ws.context, key)
-		}
+// func (ws *Workspace) mirror(evt interface{}) {
+// 	switch evt := evt.(type) {
+// 	case *BlockDelete:
+// 		// ids is an array of js strings
+// 		for i := 0; i < evt.Ids.Length(); i++ {
+// 			key := evt.Ids.Index(i).String()
+// 			delete(ws.context, key)
+// 		}
 
-	case *BlockChange:
-		if evt.Element == "field" {
-			if ctx := ws.Context(evt.BlockId); ctx != nil {
-				name := InputName(evt.Name)
-				dst := ctx.FieldForInput(name)
+// 	case *BlockChange:
+// 		if evt.Element == "field" {
+// 			if ctx := ws.Context(evt.BlockId); ctx != nil {
+// 				name := InputName(evt.Name)
+// 				dst := ctx.FieldForInput(name)
 
-				switch v := evt.NewValue; dst.Kind() {
-				case r.Bool:
-					var v bool = v.Bool()
-					dst.Set(r.ValueOf(v))
-				case r.Int, r.Int8, r.Int16, r.Int32:
-					var v int = v.Int()
-					dst.Set(r.ValueOf(v).Convert(dst.Type()))
-				case r.Int64:
-					var v int64 = v.Int64()
-					dst.Set(r.ValueOf(v))
-				case r.Uint, r.Uint8, r.Uint16, r.Uint32:
-					var v uint64 = v.Uint64()
-					dst.Set(r.ValueOf(v).Convert(dst.Type()))
-				case r.Uint64:
-					var v uint64 = v.Uint64()
-					dst.Set(r.ValueOf(v))
-				case r.Float32:
-					var v float64 = v.Float()
-					dst.Set(r.ValueOf(float32(v)))
-				case r.Float64:
-					var v float64 = v.Float()
-					dst.Set(r.ValueOf(v))
-				case r.String:
-					var v string = v.String()
-					dst.Set(r.ValueOf(v))
-				default:
-					e := errutil.New("unknown destination in block change", dst.Kind())
-					panic(e.Error())
-				}
-			}
-		}
+// 				switch v := evt.NewValue; dst.Kind() {
+// 				case r.Bool:
+// 					var v bool = v.Bool()
+// 					dst.Set(r.ValueOf(v))
+// 				case r.Int, r.Int8, r.Int16, r.Int32:
+// 					var v int = v.Int()
+// 					dst.Set(r.ValueOf(v).Convert(dst.Type()))
+// 				case r.Int64:
+// 					var v int64 = v.Int64()
+// 					dst.Set(r.ValueOf(v))
+// 				case r.Uint, r.Uint8, r.Uint16, r.Uint32:
+// 					var v uint64 = v.Uint64()
+// 					dst.Set(r.ValueOf(v).Convert(dst.Type()))
+// 				case r.Uint64:
+// 					var v uint64 = v.Uint64()
+// 					dst.Set(r.ValueOf(v))
+// 				case r.Float32:
+// 					var v float64 = v.Float()
+// 					dst.Set(r.ValueOf(float32(v)))
+// 				case r.Float64:
+// 					var v float64 = v.Float()
+// 					dst.Set(r.ValueOf(v))
+// 				case r.String:
+// 					var v string = v.String()
+// 					dst.Set(r.ValueOf(v))
+// 				default:
+// 					e := errutil.New("unknown destination in block change", dst.Kind())
+// 					panic(e.Error())
+// 				}
+// 			}
+// 		}
 
-	case *BlockMove:
-		if ctx := ws.Context(evt.BlockId); ctx != nil {
-			// disconnect the block from the parent; and the parent from the block
-			if pid := evt.PrevParentId(); len(pid) > 0 {
-				oldParent := ws.Context(pid)
+// 	case *BlockMove:
+// 		if ctx := ws.Context(evt.BlockId); ctx != nil {
+// 			// disconnect the block from the parent; and the parent from the block
+// 			if pid := evt.PrevParentId(); len(pid) > 0 {
+// 				oldParent := ws.Context(pid)
 
-				in := evt.PrevInputName()
-				if len(in) == 0 {
-					in = NextInput
-					// fix up the block's previous input to point to nothing
-					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
-						panic(oldParent.String() + " missing previous statement")
-					} else {
-						prev.Set(r.Zero(prev.Type()))
-					}
-				}
-				// fix up the parent's input to point to nothing
-				dst := oldParent.FieldForInput(in)
-				dst.Set(r.Zero(dst.Type()))
-			}
+// 				in := evt.PrevInputName()
+// 				if len(in) == 0 {
+// 					in = NextInput
+// 					// fix up the block's previous input to point to nothing
+// 					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
+// 						panic(oldParent.String() + " missing previous statement")
+// 					} else {
+// 						prev.Set(r.Zero(prev.Type()))
+// 					}
+// 				}
+// 				// fix up the parent's input to point to nothing
+// 				dst := oldParent.FieldForInput(in)
+// 				dst.Set(r.Zero(dst.Type()))
+// 			}
 
-			// connect the block to the parent; and the parent to the block
-			if pid := evt.NextParentId(); len(pid) > 0 {
-				newParent := ws.Context(pid)
-				in := evt.NextInputName()
-				// a blank input means a vertical (next/prev) connection
-				if len(in) == 0 {
-					in = NextInput
-					// fix up the block's previous to point to the parent
-					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
-						panic("missing previous statement")
-					} else {
-						prev.Set(newParent.Ptr())
-					}
-				}
-				// fix up the parent's input to point to this block
-				if dst := newParent.FieldForInput(in); !dst.IsValid() {
-					panic(newParent.String() + " missing field " + in.String())
-				} else {
-					valPtr := ctx.Ptr()
-					dst.Set(valPtr)
-				}
-			}
-		}
-	default:
-		// pass
-	}
-}
+// 			// connect the block to the parent; and the parent to the block
+// 			if pid := evt.NextParentId(); len(pid) > 0 {
+// 				newParent := ws.Context(pid)
+// 				in := evt.NextInputName()
+// 				// a blank input means a vertical (next/prev) connection
+// 				if len(in) == 0 {
+// 					in = NextInput
+// 					// fix up the block's previous to point to the parent
+// 					if prev := ctx.FieldForInput(PreviousInput); !prev.IsValid() {
+// 						panic("missing previous statement")
+// 					} else {
+// 						prev.Set(newParent.Ptr())
+// 					}
+// 				}
+// 				// fix up the parent's input to point to this block
+// 				if dst := newParent.FieldForInput(in); !dst.IsValid() {
+// 					panic(newParent.String() + " missing field " + in.String())
+// 				} else {
+// 					valPtr := ctx.Ptr()
+// 					dst.Set(valPtr)
+// 				}
+// 			}
+// 		}
+
+// 		if blockly := GetBlockly(); blockly!= nil  {
+// 			xml := blockly.Get("Xml")
+// 			data := xml.Call("workspaceToDom", ws)
+// 			text := blockly.Get("Xml").Call("domToText", data)
+// 			println(text)
+// 		}
+// 	default:
+// 		// pass
+// 	}
+// }

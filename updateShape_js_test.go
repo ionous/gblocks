@@ -1,133 +1,82 @@
 package gblocks
 
 import (
-	"fmt"
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
+	"strconv"
 	"testing"
 )
 
 type ShapeTest struct {
 	Input  *ShapeTest
-	Mutant []interface{} `mutation:"TestMutation"`
+	Mutant TestMutation
 	Field  string
 }
 
-type MutationEl struct {
-	SubInput *ShapeTest
+type TestMutation struct {
+	NextStatement NextAtom
 }
 
-type MutationAlt struct {
-	SubField string
+// Output - implement a generic output
+func (n *ShapeTest) Output() *ShapeTest {
+	return n
 }
 
-type Verify struct {
-	Name      InputName
-	Type      InputType
-	Mutations int
+// NextAtom
+type NextAtom interface {
+	NextAtom() NextAtom
 }
 
-func reduce(b *Block) (ret []Verify) {
-	mutations := func(in *Input) (ret int) {
-		if m := in.Mutation(); m != nil {
-			ret = m.TotalInputs()
-		} else {
-			ret = -1
-		}
-		return
-	}
-	for i := 0; i < b.NumInputs(); i++ {
-		in := b.Input(i)
-		ret = append(ret, Verify{
-			Name:      in.Name,
-			Type:      in.Type,
-			Mutations: mutations(in),
-		})
-	}
-	return
+type AtomTest struct {
+	AtomInput     *ShapeTest
+	NextStatement NextAtom
 }
 
-func TestShapeChangeless(t *testing.T) {
-	testShape(t, func(ws *Workspace) {
-		b, e := ws.NewBlock((*ShapeTest)(nil))
-		require.NoError(t, e)
-		a1 := reduce(b)
-		require.NoError(t, b.updateShape(ws))
-		a2 := reduce(b)
-		require.Equal(t, a1, a2)
-		require.NoError(t, b.updateShape(ws))
-		a3 := reduce(b)
-		require.Equal(t, a2, a3)
-	})
+func (a *AtomTest) NextAtom() NextAtom { return a.NextStatement }
+
+type AtomAltTest struct {
+	AtomField     string
+	NextStatement NextAtom
 }
 
-func TestShapeUpdate(t *testing.T) {
-	subInput := func(i int) Verify {
-		name := InputName(fmt.Sprintf("MUTANT/%d/SUB_INPUT", i))
-		return Verify{name, InputValue, -1}
-	}
-	//
-	none := []Verify{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 0}, {"", DummyInput, -1}}
-	//
-	v := [][]Verify{
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 1}, subInput(0), {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 2}, subInput(0), subInput(1), {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 3}, subInput(0), subInput(1), subInput(2), {"", DummyInput, -1}},
-		{{"INPUT", InputValue, -1}, {"MUTANT", DummyInput, 4}, subInput(0), subInput(1), subInput(2), subInput(3), {"", DummyInput, -1}},
-	}
+func (a *AtomAltTest) NextAtom() NextAtom { return a.NextStatement }
 
-	testShape(t, func(ws *Workspace) {
-		b, e := ws.NewBlock((*ShapeTest)(nil))
-		require.NoError(t, e)
-		require.Equalf(t, none, reduce(b), "initially empty")
-		// grow data which should grow the number of inputs.
-		d := ws.GetDataById(b.Id).(*ShapeTest)
-		for i := 0; i < 3; i++ {
-			t.Log("adding element", i)
-			d.Mutant = append(d.Mutant, &MutationEl{})
-			require.NoErrorf(t, b.updateShape(ws), "element %d", i)
-			require.Equalf(t, v[i], reduce(b), "element %d", i)
-		}
+type orderedGenerator struct {
+	name string
+	i    int
+}
 
-		// reset data ( and inputs ) back to zero
-		d.Mutant = nil
-		require.NoError(t, b.updateShape(ws))
-		require.Equalf(t, none, reduce(b), "ends empty")
-	})
+func (o *orderedGenerator) NewId() string {
+	o.i++
+	return o.name + strconv.Itoa(o.i)
 }
 
 func TestShapeCreate(t *testing.T) {
-	TheRegistry = Registry{}
-	reg := &TheRegistry
-	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, RegisterMutation("TestMutation",
-		nil, (*MutationElControl)(nil),
-		(*MutationEl)(nil), (*MutationElControl)(nil),
-		(*MutationAlt)(nil), (*MutationAltControl)(nil),
-	), "register mutations")
-	require.NoError(t, RegisterBlocks(nil,
-		(*ShapeTest)(nil),
-		(*MutationEl)(nil),
-		(*MutationAlt)(nil),
-		(*MutationElControl)(nil),
-		(*MutationAltControl)(nil),
-	), "register blocks")
+	var reg Registry
 	//
-	var testShape = map[string]interface{}{
+	require.NoError(t,
+		reg.RegisterMutation((*TestMutation)(nil)),
+		"register mutations")
+	//
+	require.NoError(t,
+		reg.RegisterBlock((*ShapeTest)(nil), nil),
+		"register blocks")
+	//
+	var testShape = Dict{
 		"type":     TypeName("shape_test"),
 		"message0": "%1 %2 %3",
-		"args0": []Options{
+		"output":   TypeName("shape_test"),
+		"args0": []Dict{
 			{
 				"name":  "INPUT",
 				"type":  "input_value",
-				"check": TypeName("shape_test"),
+				"check": []TypeName{"shape_test"},
 			},
 			{
-				"mutation": "TestMutation",
 				"name":     "MUTANT",
 				"type":     "input_dummy",
+				"mutation": TypeName("test_mutation"),
 			},
 			{
 				"name": "FIELD",
@@ -136,36 +85,29 @@ func TestShapeCreate(t *testing.T) {
 			},
 		},
 	}
-	opt := make(map[string]interface{})
-	reg.initJson(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
+	opt := make(Dict)
+	reg.buildBlockDesc(r.TypeOf((*ShapeTest)(nil)).Elem(), opt)
 	if v := pretty.Diff(opt, testShape); len(v) != 0 {
+		t.Log(pretty.Sprint(opt))
 		t.Fatal(v)
-		t.Log(v)
 	}
 }
 
-func testShape(t *testing.T, fn func(*Workspace)) {
-	TheRegistry = Registry{}
-	// field has unknown type Mutant gblocks.ShapeMutation
-	require.NoError(t, RegisterMutation("TestMutation",
-		nil, (*MutationElControl)(nil),
-		(*MutationEl)(nil), (*MutationElControl)(nil),
-		(*MutationAlt)(nil), (*MutationAltControl)(nil),
-	), "register mutations")
-	require.NoError(t, RegisterBlocks(nil,
+func testShape(t *testing.T, fn func(*Workspace, *Registry)) {
+	reg := new(Registry)
+	require.NoError(t,
+		reg.RegisterMutation((*TestMutation)(nil),
+			Mutation{"atom", (*AtomTest)(nil)},
+			Mutation{"alt", (*AtomAltTest)(nil)},
+		), "register mutations")
+	//
+	require.NoError(t, reg.RegisterBlocks(nil,
 		(*ShapeTest)(nil),
-		(*MutationEl)(nil),
-		(*MutationAlt)(nil),
-		(*MutationElControl)(nil),
-		(*MutationAltControl)(nil),
+		(*AtomTest)(nil),
+		(*AtomAltTest)(nil),
 	), "register blocks")
-	ws := NewBlankWorkspace()
-	// replace timed event queue with direct event queue
-	events := GetEvents()
-	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
-		events.TestFire(args[0])
-		return nil
-	}))
-	fn(ws)
+	ws := NewBlankWorkspace(false)
+	ws.idGen = &orderedGenerator{name: "main"}
+	fn(ws, reg)
 	ws.Dispose()
 }
