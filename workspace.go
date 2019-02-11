@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 )
 
@@ -160,7 +161,7 @@ func (ws *Workspace) Dispose() {
 //  return ws.Call("getWidth")
 // }
 
-// where t is either a TypeName, string, or pointer to type.
+// where t is either a named.Type, string, or pointer to type.
 func (ws *Workspace) NewBlock(t interface{}) (*Block, error) {
 	var id string
 	if ws.idGen != nil {
@@ -170,16 +171,16 @@ func (ws *Workspace) NewBlock(t interface{}) (*Block, error) {
 }
 
 func (ws *Workspace) NewBlockWithId(t interface{}, opt_id string) (ret *Block, err error) {
-	var prototypeName TypeName
+	var prototypeName named.Type
 	switch t := t.(type) {
-	case TypeName:
+	case named.Type:
 		prototypeName = t
 	case string:
-		prototypeName = TypeName(t)
+		prototypeName = named.Type(t)
 	case r.Type:
-		prototypeName = toTypeName(t)
+		prototypeName = named.TypeFromStruct(t)
 	default:
-		prototypeName = toTypeName(r.TypeOf(t).Elem())
+		prototypeName = named.TypeFromStruct(r.TypeOf(t).Elem())
 	}
 	// pattern for handling thrown errors
 	defer func() {
@@ -264,7 +265,7 @@ func (ws *Workspace) ClearUndo() {
 // 	case *BlockChange:
 // 		if evt.Element == "field" {
 // 			if ctx := ws.Context(evt.BlockId); ctx != nil {
-// 				name := InputName(evt.Name)
+// 				name := named.Input(evt.Name)
 // 				dst := ctx.FieldForInput(name)
 
 // 				switch v := evt.NewValue; dst.Kind() {

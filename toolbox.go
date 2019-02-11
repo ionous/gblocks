@@ -1,6 +1,7 @@
 package gblocks
 
 import (
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"strconv"
 )
@@ -102,7 +103,7 @@ func ValueToDom(v r.Value, useShadowing bool) *XmlElement {
 // returns a <block> (or <shadow>)
 func toolboxBlock(v r.Value, shadowing Shadowing) *XmlElement {
 	t := v.Type()
-	n := toTypeName(t)
+	n := named.TypeFromStruct(t)
 	el := NewXmlElement(shadowing.Tag(), Attrs{"type": n.String()})
 	toolboxFields(el, v, t, "", shadowing)
 	return el
@@ -130,7 +131,7 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, parentName string, shado
 					el.AppendChild(parent).AppendChild(kid)
 				}
 			default:
-				name := pascalToCaps(f.Name)
+				name := named.InputFromField(f).String()
 				nv := v.FieldByIndex(f.Index)
 
 				// see if the type implements the stringer, for instance an enum.
@@ -212,7 +213,7 @@ func toolboxMutation(name string, mutationStruct r.Value, parent *XmlElement) {
 		atoms := NewXmlElement("atoms", Attrs{"name": name})
 		parent.AppendChild(atoms)
 		for ; ok; next, ok = nextField(next) {
-			typeName := toTypeName(next.Type())
+			typeName := named.TypeFromStruct(next.Type())
 			atom := NewXmlElement("atom", Attrs{"type": typeName.String()})
 			atoms.AppendChild(atom)
 		}

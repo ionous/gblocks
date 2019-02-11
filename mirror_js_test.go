@@ -52,12 +52,12 @@ func (b *RowBlock) Output() interface{} {
 // 	var reg Registry
 // 	opts := make(Dict)
 // 	structType := r.TypeOf((*StackBlock)(nil)).Elem()
-// 	typeName := toTypeName(structType)
+// 	typeName := named.TypeFromStruct(structType)
 // 	err := reg.registerType(typeName, structType, opts)
 // 	require.NoError(t, err, "register stack")
 // 	expected := Dict{
 // 		"message0":          "stack block",
-// 		"type":              TypeName("stack_block"),
+// 		"type":              named.Type("stack_block"),
 // 		"previousStatement": nil,
 // 		"nextStatement":     nil,
 // 	}
@@ -69,11 +69,11 @@ func (b *RowBlock) Output() interface{} {
 // 	var reg Registry
 // 	opts := make(Dict)
 // 	structType := r.TypeOf((*RowBlock)(nil)).Elem()
-// 	typeName := toTypeName(structType)
+// 	typeName := named.TypeFromStruct(structType)
 // 	err := reg.registerType(typeName, structType, opts)
 // 	require.NoError(t, err, "register row")
 // 	expected := Dict{
-// 		"type":     TypeName("row_block"),
+// 		"type":     named.Type("row_block"),
 // 		"message0": "%1",
 // 		"args0": []Dict{{
 // 			"type": "input_value",
@@ -89,11 +89,11 @@ func (b *RowBlock) Output() interface{} {
 // 	var reg Registry
 // 	opts := make(Dict)
 // 	structType := r.TypeOf((*FieldBlock)(nil)).Elem()
-// 	typeName := toTypeName(structType)
+// 	typeName := named.TypeFromStruct(structType)
 // 	err := reg.registerType(typeName, structType, opts)
 // 	require.NoError(t, err, "register stack")
 // 	expected := Dict{
-// 		"type":     TypeName("field_block"),
+// 		"type":     named.Type("field_block"),
 // 		"message0": "%1",
 // 		"args0": []Dict{{
 // 			"name": "NUMBER",

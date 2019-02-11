@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 )
 
 // InputType - describes both inputs and connections
@@ -26,30 +27,14 @@ const (
 	AlignRight
 )
 
-// InputName - assumes caps case. ex. INPUT_NAME
-type InputName string
-
-// Friendly returns the name in spaces. ex. "Input Name"
-func (n InputName) Friendly() string {
-	return pascalToSpace(underscoreToPascal(n.String()))
-}
-
-// String returns the name in default (caps ) ex. "INPUT_NAME"
-func (n InputName) String() (ret string) {
-	if len(n) > 0 {
-		ret = string(n)
-	}
-	return
-}
-
 type Input struct {
-	*js.Object             // Blockly.Input
-	Type        InputType  `js:"type"`
-	Name        InputName  `js:"name"`
-	Align       InputAlign `js:"align"`
-	fieldRow    *js.Object `js:"fieldRow"`     // []*Blockly.Field
-	sourceBlock *js.Object `js:"sourceBlock_"` // *Blockly.Block
-	connection  *js.Object `js:"connection"`   // *Blockly.Connection
+	*js.Object              // Blockly.Input
+	Type        InputType   `js:"type"`
+	Name        named.Input `js:"name"`
+	Align       InputAlign  `js:"align"`
+	fieldRow    *js.Object  `js:"fieldRow"`     // []*Blockly.Field
+	sourceBlock *js.Object  `js:"sourceBlock_"` // *Blockly.Block
+	connection  *js.Object  `js:"connection"`   // *Blockly.Connection
 	// custom
 	mutation_ *js.Object `js:"mutation_"` // *InputMutation
 }
@@ -92,7 +77,7 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 })
 
 // ForceMutation - name is mutation name. see RegisterMutation
-func (in *Input) ForceMutation(name TypeName) {
+func (in *Input) ForceMutation(name named.Type) {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
 	in.mutation_ = NewInputMutation(in, name).Object
@@ -105,15 +90,15 @@ func (in *Input) Mutation() (ret *InputMutation) {
 	return
 }
 
-func (in *Input) SetCheck(compatibleType TypeName) (err error) {
-	var ar []TypeName
+func (in *Input) SetCheck(compatibleType named.Type) (err error) {
+	var ar []named.Type
 	if compatibleType != "" {
 		ar = append(ar, compatibleType)
 	}
 	return in.SetChecks(ar)
 }
 
-func (in *Input) SetChecks(compatibleTypes []TypeName) (err error) {
+func (in *Input) SetChecks(compatibleTypes []named.Type) (err error) {
 	// pattern for handling thrown errors
 	defer func() {
 		if e := recover(); e != nil {

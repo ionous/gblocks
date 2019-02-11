@@ -1,16 +1,9 @@
-package gblocks
+package named
 
 import (
 	"github.com/fatih/camelcase"
-	r "reflect"
 	"strings"
 )
-
-// PascalCase -> under_score
-func toTypeName(t r.Type) (ret TypeName) {
-	str := pascalToUnderscore(t.Name())
-	return TypeName(str)
-}
 
 func pascalToUnderscore(s string) (ret string) {
 	if len(s) > 0 {

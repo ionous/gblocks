@@ -1,6 +1,7 @@
 package gblocks
 
 import (
+	"github.com/ionous/gblocks/named"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
@@ -29,7 +30,7 @@ func TestCheckNext(t *testing.T) {
 		require.NoError(t, e, "check field")
 		constraints, ok := check.GetConstraints()
 		require.True(t, ok, "get constraints")
-		require.Equal(t, constraints, []TypeName{"check_next"})
+		require.Equal(t, constraints, []named.Type{"check_next"})
 	}
 }
 
@@ -43,7 +44,7 @@ func TestCheckPrev(t *testing.T) {
 		require.NoError(t, e, "check field")
 		constraints, ok := check.GetConstraints()
 		require.True(t, ok, "get constraints")
-		require.Equal(t, constraints, []TypeName{"check_prev"})
+		require.Equal(t, constraints, []named.Type{"check_prev"})
 	}
 }
 
@@ -61,9 +62,9 @@ func TestCheckDesc(t *testing.T) {
 			t.Log(pretty.Sprint(desc))
 			expected := Dict{
 				"message0":          "check statement", // has no fields, so uses its own name.
-				"previousStatement": []TypeName{"check_statement"},
-				"nextStatement":     []TypeName{"check_statement"},
-				"type":              TypeName("check_statement"),
+				"previousStatement": []named.Type{"check_statement"},
+				"nextStatement":     []named.Type{"check_statement"},
+				"type":              named.Type("check_statement"),
 			}
 			v := pretty.Diff(desc, expected)
 			if len(v) != 0 {

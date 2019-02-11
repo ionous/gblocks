@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 )
 
@@ -11,7 +12,7 @@ type Mutator struct {
 	*js.Object
 }
 
-func NewMutator(quarkNames []TypeName) (ret *Mutator) {
+func NewMutator(quarkNames []named.Type) (ret *Mutator) {
 	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("Mutator").New(quarkNames)
 		ret = &Mutator{Object: obj}
@@ -30,22 +31,22 @@ type Mutation struct {
 // a name, a generic previous connection, a possible next connection.
 type MutationBlock struct {
 	MuiLabel      string // used as the label for the block in the ui
-	MuiType       TypeName
-	WorkspaceType TypeName // type of the top block created by block xml; same as Xml["type"]
-	Constraints            // mutation ui block types permitted to follow this block.
+	MuiType       named.Type
+	WorkspaceType named.Type // type of the top block created by block xml; same as Xml["type"]
+	Constraints              // mutation ui block types permitted to follow this block.
 	//BlockXml      *XmlElement // workspace block xml duplicated the when the mutaiton block gets newly placed.
 }
 
 // RegisteredMutation - gblocks internal description of the palette used by a mutation popup.
 type RegisteredMutation struct {
 	// MuiType -> MutationBlock
-	blocks map[TypeName]*MutationBlock
-	quarks []TypeName // keys of blocks in display order.
+	blocks map[named.Type]*MutationBlock
+	quarks []named.Type // keys of blocks in display order.
 }
 
 // RegisteredMutations -
 type RegisteredMutations struct {
-	typeToMutation map[TypeName]*RegisteredMutation
+	typeToMutation map[named.Type]*RegisteredMutation
 }
 
 /**
@@ -99,21 +100,21 @@ func (m *MutationBlock) BlockFns() Dict {
 	}
 }
 
-func (reg *RegisteredMutations) Contains(mutation TypeName) (okay bool) {
+func (reg *RegisteredMutations) Contains(mutation named.Type) (okay bool) {
 	if _, ok := reg.typeToMutation[mutation]; ok {
 		okay = true
 	}
 	return
 }
 
-func (reg *RegisteredMutations) GetMutation(mutation TypeName) (ret *RegisteredMutation, okay bool) {
+func (reg *RegisteredMutations) GetMutation(mutation named.Type) (ret *RegisteredMutation, okay bool) {
 	if r, ok := reg.typeToMutation[mutation]; ok {
 		ret, okay = r, true
 	}
 	return
 }
 
-func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ...Mutation) (err error) {
+func (reg *RegisteredMutations) RegisterMutation(mutation named.Type, muiBlocks ...Mutation) (err error) {
 	if reg.Contains(mutation) {
 		err = errutil.New("mutation already exists", mutation)
 	} else if blockly := GetBlockly(); blockly == nil {
@@ -127,13 +128,13 @@ func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ..
 		}
 
 		// now, walk those prototypes again
-		var quarks []TypeName
-		blocks := make(map[TypeName]*MutationBlock)
+		var quarks []named.Type
+		blocks := make(map[named.Type]*MutationBlock)
 
 		for _, muiBlock := range muiBlocks {
 			prototype, label := muiBlock.Creates, muiBlock.Label
 			structType := r.TypeOf(prototype).Elem()
-			typeName := toTypeName(structType)
+			typeName := named.TypeFromStruct(structType)
 
 			// scan to the end of the prototype's NextStatement stack
 			// lastVal := val
@@ -171,7 +172,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ..
 			if constraints, e := types.CheckField(structType, NextField); e != nil {
 				err = errutil.Append(err, e)
 			} else {
-				muiType := SpecialTypeName("mui", mutation.String(), typeName.String())
+				muiType := named.SpecialType("mui", mutation.String(), typeName.String())
 				muiBlock := &MutationBlock{
 					MuiLabel:      label,
 					MuiType:       muiType,
@@ -188,7 +189,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ..
 			// if !dupes[typeName] {
 			// 	// if there are sub-elements; then we have also register the first block
 			// 	if isAtom := subElements == 0; !isAtom {
-			// 		muiType := SpecialTypeName"mui", name, el.Name, "atom")
+			// 		muiType := named.SpecialType"mui", name, el.Name, "atom")
 			// 		b := &MutationBlock{
 			// 			MuiLabel: typeName.Friendly(),
 			// 			WorkspaceType: typeName,
@@ -210,7 +211,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ..
 
 		// TODO: color code the blocks by the mui's container input -- each input a different set of shades.
 		if reg.typeToMutation == nil {
-			reg.typeToMutation = make(map[TypeName]*RegisteredMutation)
+			reg.typeToMutation = make(map[named.Type]*RegisteredMutation)
 		}
 		reg.typeToMutation[mutation] = &RegisteredMutation{blocks: blocks, quarks: quarks}
 	}
@@ -218,7 +219,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutation TypeName, muiBlocks ..
 }
 
 // what kind of workspace block/s the mutation element represent*
-func (mm *RegisteredMutation) findMutationType(wsType TypeName) (ret TypeName, okay bool) {
+func (mm *RegisteredMutation) findMutationType(wsType named.Type) (ret named.Type, okay bool) {
 	for muiType, m := range mm.blocks {
 		if m.WorkspaceType == wsType {
 			ret = muiType
@@ -230,7 +231,7 @@ func (mm *RegisteredMutation) findMutationType(wsType TypeName) (ret TypeName, o
 }
 
 //  what kind of workspace block/s the mutation element represent*
-func (mm *RegisteredMutation) findAtomType(muiType TypeName) (ret TypeName, okay bool) {
+func (mm *RegisteredMutation) findAtomType(muiType named.Type) (ret named.Type, okay bool) {
 	if m, ok := mm.blocks[muiType]; ok {
 		ret = m.WorkspaceType
 		okay = true

@@ -1,4 +1,4 @@
-package gblocks
+package named
 
 import (
 	"github.com/stretchr/testify/require"

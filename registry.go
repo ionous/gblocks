@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"time"
 )
@@ -14,7 +15,7 @@ type Registry struct {
 }
 
 // NewData - returns a pointer to passed type name
-func (reg *Registry) NewData(name TypeName) (ret r.Value, err error) {
+func (reg *Registry) NewData(name named.Type) (ret r.Value, err error) {
 	if t, ok := reg.types[name]; !ok {
 		err = errutil.New("NewData for unknown type '" + name + "'")
 	} else {
@@ -30,14 +31,14 @@ func (reg *Registry) RegisterEnum(n interface{}) error {
 
 func (reg *Registry) RegisterBlock(b interface{}, blockDesc Dict) error {
 	structType := r.TypeOf(b).Elem()
-	typeName := toTypeName(structType)
+	typeName := named.TypeFromStruct(structType)
 	return reg.registerType(typeName, structType, blockDesc)
 }
 
 func (reg *Registry) RegisterBlocks(blockDesc map[string]Dict, blocks ...interface{}) (err error) {
 	for _, b := range blocks {
 		structType := r.TypeOf(b).Elem()
-		typeName := toTypeName(structType)
+		typeName := named.TypeFromStruct(structType)
 		var sub Dict
 		if blockDesc, ok := blockDesc[typeName.String()]; ok {
 			sub = blockDesc
@@ -52,11 +53,11 @@ func (reg *Registry) RegisterBlocks(blockDesc map[string]Dict, blocks ...interfa
 
 func (reg *Registry) RegisterMutation(m interface{}, muiBlocks ...Mutation) (err error) {
 	structType := r.TypeOf(m).Elem()
-	mutationName := toTypeName(structType)
+	mutationName := named.TypeFromStruct(structType)
 	return reg.mutations.RegisterMutation(mutationName, muiBlocks...)
 }
 
-func (reg *Registry) registerType(typeName TypeName, structType r.Type, blockDesc Dict) (err error) {
+func (reg *Registry) registerType(typeName named.Type, structType r.Type, blockDesc Dict) (err error) {
 	if blockly := GetBlockly(); blockly == nil {
 		err = errutil.New("blockly doesnt exist")
 	} else {
@@ -81,7 +82,7 @@ func (reg *Registry) registerType(typeName TypeName, structType r.Type, blockDes
 						panic(e)
 					} else if len(mui) > 0 {
 						// all of the mutation blocks used by all of the mutable inputs in this block
-						var quarkNames []TypeName
+						var quarkNames []named.Type
 						// walk all arguments to find mutations: ( FIX: slow, awkward )
 						for _, mi := range mui {
 							inputName, mutationName := mi.inputName, mi.mutationName
@@ -168,7 +169,7 @@ func (reg *Registry) registerType(typeName TypeName, structType r.Type, blockDes
 							return
 						}),
 					}
-					name := SpecialTypeName("mui_container", typeName.String())
+					name := named.SpecialType("mui_container", typeName.String())
 					blockly.AddBlock(name, fns)
 				}
 			}
@@ -191,14 +192,14 @@ func (reg *Registry) buildCheck(t r.Type, field string, blockDesc Dict, key stri
 
 // could be a map, except maps arent ordered.
 type mutationInput struct {
-	mutationName TypeName  // the name as per RegisterMutation
-	inputName    InputName //
+	mutationName named.Type  // the name as per RegisterMutation
+	inputName    named.Input //
 	constraints  Constraints
 }
 
 // note: perhaps anonymous structs could be used to separate into args blocks
 func (reg *Registry) buildBlockDesc(t r.Type, blockDesc Dict) (retMui []*mutationInput, err error) {
-	name := toTypeName(t)
+	name := named.TypeFromStruct(t)
 	blockDesc.Insert(opt_type, name)
 	//
 	if args, e := reg.buildArgs(t, ""); e != nil {
@@ -240,10 +241,10 @@ func (reg *Registry) buildBlockDesc(t r.Type, blockDesc Dict) (retMui []*mutatio
 						// basic interface is nil type.
 						blockDesc[opt_output] = nil
 					} else {
-						blockDesc[opt_output] = toTypeName(out)
+						blockDesc[opt_output] = named.TypeFromStruct(out)
 					}
 				case r.Ptr:
-					blockDesc[opt_output] = toTypeName(out.Elem())
+					blockDesc[opt_output] = named.TypeFromStruct(out.Elem())
 				}
 			}
 		}

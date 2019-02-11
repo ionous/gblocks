@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"sort"
 )
@@ -13,10 +14,10 @@ type RegisteredEnum struct {
 }
 
 type RegisteredEnums struct {
-	typeToEnum map[TypeName]*RegisteredEnum
+	typeToEnum map[named.Type]*RegisteredEnum
 }
 
-func (reg *RegisteredEnums) GetEnum(typeName TypeName) (ret *RegisteredEnum, okay bool) {
+func (reg *RegisteredEnums) GetEnum(typeName named.Type) (ret *RegisteredEnum, okay bool) {
 	if enumType, ok := reg.typeToEnum[typeName]; ok {
 		ret = enumType
 		okay = true
@@ -55,9 +56,9 @@ func (reg *RegisteredEnums) registerEnum(n interface{}) (ret []EnumPair, err err
 			pairs = append(pairs, pair)
 		}
 		if reg.typeToEnum == nil {
-			reg.typeToEnum = make(map[TypeName]*RegisteredEnum)
+			reg.typeToEnum = make(map[named.Type]*RegisteredEnum)
 		}
-		enumName := toTypeName(keyType)
+		enumName := named.TypeFromStruct(keyType)
 		reg.typeToEnum[enumName] = &RegisteredEnum{pairs: pairs}
 		ret = pairs
 	}

@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	"strings"
 )
 
@@ -47,7 +48,7 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 		if el := kids.Index(i); !strings.EqualFold(el.TagName, "atoms") {
 			err = errutil.Append(err, errutil.New("mutation has unexpected child", el.TagName))
 		} else {
-			inputName := InputName(el.GetAttribute("name").String())
+			inputName := named.Input(el.GetAttribute("name").String())
 			if in, index := b.InputByName(inputName); index < 0 {
 				err = errutil.New("unknown input", inputName)
 			} else if m := in.Mutation(); m == nil {
@@ -57,7 +58,7 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 				for i, cnt := 0, kids.Num(); i < cnt; i++ {
 					if el := kids.Index(i); !strings.EqualFold(el.TagName, "atom") {
 						err = errutil.Append(err, errutil.New("input has unexpected child", el.TagName))
-					} else if atomType := TypeName(el.GetAttribute("type").String()); len(atomType) == 0 {
+					} else if atomType := named.Type(el.GetAttribute("type").String()); len(atomType) == 0 {
 						err = errutil.Append(err, errutil.New("atom has no type", el.TagName))
 					} else if numInputs, e := m.addAtom(reg, atomType); e != nil {
 						err = errutil.Append(err, e)

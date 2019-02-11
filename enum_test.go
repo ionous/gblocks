@@ -1,5 +1,7 @@
 package gblocks
 
+import "github.com/ionous/gblocks/named"
+
 import (
 	"github.com/kr/pretty"
 	r "reflect"
@@ -48,7 +50,7 @@ func TestEnumLabels(t *testing.T) {
 				},
 			},
 		},
-		"type": TypeName("enum_statement"),
+		"type": named.Type("enum_statement"),
 	}
 	v := pretty.Diff(desc, expected)
 	if len(v) != 0 {

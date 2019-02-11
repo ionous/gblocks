@@ -1,6 +1,7 @@
 package gblocks
 
 import (
+	"github.com/ionous/gblocks/named"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
@@ -64,19 +65,19 @@ func TestShapeCreate(t *testing.T) {
 		"register blocks")
 	//
 	var testShape = Dict{
-		"type":     TypeName("shape_test"),
+		"type":     named.Type("shape_test"),
 		"message0": "%1 %2 %3",
-		"output":   TypeName("shape_test"),
+		"output":   named.Type("shape_test"),
 		"args0": []Dict{
 			{
 				"name":  "INPUT",
 				"type":  "input_value",
-				"check": []TypeName{"shape_test"},
+				"check": []named.Type{"shape_test"},
 			},
 			{
 				"name":     "MUTANT",
 				"type":     "input_dummy",
-				"mutation": TypeName("test_mutation"),
+				"mutation": named.Type("test_mutation"),
 			},
 			{
 				"name": "FIELD",

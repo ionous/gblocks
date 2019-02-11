@@ -1,16 +1,18 @@
 package gblocks
 
+import "github.com/ionous/gblocks/named"
+
 type Constraints struct {
-	constraints   []TypeName
+	constraints   []named.Type
 	hasConnection bool
 }
 
-func (c *Constraints) GetConstraints() ([]TypeName, bool) {
+func (c *Constraints) GetConstraints() ([]named.Type, bool) {
 	return c.constraints, c.hasConnection
 }
 
 // unlike in blockly proper, a single empty typename here means "any connection", rather than "no connection".
-func (c *Constraints) AddConstraint(typeName TypeName) {
+func (c *Constraints) AddConstraint(typeName named.Type) {
 	if len(typeName) > 0 {
 		c.constraints = append(c.constraints, typeName)
 	}

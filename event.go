@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/ionous/gblocks/named"
 )
 
 type EventId string
@@ -113,17 +114,17 @@ func (evt *BlockMove) PrevParentId() (ret string) {
 }
 
 // NextInputName - Input in new parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) NextInputName() (ret InputName) {
+func (evt *BlockMove) NextInputName() (ret named.Input) {
 	if p := evt.Get("newInputName"); p.Bool() {
-		ret = InputName(p.String())
+		ret = named.Input(p.String())
 	}
 	return
 }
 
 // PrevInputName - Input in old parent ( if any ). Empty if it's the parent's next block.
-func (evt *BlockMove) PrevInputName() (ret InputName) {
+func (evt *BlockMove) PrevInputName() (ret named.Input) {
 	if p := evt.Get("oldInputName"); p.Bool() {
-		ret = InputName(p.String())
+		ret = named.Input(p.String())
 	}
 	return
 }

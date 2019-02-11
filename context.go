@@ -21,7 +21,7 @@ package gblocks
 // 	return ctx.elem.IsValid()
 // }
 
-// func (ctx *Context) FieldForInput(in InputName) (ret r.Value) {
+// func (ctx *Context) FieldForInput(in named.Input) (ret r.Value) {
 // 	// input name format: INPUT_NAME/AtomIndex/INPUT_NAME
 // 	if name := in.FieldPath(); len(name) > 0 {
 // 		subs := strings.Split(name, "/")

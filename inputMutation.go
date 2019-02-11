@@ -3,6 +3,7 @@ package gblocks
 import (
 	"github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	"strconv"
 	"strings"
 )
@@ -13,18 +14,18 @@ import (
 type InputMutation struct {
 	*js.Object
 	input        *js.Object `js:"input"` // *Blockly.Input containing this mutation
-	MutationName TypeName   `js:"name"`  // name of the mutation, ex. TestMutation
+	MutationName named.Type `js:"name"`  // name of the mutation, ex. TestMutation
 	atoms        *js.Object `js:"atoms"` // []
 	TotalInputs  int        `js:"totalInputs"`
 }
 
 type Atom struct {
 	*js.Object
-	Type      TypeName `js:"type"`
-	NumInputs int      `js:"totalInputs"`
+	Type      named.Type `js:"type"`
+	NumInputs int        `js:"totalInputs"`
 }
 
-func NewInputMutation(in *Input, name TypeName) *InputMutation {
+func NewInputMutation(in *Input, name named.Type) *InputMutation {
 	m := &InputMutation{Object: new(js.Object)}
 	m.input = in.Object
 	m.MutationName = name
@@ -69,7 +70,7 @@ func (m *InputMutation) Atom(i int) (ret *Atom) {
 }
 
 // AddAtom - some number of contiguous inputs (already added to the parent block).
-func (m *InputMutation) addAtom(reg *Registry, atomType TypeName) (ret int, err error) {
+func (m *InputMutation) addAtom(reg *Registry, atomType named.Type) (ret int, err error) {
 	// find the atom type in order to generate inputs
 	if rtype, exists := reg.types[atomType]; !exists {
 		err = errutil.New("atom not registered", atomType)

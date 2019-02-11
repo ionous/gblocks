@@ -1,5 +1,7 @@
 package gblocks
 
+import "github.com/ionous/gblocks/named"
+
 const (
 	opt_message0  = "message0"
 	opt_args0     = "args0"
@@ -38,8 +40,8 @@ const (
 	PreviousField = "PreviousStatement"
 	NextField     = "NextStatement"
 
-	PreviousInput InputName = "PREVIOUS_STATEMENT"
-	NextInput     InputName = "NEXT_STATEMENT"
+	PreviousInput named.Input = "PREVIOUS_STATEMENT"
+	NextInput     named.Input = "NEXT_STATEMENT"
 
 	OutputMethod = "Output"
 

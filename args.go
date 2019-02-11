@@ -1,6 +1,7 @@
 package gblocks
 
 import (
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"strconv"
 	"strings"
@@ -13,12 +14,12 @@ type argDesc struct {
 	Dict
 }
 
-func (a *argDesc) InputName() InputName {
-	return InputName(a.Name)
+func (a *argDesc) InputName() named.Input {
+	return named.Input(a.Name)
 }
 
-func (a *argDesc) TypeName() TypeName {
-	return toTypeName(a.Type)
+func (a *argDesc) TypeName() named.Type {
+	return named.TypeFromStruct(a.Type)
 }
 
 func (a *argDesc) String() string {
@@ -27,7 +28,7 @@ func (a *argDesc) String() string {
 
 func makeArg(f r.StructField, path string) argDesc {
 	options := parseTags(string(f.Tag))
-	name := path + pascalToCaps(f.Name)
+	name := path + named.InputFromField(f).String()
 	options.Insert(opt_name, name)
 	return argDesc{name, f.Type, path, options}
 }

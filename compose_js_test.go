@@ -3,6 +3,7 @@ package gblocks
 import (
 	// "github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	"strings"
@@ -17,7 +18,7 @@ func addTestAtoms(ws *Workspace, reg *Registry, t *testing.T) (ret *Block, err e
 	} else if m := in.Mutation(); m == nil {
 		err = errutil.New("addTestAtoms missing mutation")
 	} else {
-		for _, atomType := range []TypeName{"atom_test", "atom_alt_test", "atom_test"} {
+		for _, atomType := range []named.Type{"atom_test", "atom_alt_test", "atom_test"} {
 			if numInputs, e := m.addAtom(reg, atomType); e != nil {
 				err = e
 				break
@@ -117,14 +118,14 @@ func TestMutationCompose(t *testing.T) {
 		// create mutation blocks
 		mui := NewBlankWorkspace(true)
 		mui.idGen = &orderedGenerator{name: "mui"}
-		muiContainer, err := mui.NewBlock(SpecialTypeName("mui_container", "shape_test"))
+		muiContainer, err := mui.NewBlock(named.SpecialType("mui_container", "shape_test"))
 		require.NoError(t, err)
 
 		var muiBlocks [3](*Block)
-		src := [3]TypeName{
-			SpecialTypeName("mui", "test_mutation", "atom_test"),
-			SpecialTypeName("mui", "test_mutation", "atom_alt_test"),
-			SpecialTypeName("mui", "test_mutation", "atom_alt_test"),
+		src := [3]named.Type{
+			named.SpecialType("mui", "test_mutation", "atom_test"),
+			named.SpecialType("mui", "test_mutation", "atom_alt_test"),
+			named.SpecialType("mui", "test_mutation", "atom_alt_test"),
 		}
 
 		t.Log("building blocks")

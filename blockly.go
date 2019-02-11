@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/ionous/gblocks/named"
 )
 
 type Blockly struct {
@@ -17,7 +18,7 @@ func GetBlockly() (ret *Blockly) {
 	return ret
 }
 
-func (b *Blockly) AddBlock(typeName TypeName, fns Dict) {
+func (b *Blockly) AddBlock(typeName named.Type, fns Dict) {
 	b.blocks.Set(typeName.String(), fns)
 }
 

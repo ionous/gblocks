@@ -2,15 +2,16 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"strings"
 )
 
 // RegisteredTypes -- IsRegistered structs.
-type RegisteredTypes map[TypeName]r.Type
+type RegisteredTypes map[named.Type]r.Type
 
 // IsRegistered -
-func (ts RegisteredTypes) IsRegistered(typeName TypeName) (okay bool) {
+func (ts RegisteredTypes) IsRegistered(typeName named.Type) (okay bool) {
 	if _, exists := ts[typeName]; exists {
 		okay = true
 	}
@@ -19,7 +20,7 @@ func (ts RegisteredTypes) IsRegistered(typeName TypeName) (okay bool) {
 
 // RegisterType - blockType should generally be a struct
 func (ts RegisteredTypes) RegisterType(blockType r.Type) (newlyAdded bool) {
-	if typeName := toTypeName(blockType); !ts.IsRegistered(typeName) {
+	if typeName := named.TypeFromStruct(blockType); !ts.IsRegistered(typeName) {
 		ts[typeName] = blockType
 		newlyAdded = true
 	}
@@ -43,8 +44,8 @@ func (ts RegisteredTypes) CheckStructField(f r.StructField) (ret Constraints, er
 		// read the tag string
 		if tagParts := strings.Split(tag, ","); len(tagParts) > 0 {
 			for _, n := range tagParts {
-				n := pascalToUnderscore(strings.TrimSpace(n))
-				if typeName := TypeName(n); !ts.IsRegistered(typeName) {
+				typeName := named.TypeFromStructName(strings.TrimSpace(n))
+				if !ts.IsRegistered(typeName) {
 					err = errutil.New("unknown type in constraint", typeName)
 				} else {
 					ret.AddConstraint(typeName)
@@ -61,7 +62,7 @@ func (ts RegisteredTypes) CheckType(t r.Type) (ret Constraints, err error) {
 	case r.Ptr:
 		if elType := t.Elem(); elType.Kind() != r.Struct {
 			err = errutil.New("unexpected type", elType)
-		} else if typeName := toTypeName(elType); !ts.IsRegistered(typeName) {
+		} else if typeName := named.TypeFromStruct(elType); !ts.IsRegistered(typeName) {
 			err = errutil.New("unknown pointer type", t)
 		} else {
 			ret.AddConstraint(typeName)

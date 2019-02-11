@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/named"
 )
 
 // collapse all dynamic inputs
@@ -166,7 +167,7 @@ type savedConnections struct {
 }
 
 type savedMutation struct {
-	inputName  InputName
+	inputName  named.Input
 	savedAtoms []savedConnections
 }
 
