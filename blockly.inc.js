@@ -14,6 +14,7 @@ if (typeof window === "undefined") {
 	global.window= dom.window;
 	global.document = dom.window.document;
 	global.DOMParser= dom.window.DOMParser;
+	global.XMLSerializer= dom.window.XMLSerializer;
 
 	const jsblockly = require("blockly/blockly_uncompressed.js");
 	var ns = jsblockly.Events;

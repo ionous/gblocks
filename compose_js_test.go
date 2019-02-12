@@ -151,7 +151,7 @@ func TestMutationCompose(t *testing.T) {
 			// test the composed block
 			composed := reduceInputs(b)
 			str := strings.Join(composed, ",")
-			require.Equal(t, "INPUT,MUTANT,MUTANT/0/ATOM_INPUT,MUTANT/1/ATOM_FIELD,MUTANT/2/ATOM_FIELD,FIELD", str)
+			require.Equal(t, "INPUT,MUTANT,MUTANT/1/ATOM_INPUT,MUTANT/2/ATOM_FIELD,MUTANT/3/ATOM_FIELD,FIELD", str)
 		}
 	})
 }
@@ -163,7 +163,7 @@ func TestMutationConnections(t *testing.T) {
 		b, e := addTestAtoms(ws, reg, t)
 		require.NoError(t, e)
 		//
-		in, where := b.InputByName("MUTANT/0/ATOM_INPUT")
+		in, where := b.InputByName("MUTANT/1/ATOM_INPUT")
 		require.NotEqual(t, -1, where)
 		require.NotNil(t, in)
 		// connect the first input

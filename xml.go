@@ -17,7 +17,11 @@ type Xml struct {
 // func (x *Xml) allFieldsToDom_ (block, element) {
 // func (x *Xml) blockToDom (block, opt_noId) {
 // func (x *Xml) cloneShadow_ (shadow) {
-// func (x *Xml) domToText (dom) {
+func (x *Xml) DomToText(dom *XmlElement) string {
+	obj := x.Call("domToText", dom.Object)
+	return obj.String()
+}
+
 // func (x *Xml) domToPrettyText (dom) {
 func (x *Xml) TextToDom(text string) (ret *XmlElement) {
 	if obj := x.Call("textToDom", text); obj != nil && obj.Bool() {

@@ -96,23 +96,11 @@ func TestToolMutation(t *testing.T) {
 			/*   */ `<atom type="atom_alt_test"/>` +
 			/*   */ `<atom type="atom_test"/>` +
 			/*  */ `</atoms>` +
-			/* */ `</mutation>` +
-			/* */ `<value name="MUTANT">` +
-			/*  */ `<block type="atom_test">` +
-			/*   */ `<next>` +
-			/*    */ `<block type="atom_alt_test">` +
-			/*     */ `<field name="ATOM_FIELD">Text</field>` +
-			/*     */ `<next>` +
-			/*      */ `<block type="atom_test">` +
-			/*       */ `<value name="ATOM_INPUT">` +
-			/*        */ `<block type="shape_test">` +
-			/*         */ `<mutation/>` +
-			/*        */ `</block>` +
-			/*       */ `</value>` +
-			/*      */ `</block>` +
-			/*     */ `</next>` +
-			/*    */ `</block>` +
-			/*   */ `</next>` +
+			/* */ `</mutation>` + // the mutation itself has no field; the first dynamic element is 1, but is empty. so we start with MUTANT/2
+			/* */ `<field name="MUTANT/2/ATOM_FIELD">Text</field>` +
+			/* */ `<value name="MUTANT/3/ATOM_INPUT">` +
+			/*  */ `<block type="shape_test">` +
+			/*   */ `<mutation/>` +
 			/*  */ `</block>` +
 			/* */ `</value>` +
 			/**/ `</block>` +
@@ -121,6 +109,7 @@ func TestToolMutation(t *testing.T) {
 		NewXmlElement("xml"),
 		&ShapeTest{
 			Mutant: TestMutation{&AtomTest{
+				AtomInput: nil,
 				NextStatement: &AtomAltTest{
 					AtomField: "Text",
 					NextStatement: &AtomTest{

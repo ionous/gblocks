@@ -46,10 +46,12 @@ func (m *InputMutation) ResetAtoms() (ret int) {
 	return
 }
 
-// Path - return a unique name for the atom: "INPUT_NAME/i/"
-func (m *InputMutation) Path(i int) string {
+// Path - return a unique name for the atom: "MUTANT/i/"
+// the members of the Mutation struct are MUTANT/0/memberName
+// the first atom connected via the struct's NextStatement becomes MUTANT/1/memberName, and so on.
+func (m *InputMutation) Path(depth int) string {
 	inputName := m.Input().Name
-	return strings.Join([]string{inputName.String(), strconv.Itoa(i), ""}, "/")
+	return strings.Join([]string{inputName.String(), strconv.Itoa(depth), ""}, "/")
 }
 
 // NumAtoms - number of sub-blocks used by this mutation.
@@ -83,7 +85,7 @@ func (m *InputMutation) addAtom(reg *Registry, atomType named.Type) (ret int, er
 		} else {
 			atomIndex := m.NumAtoms()
 			// expansion of atom into blockly inputs, etc.
-			if args, e := reg.buildArgs(rtype, m.Path(atomIndex)); e != nil {
+			if args, e := reg.buildArgs(rtype, m.Path(atomIndex+1)); e != nil {
 				err = e
 			} else {
 				// generate new inputs from the atom

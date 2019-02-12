@@ -4,6 +4,7 @@ import (
 	"github.com/ionous/gblocks/named"
 	r "reflect"
 	"strconv"
+	"strings"
 )
 
 type Attrs map[string]string
@@ -105,11 +106,53 @@ func toolboxBlock(v r.Value, shadowing Shadowing) *XmlElement {
 	t := v.Type()
 	n := named.TypeFromStruct(t)
 	el := NewXmlElement(shadowing.Tag(), Attrs{"type": n.String()})
-	toolboxFields(el, v, t, "", shadowing)
+	toolboxFields(el, v, t, shadowing, &toolboxPath{})
 	return el
 }
 
-func toolboxFields(el *XmlElement, v r.Value, t r.Type, parentName string, shadowing Shadowing) {
+// for
+type toolboxPath struct {
+	parent named.Input // mutation field name
+	depth  int
+}
+
+func (p *toolboxPath) Next() *toolboxPath {
+	return &toolboxPath{p.parent, p.depth + 1}
+}
+
+func (p *toolboxPath) IsValid() bool {
+	return len(p.parent) > 0
+}
+
+func (p *toolboxPath) NewValue(input named.Input) *XmlElement {
+	return p.newXmlElement("value", input)
+}
+
+func (p *toolboxPath) NewStatement(input named.Input) *XmlElement {
+	return p.newXmlElement("statement", input)
+}
+
+func (p *toolboxPath) NewField(input named.Input, val string) *XmlElement {
+	el := p.newXmlElement("field", input)
+	el.SetInnerHTML(val)
+	return el
+}
+
+func (p *toolboxPath) newXmlElement(tag string, input named.Input) *XmlElement {
+	return NewXmlElement(tag, Attrs{"name": p.inputPath(input)})
+}
+
+func (p *toolboxPath) inputPath(input named.Input) (ret string) {
+	parent, field := p.parent.String(), input.String()
+	if len(parent) == 0 {
+		ret = field
+	} else {
+		ret = strings.Join([]string{parent, strconv.Itoa(p.depth), field}, "/")
+	}
+	return
+}
+
+func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing, path *toolboxPath) {
 	var mutationEl *XmlElement
 	//
 	for i, cnt := 0, t.NumField(); i < cnt; i++ {
@@ -121,61 +164,68 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, parentName string, shado
 			case NextField:
 				// <next>, recursive
 				if nv := v.FieldByIndex(f.Index); !nv.IsNil() {
-					kid := toolboxBlock(unpackValue(nv), shadowing.Children())
-					var parent *XmlElement
-					if len(parentName) > 0 {
-						parent = NewXmlElement("value", Attrs{"name": parentName})
+					nv := unpackValue(nv)
+					if !path.IsValid() {
+						// <next><shadow type='nv.Type.Name()'>...</shadow></next>`
+						kid := toolboxBlock(nv, shadowing.Children())
+						el.AppendChild(NewXmlElement("next")).AppendChild(kid)
 					} else {
-						parent = NewXmlElement("next")
+						// place the inputs of atoms inside the same block/el parent
+						// we want to increase the path name of the atoms' memebers and shadowing depth for sub-blocks.
+						toolboxFields(el, nv, nv.Type(), shadowing.Children(), path.Next())
 					}
-					el.AppendChild(parent).AppendChild(kid)
 				}
 			default:
-				name := named.InputFromField(f).String()
+				input := named.InputFromField(f)
 				nv := v.FieldByIndex(f.Index)
 
 				// see if the type implements the stringer, for instance an enum.
 				type stringer interface{ String() string }
 				if str, ok := nv.Interface().(stringer); ok {
-					el.AppendChild(toolboxField(name, str.String()))
+					el.AppendChild(path.NewField(input, str.String()))
 				} else {
 					switch k := f.Type.Kind(); k {
 					case r.Bool:
-						field := toolboxField(name, strconv.FormatBool(nv.Bool()))
+						field := path.NewField(input, strconv.FormatBool(nv.Bool()))
 						el.AppendChild(field)
 
 					case r.Int, r.Int8, r.Int16, r.Int32, r.Int64:
-						field := toolboxField(name, strconv.FormatInt(nv.Int(), 10))
+						field := path.NewField(input, strconv.FormatInt(nv.Int(), 10))
 						el.AppendChild(field)
 
 					case r.Uint, r.Uint8, r.Uint16, r.Uint32, r.Uint64:
-						field := toolboxField(name, strconv.FormatUint(nv.Uint(), 10))
+						field := path.NewField(input, strconv.FormatUint(nv.Uint(), 10))
 						el.AppendChild(field)
 
 					case r.Float32, r.Float64:
-						field := toolboxField(name, strconv.FormatFloat(nv.Float(), 'g', -1, 32))
+						field := path.NewField(input, strconv.FormatFloat(nv.Float(), 'g', -1, 32))
 						el.AppendChild(field)
 
 					case r.Struct:
+						if path.IsValid() {
+							panic("can't handle mutations inside mutations")
+						}
 						if mutationEl == nil {
 							mutationEl = el.AppendChild(NewXmlElement("mutation"))
 						}
-						toolboxMutation(name, nv, mutationEl)
-						// we want to expand all of the fields directly into the current node.
+						// write the atom names
+						toolboxMutation(input, nv, mutationEl)
+						// expand all of the fields directly into the current node.
 						// except for "next" -- which we want to go into value=fieldName at the right spot.
-						toolboxFields(el, nv, nv.Type(), name, shadowing)
+						subPath := &toolboxPath{parent: input}
+						toolboxFields(el, nv, nv.Type(), shadowing, subPath)
 
 					// input containing another block
 					case r.Ptr, r.Interface:
 						if !nv.IsNil() {
-							valEl := el.AppendChild(NewXmlElement("value", Attrs{"name": name}))
+							valEl := el.AppendChild(path.NewValue(input))
 							kid := toolboxBlock(unpackValue(nv), shadowing.Children())
 							valEl.AppendChild(kid)
 						}
 
 					case r.Slice:
 						if !nv.IsNil() {
-							top := el.AppendChild(NewXmlElement("statement", Attrs{"name": name}))
+							top := el.AppendChild(path.NewStatement(input))
 							next := false
 							for i, cnt := 0, nv.Len(); i < cnt; i++ {
 								if next {
@@ -189,7 +239,7 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, parentName string, shado
 
 					default:
 						if str := nv.String(); len(str) > 0 {
-							field := toolboxField(name, str)
+							field := path.NewField(input, str)
 							el.AppendChild(field)
 						}
 					}
@@ -208,9 +258,9 @@ func nextField(structValue r.Value) (ret r.Value, okay bool) {
 }
 
 // name is the field name of the mutation struct
-func toolboxMutation(name string, mutationStruct r.Value, parent *XmlElement) {
+func toolboxMutation(name named.Input, mutationStruct r.Value, parent *XmlElement) {
 	if next, ok := nextField(mutationStruct); ok {
-		atoms := NewXmlElement("atoms", Attrs{"name": name})
+		atoms := NewXmlElement("atoms", Attrs{"name": name.String()})
 		parent.AppendChild(atoms)
 		for ; ok; next, ok = nextField(next) {
 			typeName := named.TypeFromStruct(next.Type())
@@ -218,10 +268,4 @@ func toolboxMutation(name string, mutationStruct r.Value, parent *XmlElement) {
 			atoms.AppendChild(atom)
 		}
 	}
-}
-
-func toolboxField(name, val string) *XmlElement {
-	field := NewXmlElement("field", Attrs{"name": name})
-	field.SetInnerHTML(val)
-	return field
 }
