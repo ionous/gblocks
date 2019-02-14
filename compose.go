@@ -156,8 +156,14 @@ func (b *Block) compose(reg *Registry, muiContainer *Block) (err error) {
 			}
 		}
 	}
-	b.InitSvg()
-	b.reconnect(savedInputs)
+	//b.InitSvg() -- called by the caller in blockly already.
+	if err == nil {
+		if e := b.reconnect(savedInputs); e != nil {
+			err = e
+		} else {
+			b.redecorate(reg.Decor)
+		}
+	}
 	return
 }
 

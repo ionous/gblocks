@@ -99,8 +99,8 @@ type listed struct {
 }
 
 func listConnections(b *Block) (ret []listed) {
-	for mi, mcount := 0, b.NumInputs(); mi < mcount; mi++ {
-		in := b.Input(mi)
+	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
+		in := b.Input(i)
 		in.visitStack(func(nextBlock *Block) (keepGoing bool) {
 			if cs := nextBlock.CachedConnections(); cs != nil {
 				targets := cs.blocks()

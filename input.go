@@ -53,6 +53,10 @@ func (in *Input) AppendField(f *Field) {
 	in.Call("appendField", f.Object)
 }
 
+func (in *Input) AppendNamedField(name string, f *Field) {
+	in.Call("appendField", f.Object, name)
+}
+
 func (in *Input) Fields() (ret *Fields) {
 	if obj := in.fieldRow; obj != nil && obj.Bool() {
 		ret = &Fields{Object: obj}
@@ -77,10 +81,12 @@ var invisible = js.MakeFunc(func(*js.Object, []*js.Object) (ret interface{}) {
 })
 
 // ForceMutation - name is mutation name. see RegisterMutation
-func (in *Input) ForceMutation(name named.Type) {
+func (in *Input) ForceMutation(name named.Type) *InputMutation {
 	in.Set("isVisible", invisible)
 	in.SetVisible(false)
-	in.mutation_ = NewInputMutation(in, name).Object
+	mutation := NewInputMutation(in, name)
+	in.mutation_ = mutation.Object
+	return mutation
 }
 
 func (in *Input) Mutation() (ret *InputMutation) {

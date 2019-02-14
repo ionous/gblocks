@@ -18,9 +18,9 @@ const (
 	opt_text      = "text"
 	opt_precision = "precision"
 	opt_readOnly  = "readOnly"
-	opt_mutation  = "mutation"
-
-	tag_mutation = "mutation"
+	// custom options
+	opt_mutation = "mutation"
+	opt_decor    = "decor"
 
 	input_statement = "input_statement"
 	input_value     = "input_value"
@@ -36,6 +36,8 @@ const (
 	field_number   = "field_number" //options['value'], options['min'], options['max'], options['precision']
 	field_input    = "field_input"  // text input options['spellcheck''],
 	field_variable = "field_variable"
+
+	FieldDecor = "$decor"
 
 	PreviousField = "PreviousStatement"
 	NextField     = "NextStatement"

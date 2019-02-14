@@ -14,6 +14,7 @@ type FieldLabel struct {
 	*Field
 }
 
+// opt_class Optional CSS class for the field's text.
 func NewFieldLabel(txt, cls string) (ret *FieldLabel) {
 	if blockly := GetBlockly(); blockly != nil {
 		obj := blockly.Get("FieldLabel").New(txt, cls)
@@ -22,6 +23,7 @@ func NewFieldLabel(txt, cls string) (ret *FieldLabel) {
 	return
 }
 
+// note: added, optionally, on by appendField; sometimes undefined.
 func (f *Field) Name() (ret string) {
 	if name := f.name; name != nil && name.Bool() {
 		ret = name.String()

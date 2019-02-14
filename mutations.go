@@ -40,8 +40,9 @@ type MutationBlock struct {
 // RegisteredMutation - gblocks internal description of the palette used by a mutation popup.
 type RegisteredMutation struct {
 	// MuiType -> MutationBlock
-	blocks map[named.Type]*MutationBlock
-	quarks []named.Type // keys of blocks in display order.
+	mutationType r.Type
+	blocks       map[named.Type]*MutationBlock // blocks for the palette
+	quarks       []named.Type                  // keys of blocks in display order.
 }
 
 // RegisteredMutations -
@@ -114,7 +115,8 @@ func (reg *RegisteredMutations) GetMutation(mutation named.Type) (ret *Registere
 	return
 }
 
-func (reg *RegisteredMutations) RegisterMutation(mutation named.Type, muiBlocks ...Mutation) (err error) {
+func (reg *RegisteredMutations) RegisterMutation(mutationType r.Type, muiBlocks ...Mutation) (err error) {
+	mutation := named.TypeFromStruct(mutationType)
 	if reg.Contains(mutation) {
 		err = errutil.New("mutation already exists", mutation)
 	} else if blockly := GetBlockly(); blockly == nil {
@@ -213,7 +215,8 @@ func (reg *RegisteredMutations) RegisterMutation(mutation named.Type, muiBlocks 
 		if reg.typeToMutation == nil {
 			reg.typeToMutation = make(map[named.Type]*RegisteredMutation)
 		}
-		reg.typeToMutation[mutation] = &RegisteredMutation{blocks: blocks, quarks: quarks}
+		newMutation := &RegisteredMutation{mutationType: mutationType, blocks: blocks, quarks: quarks}
+		reg.typeToMutation[mutation] = newMutation
 	}
 	return
 }

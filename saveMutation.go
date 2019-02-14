@@ -69,5 +69,8 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 			}
 		}
 	}
+	if err == nil {
+		b.redecorate(reg.Decor)
+	}
 	return
 }
