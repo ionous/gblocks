@@ -1,11 +1,10 @@
 package gblocks
 
-import "github.com/ionous/gblocks/named"
-
 const (
 	opt_message0  = "message0"
 	opt_args0     = "args0"
 	opt_output    = "output"
+	opt_class     = "class"
 	opt_previous  = "previousStatement"
 	opt_next      = "nextStatement"
 	opt_name      = "name"
@@ -37,13 +36,10 @@ const (
 	field_input    = "field_input"  // text input options['spellcheck''],
 	field_variable = "field_variable"
 
-	FieldDecor = "$decor"
+	ItemDecor = "$decor"
 
-	PreviousField = "PreviousStatement"
-	NextField     = "NextStatement"
-
-	PreviousInput named.Input = "PREVIOUS_STATEMENT"
-	NextInput     named.Input = "NEXT_STATEMENT"
+	StatementPrevious = "PreviousStatement"
+	StatementNext     = "NextStatement"
 
 	OutputMethod = "Output"
 

@@ -112,7 +112,7 @@ func toolboxBlock(v r.Value, shadowing Shadowing) *XmlElement {
 
 // for
 type toolboxPath struct {
-	parent named.Input // mutation field name
+	parent named.Item // mutation field name
 	depth  int
 }
 
@@ -124,25 +124,25 @@ func (p *toolboxPath) IsValid() bool {
 	return len(p.parent) > 0
 }
 
-func (p *toolboxPath) NewValue(input named.Input) *XmlElement {
+func (p *toolboxPath) NewValue(input named.Item) *XmlElement {
 	return p.newXmlElement("value", input)
 }
 
-func (p *toolboxPath) NewStatement(input named.Input) *XmlElement {
+func (p *toolboxPath) NewStatement(input named.Item) *XmlElement {
 	return p.newXmlElement("statement", input)
 }
 
-func (p *toolboxPath) NewField(input named.Input, val string) *XmlElement {
+func (p *toolboxPath) NewField(input named.Item, val string) *XmlElement {
 	el := p.newXmlElement("field", input)
 	el.SetInnerHTML(val)
 	return el
 }
 
-func (p *toolboxPath) newXmlElement(tag string, input named.Input) *XmlElement {
+func (p *toolboxPath) newXmlElement(tag string, input named.Item) *XmlElement {
 	return NewXmlElement(tag, Attrs{"name": p.inputPath(input)})
 }
 
-func (p *toolboxPath) inputPath(input named.Input) (ret string) {
+func (p *toolboxPath) inputPath(input named.Item) (ret string) {
 	parent, field := p.parent.String(), input.String()
 	if len(parent) == 0 {
 		ret = field
@@ -159,9 +159,9 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing, pat
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
 		if f := t.Field(i); len(f.PkgPath) == 0 {
 			switch f.Name {
-			case PreviousField:
+			case StatementPrevious:
 				// skip
-			case NextField:
+			case StatementNext:
 				// <next>, recursive
 				if nv := v.FieldByIndex(f.Index); !nv.IsNil() {
 					nv := unpackValue(nv)
@@ -176,7 +176,7 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing, pat
 					}
 				}
 			default:
-				input := named.InputFromField(f)
+				input := named.ItemFromField(f)
 				nv := v.FieldByIndex(f.Index)
 
 				// see if the type implements the stringer, for instance an enum.
@@ -250,7 +250,7 @@ func toolboxFields(el *XmlElement, v r.Value, t r.Type, shadowing Shadowing, pat
 }
 
 func nextField(structValue r.Value) (ret r.Value, okay bool) {
-	next := structValue.FieldByName(NextField)
+	next := structValue.FieldByName(StatementNext)
 	if next.IsValid() && !next.IsNil() {
 		ret, okay = unpackValue(next), true
 	}
@@ -258,7 +258,7 @@ func nextField(structValue r.Value) (ret r.Value, okay bool) {
 }
 
 // name is the field name of the mutation struct
-func toolboxMutation(name named.Input, mutationStruct r.Value, parent *XmlElement) {
+func toolboxMutation(name named.Item, mutationStruct r.Value, parent *XmlElement) {
 	if next, ok := nextField(mutationStruct); ok {
 		atoms := NewXmlElement("atoms", Attrs{"name": name.String()})
 		parent.AppendChild(atoms)

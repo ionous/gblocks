@@ -143,7 +143,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutationType r.Type, muiBlocks 
 			// var lastField []int
 			// for {
 			// 	lastType := lastVal.Type()
-			// 	if f, ok := lastType.FieldByName(NextField); !ok {
+			// 	if f, ok := lastType.FieldByName(NextStatement); !ok {
 			// 		lastField = nil // there is no next field; clear anything from a previous block in the chain
 			// 		break
 			// 	} else if nextVal := val.FieldByIndex(f.Index); !nextVal.IsValid() || nextVal.IsNil() {
@@ -171,7 +171,7 @@ func (reg *RegisteredMutations) RegisterMutation(mutationType r.Type, muiBlocks 
 			// 	subElements = shadows.Num()
 			// }
 
-			if constraints, e := types.CheckField(structType, NextField); e != nil {
+			if constraints, e := types.CheckField(structType, StatementNext); e != nil {
 				err = errutil.Append(err, e)
 			} else {
 				muiType := named.SpecialType("mui", mutation.String(), typeName.String())

@@ -173,18 +173,18 @@ type savedConnections struct {
 }
 
 type savedMutation struct {
-	inputName  named.Input
+	itemName   named.Item
 	savedAtoms []savedConnections
 }
 
 // re-connect those inputs
 func (b *Block) reconnect(savedInputs []savedMutation) (err error) {
 	for _, savedInput := range savedInputs {
-		inputName := savedInput.inputName
-		if in, inputIndex := b.InputByName(inputName); inputIndex < 0 {
-			err = errutil.Append(err, errutil.New("no input named", inputName))
+		itemName := savedInput.itemName
+		if in, inputIndex := b.InputByName(itemName); inputIndex < 0 {
+			err = errutil.Append(err, errutil.New("no input named", itemName))
 		} else if m := in.Mutation(); m == nil {
-			err = errutil.Append(err, errutil.New("input isnt mutable", inputName))
+			err = errutil.Append(err, errutil.New("input isnt mutable", itemName))
 		} else {
 			for _, savedAtom := range savedInput.savedAtoms {
 				cs := savedAtom.connections

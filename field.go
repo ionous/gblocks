@@ -12,6 +12,7 @@ type Field struct {
 
 type FieldLabel struct {
 	*Field
+	class string `js:"class_"`
 }
 
 // opt_class Optional CSS class for the field's text.

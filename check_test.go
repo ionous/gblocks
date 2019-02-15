@@ -26,7 +26,7 @@ func TestCheckNext(t *testing.T) {
 	if ok := types.RegisterType(structType); !ok {
 		t.Fatal("couldnt register type")
 	} else {
-		check, e := types.CheckField(structType, NextField)
+		check, e := types.CheckField(structType, StatementNext)
 		require.NoError(t, e, "check field")
 		constraints, ok := check.GetConstraints()
 		require.True(t, ok, "get constraints")
@@ -40,7 +40,7 @@ func TestCheckPrev(t *testing.T) {
 	if ok := types.RegisterType(structType); !ok {
 		t.Fatal("couldnt register type")
 	} else {
-		check, e := types.CheckField(structType, PreviousField)
+		check, e := types.CheckField(structType, StatementPrevious)
 		require.NoError(t, e, "check field")
 		constraints, ok := check.GetConstraints()
 		require.True(t, ok, "get constraints")

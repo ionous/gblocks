@@ -7,140 +7,164 @@ import (
 	// 	"strings"
 )
 
-// type parentContext struct{ parent Context }
+// // partially implements decor.Context
+// type parentContext struct {
+// 	parent decor.Context
+// }
 
-// func (p parentContext) Parent() Context { return p.parent }
+// type subContext struct {
+// 	parentContext
+// 	atomIndex  int
+// 	fieldIndex int
+// 	prevIndex  int
+// }
+
+// func (parentContext) String() string    { return "" }
 // func (parentContext) IsConnected() bool { return false }
 // func (parentContext) HasPrev() bool     { return false }
 // func (parentContext) HasNext() bool     { return false }
 
-// // inset implements decor.Contexts
+// // blockContext
 // type blockContext struct {
 // 	parentContext
 // 	block *Block
 // }
 
-// // inset implements decor.Contexts
-// type inputContext struct {
-// 	parentContext
-// 	block *Block
-// 	input *Input
+// func (*blockContext) ContextType() decor.ContextType {
+// 	return decor.BlockContext
+// }
+// func (ctx *blockContext) Parent() decor.Context {
+// 	return nil
 // }
 
-// type fieldContext struct {
-// 	parentContext
-// 	block *Block
-// 	input *Input
-// 	index int // field row
-// }
-
+// // mutationContext
 // type mutationContext struct {
 // 	parentContext
-// 	mutation *InputMutation
+// 	mi *InputMutation
 // }
 
+// func (*mutationContext) ContextType() decor.ContextType {
+// 	return decor.MutationContext
+// }
+
+// // fix:? should mutations should check next/prev for other mutations.
+// func (ctx *mutationContext) Parent() decor.Context {
+// 	block := ctx.mi.Input().Block()
+// 	return &blockContext{parentContext{}, block}
+// }
+
+// // atomContext
 // type atomContext struct {
 // 	parentContext
-// 	mutation *InputMutation
-// 	index    int // atoms
+// 	mi   *InputMutation
+// 	atom int
 // }
 
-// func (parentContext) IsConnected() bool { return false }
-// func (parentContext) HasPrev() bool     { return false }
-// func (parentContext) HasNext() bool     { return false }
-
-// type outputContext struct {
-// 	parentContext
-// 	connects *Connection
+// func (*atomContext) ContextType() decor.ContextType {
+// 	return decor.AtomContext
 // }
 
-// func (ctx *outputContext) IsConnected() bool {
-// 	return ctx.connects.IsConnected()
+// // fix:? should mutations should check next/prev for other mutations.
+// func (ctx *atomContext) Parent() decor.Context {
+// 	block := ctx.mi.Input().Block()
+// 	return &blockContext{parentContext{}, block}
 // }
 
-// func redecorateInput(reg decor.Registry, container named.Type, in *Input) {
-// 	// although things like "text input" and "number inputs" are "fields"
-// 	// interpolate arranges each into its own dummy input.
-// 	// ( otherwise this will get super complicated.)
-// 	var decoration *FieldLabel
-// 	for fi, fcnt := 0, fields.Length(); fi < fcnt; fi++ {
-// 		field := fields.Field(fi)
-// 		if fieldName := field.Name(); fieldName == FieldDecor {
-// 			decoration = &FieldLabel{field}
+// func (ctx *atomContext) HasPrev() bool {
+// 	return ctx.atom > 0
+// }
+
+// func (ctx *atomContext) HasNext() decor.Context {
+// 	return ctx.atom < ctx.mi.NumAtoms
+// }
+
+// //
+
+// func (ctx *subContext) ContextType() (ret decor.ContextType) {
+
+// }
+
+// // // func redecorateInput(reg decor.Registry, container named.Type, in *Input) {
+// // // 	// although things like "text input" and "number inputs" are "fields"
+// // // 	// interpolate arranges each into its own dummy input.
+// // // 	// ( otherwise this will get super complicated.)
+// // // 	var decoration *FieldLabel
+// // // 	for fi, fcnt := 0, fields.Length(); fi < fcnt; fi++ {
+// // // 		field := fields.Field(fi)
+// // // 		if fieldName := field.Name(); fieldName == ItemDecor {
+// // // 			decoration = &FieldLabel{field}
+// // // 		}
+// // // 	}
+// // // 	parts := strings.Split(in.Name.String(), "/")
+// // // 	bareName := parts[len(parts)-1]
+
+// // // 	if fn, ok := reg.Find(container, named.Item(bareName)); ok {
+// // // 	}
+// // // }
+
+// // return the field index of the indicated item, -1 if the item is an input; or false, if not found.
+// func findItem(b *Block, inputIndex, fieldIndex int, itemPath string) (ret int, okay bool) {
+// 	if pathOnly == in.Name {
+// 		ret, okay = -1, true
+// 	} else if nextIndex := fieldIndex + 1; nextIndex < fieldCnt {
+// 		nextField := fields.Field(nextIndex)
+// 		if nextField.Name() == pathOnly {
+// 			ret, okay = nextIndex, true
 // 		}
 // 	}
-// 	parts := strings.Split(in.Name.String(), "/")
-// 	bareName := parts[len(parts)-1]
-
-// 	if fn, ok := reg.Find(container, named.Input(bareName)); ok {
-// 	}
+// 	return
 // }
 
-func (b *Block) redecorate(reg decor.Decorators) {
-	// 	blockCtx := &blockContext{block: b}
-	// 	//
-	// 	for inputIndex, cnt := 0, b.NumInputs(); inputIndex < cnt; inputIndex++ {
-	// 		in := b.Input(inputIndex)
-	// 		if decorate, ok := reg.Find(b.Type, in.Name); ok {
-	// 			var field *FieldLabel
-	// 			fields := in.Fields()
-	// 			// should probably just be one field, but inputIndex guess you never know
-	// 			for inputIndex, cnt := 0, fields.Length(); inputIndex < cnt; inputIndex++ {
-	// 				if f := fields.Field(inputIndex); f.Name() == FieldDecor {
-	// 					field = &FieldLabel{f}
-	// 					break
-	// 				}
-	// 			}
-
-	// 			inputCtx := &inputContext{parentContext{blockCtx}, in}
-	// 			newText := decorate(inputCtx)
-	// 			if field != nil {
-	// 				field.SetText(newText)
-	// 			} else if len(text) > 0 {
-	// 				cssClass := "decor"
-	// 				in.AppendNamedField(FieldDecor, NewFieldLabel(newText, cssClass))
-	// 			}
-
-	// 			if m := in.Mutation(); m != nil {
-	// 				mutationCtx := mutationContext{parentContext{inputCtx}, m}
-
-	// 				for i := 0; i < m.LeadingInputs; i++ {
-	// 					inputIndex++
-	// 					in := b.Input(inputIndex)
-	// 					leadingCtx := &inputContext{parentContext{mutationCtx}, in}
-	// 				}
-
-	// 				atoms := m.NumAtoms()
-	// 				for a, atoms := 0; a < atoms; a++ {
-	// 					atom := m.Atom(a)
-	// 					atomCtx := &atomContext{m, a}
-	// 					atomInputs := atom.NumInputs()
-	// 					for atomInput := 0; atomInput < atomInputs; atomInput++ {
-	// 						in := b.Input(i + atomInput + 1)
-	// 						// each atom has its own type
-	// 						if decorate, ok := reg.Find(atom.Type, in.Name); ok {
-	// 							// iiiiiiii + atomInputs
-	// 							// ctx:= &inputContext{parentContext{atomCtx},
-	// 						}
-
-	// 					}
-
-	// 				}
-	// 			}
-
-	// 			for i := 0; i < m.TrailingInputs; i++ {
-	// 				inputIndex++
-	// 				in := b.Input(inputIndex + i)
-	// 				trailingCtx := &inputContext{parentContext{mutationCtx}, in}
-	// 			}
-	// 		}
+func (b *Block) redecorate(reg decor.Decorators) (err error) {
+	return
 }
 
-// 	// we'll need some sort of trailing input and field for this.
-// 	// if nc := b.NextConnection(); nc != nil {
-// 	// 	if decorate, ok := reg.Find(b.Type, NextInput); ok {
-// 	//    ctx:= &outputContext{ nc}
-// 	// 		decorate(ctx)
-// 	// 	}
-// 	// }
+// 	blockCtx := &blockContext{block: b}
+// 	var parent Context = blockCtx
+
+// 	for inputIndex, inputCnt := 0, b.NumInputs(); inputIndex < inputCnt; inputIndex++ {
+// 		in := b.Input(inputIndex)
+// 		fields := in.Fields()
+// 		for fieldIndex, fieldCnt := 0, fields.Length(); fieldIndex < fieldCnt; fieldIndex++ {
+// 			field := fields.Field(inputIndex)
+// 			if fieldName := field.Name(); strings.HasPrefix(ItemDecor) {
+// 				label := &FieldLabel{field}
+// 				pathOnly := fieldName[len(ItemDecor):]
+// 				parts := makePathParts(pathOnly) // ex. $decor/MUTANT/0/TEXT
+
+// 				switch len(parts) {
+// 				case 3: // ex. "MUTANT/0/TEXT", an item in a mutation or atom.
+// 					atom, item := strconv.Atoi(parts[1]), parts[2]
+
+// 					if item == StatementNext {
+// 						// points to the next atom in a mutation input; parent is the mutation
+// 						// we can use item index as -1?
+// 					} else if itemIndex, ok := findItem(b, inputIndex, fieldIndex, itemPath); ok {
+// 						// points to an item in an atom or the mutation
+// 						if atom == 0 {
+// 							// parent is the mutation
+// 						} else {
+// 							// parent is the atom
+// 						}
+// 					} else {
+// 						err = errutil.Append(err, errutil.New("item not found", fieldName))
+// 					}
+
+// 				case 1: // ex. "MUTANT", an input, or field.
+// 					if itemIndex, ok := findItem(b, inputIndex, fieldIndex, itemPath); !ok {
+// 						err = errutil.Append(err, errutil.New("item not found", fieldName))
+// 					} else if isInput := itemIndex < 0; !isInput {
+// 						// a field; parent is block
+// 					} else if mi := in.Mutation(); mi == nil {
+// 						// a mutation input; parent is block
+// 					} else {
+// 						// a normal input; parent is block
+// 					}
+
+// 				default:
+// 					err = errutil.Append(err, errutil.New("unexpected path", fieldName))
+// 				}
+// 			}
+// 		}
+// 	}
 // }

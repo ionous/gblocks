@@ -50,8 +50,8 @@ func (m *InputMutation) ResetAtoms() (ret int) {
 // the members of the Mutation struct are MUTANT/0/memberName
 // the first atom connected via the struct's NextStatement becomes MUTANT/1/memberName, and so on.
 func (m *InputMutation) Path(depth int) string {
-	inputName := m.Input().Name
-	return strings.Join([]string{inputName.String(), strconv.Itoa(depth), ""}, "/")
+	itemName := m.Input().Name
+	return strings.Join([]string{itemName.String(), strconv.Itoa(depth), ""}, "/")
 }
 
 // NumAtoms - number of sub-blocks used by this mutation.
@@ -80,7 +80,7 @@ func (m *InputMutation) addAtom(reg *Registry, atomType named.Type) (ret int, er
 		in := m.Input()
 		b := in.Block()
 		// the atom inputs will be placed directly after this input
-		if _, m_index := b.InputByName(in.Name); m_index < 0 {
+		if _, mindex := b.InputByName(in.Name); mindex < 0 {
 			err = errutil.New("input missing from owner block", in.Name)
 		} else {
 			atomIndex := m.NumAtoms()
@@ -101,7 +101,7 @@ func (m *InputMutation) addAtom(reg *Registry, atomType named.Type) (ret int, er
 					// 1. up-to-and-including the mutation input
 					// 2. the atom's added inputs ( which were appened to the input list )
 					// 3. the inputs originally following the mutation input
-					end := m_index + m.TotalInputs + 1
+					end := mindex + m.TotalInputs + 1
 					for _, rng := range [][]int{{0, end}, {oldLen, newLen}, {end, oldLen}} {
 						for i, last := rng[0], rng[1]; i < last; i++ {
 							scratch = append(scratch, b.Input(i))

@@ -76,12 +76,12 @@ func (reg *Registry) registerType(typeName named.Type, structType r.Type, blockD
 						// all of the mutation blocks used by all of the mutable inputs in this block
 						var quarkNames []named.Type
 						for _, md := range mdesc {
-							inputName, mutationType := md.input, md.mutation
+							itemName, mutationType := md.input, md.mutation
 							if registeredMutation, ok := reg.mutations.GetMutation(mutationType); !ok {
 								e := errutil.New("unknown mutation", md)
 								panic(e)
-							} else if in, index := b.InputByName(inputName); index < 0 {
-								e := errutil.New("unknown input", inputName)
+							} else if in, index := b.InputByName(itemName); index < 0 {
+								e := errutil.New("unknown input", itemName)
 								panic(e)
 							} else {
 								in.ForceMutation(mutationType)
@@ -150,9 +150,9 @@ func (reg *Registry) registerType(typeName named.Type, structType r.Type, blockD
 						"init": js.MakeFunc(func(obj *js.Object, _ []*js.Object) (ret interface{}) {
 							muiContainer := &Block{Object: obj}
 							for _, md := range mdesc {
-								inputName := md.input
-								label := NewFieldLabel(inputName.Friendly(), "")
-								in := muiContainer.AppendStatementInput(inputName)
+								itemName := md.input
+								label := NewFieldLabel(itemName.Friendly(), "")
+								in := muiContainer.AppendStatementInput(itemName)
 								in.AppendField(label.Field)
 								if checks, ok := md.constraints.GetConstraints(); ok {
 									in.SetChecks(checks)
@@ -184,7 +184,7 @@ func (reg *Registry) buildCheck(t r.Type, field string, blockDesc Dict, key stri
 
 // could be a map, except maps arent ordered.
 type mutationDesc struct {
-	input       named.Input //
+	input       named.Item //
 	mutation    named.Type
 	constraints Constraints
 }
@@ -212,12 +212,12 @@ func (reg *Registry) buildBlockDesc(t r.Type, blockDesc Dict) (retMui []*mutatio
 		retMui = args.mutations
 	}
 	var hasPrev bool
-	if checks, e := reg.buildCheck(t, PreviousField, blockDesc, opt_previous); e != nil {
+	if checks, e := reg.buildCheck(t, StatementPrevious, blockDesc, opt_previous); e != nil {
 		err = errutil.Append(err, e)
 	} else {
 		hasPrev = checks
 	}
-	if _, e := reg.buildCheck(t, NextField, blockDesc, opt_next); e != nil {
+	if _, e := reg.buildCheck(t, StatementNext, blockDesc, opt_next); e != nil {
 		err = errutil.Append(err, e)
 	}
 	// block can have prev statement or have output
@@ -252,7 +252,7 @@ func (reg *Registry) buildBlockDesc(t r.Type, blockDesc Dict) (retMui []*mutatio
 func (reg *Registry) buildArgs(t r.Type, path string) (ret *argsOut, err error) {
 	var args argsOut
 	for i, cnt := 0, t.NumField(); i < cnt; i++ {
-		if f := t.Field(i); len(f.PkgPath) == 0 && f.Name != PreviousField && f.Name != NextField {
+		if f := t.Field(i); len(f.PkgPath) == 0 {
 			if e := reg.buildArgDesc(f, path, &args); e != nil {
 				err = errutil.Append(err, e)
 			}
@@ -268,17 +268,22 @@ func (reg *Registry) buildArgs(t r.Type, path string) (ret *argsOut, err error) 
 // the format doesnt appear to be documented anywhere; derived through examples.
 // additional returns an optional mutation input name/pair
 func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (err error) {
-	inputName := named.InputFromField(f)
+	itemName := named.ItemFromField(f)
 	typeName := named.TypeFromStruct(f.Type)
 	argDesc := parseTags(string(f.Tag))
-	itemPath := path + inputName.String()
+	itemPath := path + itemName.String()
 
 	// if the field has decoration; add a placeholder label for it.
 	if decoration, ok := argDesc[opt_decor].(string); ok {
-		// fix? validate dc is a valid decoration
-		labelName := named.SpecialType(FieldDecor, decoration, itemPath)
-		label := Dict{opt_name: labelName, opt_type: field_label, opt_text: ""}
+		// fix? validate dc is a valid decoration?
+		labelName := strings.Join([]string{ItemDecor, itemPath}, "/")
+		label := Dict{opt_name: labelName, opt_type: field_label, opt_text: "", opt_class: decoration}
 		out.addArg(label)
+	}
+
+	// these can generate decorations, but they dont contribute to the arguements list.
+	if f.Name == StatementPrevious || f.Name == StatementNext {
+		return
 	}
 
 	// check for some sort of enumerated type first.
@@ -294,7 +299,7 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (e
 		// slice of statements
 		case r.Slice:
 			if cs, e := reg.types.CheckType(f.Type.Elem()); e != nil {
-				err = errutil.New("invalid slice", inputName, typeName, e)
+				err = errutil.New("invalid slice", itemName, typeName, e)
 			} else {
 				argDesc.Insert(opt_name, itemPath)
 				argDesc.Insert(opt_type, input_statement)
@@ -311,8 +316,8 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (e
 			argDesc.Insert(opt_type, input_dummy)
 			argDesc.Insert(opt_mutation, mutationType)
 			//
-			if md, e := reg.buildMutation(inputName, mutationType, argDesc, out); e != nil {
-				err = errutil.New("invalid mutation", inputName, typeName, e)
+			if md, e := reg.buildMutation(itemName, mutationType, argDesc, out); e != nil {
+				err = errutil.New("invalid mutation", itemName, typeName, e)
 			} else {
 				out.addMutation(md)
 			}
@@ -320,7 +325,7 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (e
 		// input containing another block
 		case r.Ptr, r.Interface:
 			if cs, e := reg.types.CheckType(f.Type); e != nil {
-				err = errutil.New("invalid reference", inputName, typeName, e)
+				err = errutil.New("invalid reference", itemName, typeName, e)
 			} else {
 				argDesc.Insert(opt_name, itemPath)
 				argDesc.Insert(opt_type, input_value)
@@ -374,7 +379,7 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (e
 				out.addArg(argDesc)
 
 			default:
-				err = errutil.New("unknown type", inputName, typeName)
+				err = errutil.New("unknown type", itemName, typeName)
 				break
 			}
 		}
@@ -390,18 +395,18 @@ func (reg *Registry) buildArgDesc(f r.StructField, path string, out *argsOut) (e
 }
 
 // expand the named type into the args. return a description of mutation.
-func (reg *Registry) buildMutation(inputName named.Input, mutationName named.Type, argDesc Dict, out *argsOut) (ret *mutationDesc, err error) {
+func (reg *Registry) buildMutation(itemName named.Item, mutationName named.Type, argDesc Dict, out *argsOut) (ret *mutationDesc, err error) {
 	if mutation, ok := reg.mutations.GetMutation(mutationName); !ok {
 		err = errutil.New(mutation.mutationType, "not registered")
 	} else {
-		md := mutationDesc{input: inputName, mutation: mutationName}
+		md := mutationDesc{input: itemName, mutation: mutationName}
 		for i, cnt := 0, mutation.mutationType.NumField(); i < cnt; i++ {
 			switch f := mutation.mutationType.Field(i); {
 			// skip unexpected symbols ( only unexported symbols have a pkg path )
 			case len(f.PkgPath) > 0:
-			case f.Name == PreviousField:
+			case f.Name == StatementPrevious:
 				// error?
-			case f.Name == NextField:
+			case f.Name == StatementNext:
 				// use the next member to determine the constraints
 				if cs, e := reg.types.CheckType(f.Type); e != nil {
 					e := errutil.New("invalid reference", e)
@@ -414,7 +419,7 @@ func (reg *Registry) buildMutation(inputName named.Input, mutationName named.Typ
 			default:
 				// the fields inside a mutation struct have a path of MUTANT/0/...
 				// the first dynamic elements -- which are not generated by the registry -- are MUTANT/1/...
-				path := strings.Join([]string{inputName.String(), "0", ""}, "/")
+				path := strings.Join([]string{itemName.String(), "0", ""}, "/")
 				if e := reg.buildArgDesc(f, path, out); e != nil {
 					err = errutil.Append(err, e)
 				}

@@ -31,14 +31,9 @@ type Workspace struct {
 	ToolboxPosition  ToolboxPosition `js:"toolboxPosition"`
 	Rendered         bool            `js:"rendered"`
 	IsClearing       bool            `js:"isClearing"`
-
-	// workspace svg
-	IsMutator bool `js:"isMutator"`
+	IsMutator        bool            `js:"isMutator"` // from workspacesvg
 
 	idGen IdGenerator
-
-	// custom fields
-	// context map[string]*Context // blockId-> context
 }
 
 func NewBlankWorkspace(isMutator bool) (ret *Workspace) {
@@ -67,37 +62,6 @@ func NewWorkspace(elementId, mediaPath string, tools interface{}) (ret *Workspac
 	}
 	return
 }
-
-// func initWorkspace(obj *js.Object) *Workspace {
-// 	ws := &
-// 	// if !ws.IsMutator {
-// 	// 	ws.AddChangeListener(ws.mirror)
-// 	// 	ws.context = make(map[string]*Context)
-// 	// }
-// 	return ws
-// }
-
-// // GetDataById custom function to get go-lang mirror
-// func (ws *Workspace) GetDataById(blockId string) (ret interface{}) {
-// 	if ctx := ws.Context(blockId); ctx != nil {
-// 		ret = ctx.Ptr().Interface()
-// 	}
-// 	return
-// }
-
-// // returns pointer to element; returns nil if blockId refers to a mutation block
-// func (ws *Workspace) Context(blockId string) (ret *Context) {
-// 	if !ws.IsMutator {
-// 		if ctx, ok := ws.context[blockId]; ok {
-// 			ret = ctx
-// 		} else if b := ws.GetBlockById(blockId); b != nil {
-// 			ctx := &Context{block: b}
-// 			ws.context[blockId] = ctx
-// 			ret = ctx
-// 		}
-// 	}
-// 	return
-// }
 
 func (ws *Workspace) Dispose() {
 	ws.Call("dispose")
@@ -265,7 +229,7 @@ func (ws *Workspace) ClearUndo() {
 // 	case *BlockChange:
 // 		if evt.Element == "field" {
 // 			if ctx := ws.Context(evt.BlockId); ctx != nil {
-// 				name := named.Input(evt.Name)
+// 				name := named.Item(evt.Name)
 // 				dst := ctx.FieldForInput(name)
 
 // 				switch v := evt.NewValue; dst.Kind() {

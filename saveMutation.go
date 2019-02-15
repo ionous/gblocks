@@ -48,11 +48,11 @@ func (b *Block) domToMutation(reg *Registry, dom *XmlElement) (ret int, err erro
 		if el := kids.Index(i); !strings.EqualFold(el.TagName, "atoms") {
 			err = errutil.Append(err, errutil.New("mutation has unexpected child", el.TagName))
 		} else {
-			inputName := named.Input(el.GetAttribute("name").String())
-			if in, index := b.InputByName(inputName); index < 0 {
-				err = errutil.New("unknown input", inputName)
+			itemName := named.Item(el.GetAttribute("name").String())
+			if in, index := b.InputByName(itemName); index < 0 {
+				err = errutil.New("unknown input", itemName)
 			} else if m := in.Mutation(); m == nil {
-				err = errutil.New("input is not a mutation", inputName)
+				err = errutil.New("input is not a mutation", itemName)
 			} else {
 				kids := el.Children()
 				for i, cnt := 0, kids.Num(); i < cnt; i++ {

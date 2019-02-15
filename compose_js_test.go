@@ -1,7 +1,6 @@
 package gblocks
 
 import (
-	// "github.com/gopherjs/gopherjs/js"
 	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/named"
 	"github.com/kr/pretty"
@@ -166,6 +165,7 @@ func TestMutationConnections(t *testing.T) {
 		in, where := b.InputByName("MUTANT/1/ATOM_INPUT")
 		require.NotEqual(t, -1, where)
 		require.NotNil(t, in)
+
 		// connect the first input
 		target, e := ws.NewBlock("shape_test")
 		require.NoError(t, e)

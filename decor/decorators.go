@@ -24,7 +24,7 @@ func (d *Decorators) Register(name string, fn Fn) {
 	d.registry[name] = fn
 }
 
-func (d *Decorators) Find(container named.Type, input named.Input) (ret Fn, okay bool) {
+func (d *Decorators) Find(container named.Type, input named.Item) (ret Fn, okay bool) {
 	decorName := named.SpecialType(container.String(), input.String())
 	if fn, ok := d.shortcut[decorName]; ok {
 		ret, okay = fn, true
@@ -39,7 +39,7 @@ func (d *Decorators) RegisterField(container named.Type, field r.StructField) (e
 		if fn, ok := d.registry[decor]; !ok {
 			err = errutil.New("unknown decoration", decor, "in", container.StructName(), field.Name)
 		} else {
-			in := named.InputFromField(field)
+			in := named.ItemFromField(field)
 			name := named.SpecialType(container.String(), in.String())
 			d.shortcut[name] = fn
 		}

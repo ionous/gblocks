@@ -28,13 +28,13 @@ const (
 )
 
 type Input struct {
-	*js.Object              // Blockly.Input
-	Type        InputType   `js:"type"`
-	Name        named.Input `js:"name"`
-	Align       InputAlign  `js:"align"`
-	fieldRow    *js.Object  `js:"fieldRow"`     // []*Blockly.Field
-	sourceBlock *js.Object  `js:"sourceBlock_"` // *Blockly.Block
-	connection  *js.Object  `js:"connection"`   // *Blockly.Connection
+	*js.Object             // Blockly.Input
+	Type        InputType  `js:"type"`
+	Name        named.Item `js:"name"`
+	Align       InputAlign `js:"align"`
+	fieldRow    *js.Object `js:"fieldRow"`     // []*Blockly.Field
+	sourceBlock *js.Object `js:"sourceBlock_"` // *Blockly.Block
+	connection  *js.Object `js:"connection"`   // *Blockly.Connection
 	// custom
 	mutation_ *js.Object `js:"mutation_"` // *InputMutation
 }

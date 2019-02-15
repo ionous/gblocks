@@ -207,22 +207,22 @@ func (b *Block) IsCollapsed() bool {
 //func (b* Block)toString  (opt_maxLength, opt_emptyToken)  { b.Call("toString") }
 
 // AppendValueInput for blocks with output.
-func (b *Block) AppendValueInput(name named.Input) (ret *Input) {
+func (b *Block) AppendValueInput(name named.Item) (ret *Input) {
 	return b.appendInput(InputValue, name)
 }
 
 // AppendStatementInput for blocks with previous statements.
 // statements give a c-shape; they are slices
-func (b *Block) AppendStatementInput(name named.Input) (ret *Input) {
+func (b *Block) AppendStatementInput(name named.Item) (ret *Input) {
 	return b.appendInput(NextStatement, name)
 }
 
 // AppendDummyInput for standalone fields.
-func (b *Block) AppendDummyInput(name named.Input) (ret *Input) {
+func (b *Block) AppendDummyInput(name named.Item) (ret *Input) {
 	return b.appendInput(NextStatement, name)
 }
 
-func (b *Block) appendInput(inputType InputType, name named.Input) (ret *Input) {
+func (b *Block) appendInput(inputType InputType, name named.Item) (ret *Input) {
 	newInput := b.Call("appendInput_", inputType, name)
 	return &Input{Object: newInput}
 }
@@ -244,7 +244,7 @@ func (b *Block) hasWorkspace() bool {
 //func (b* Block)moveInputBefore  (name, refName)  { b.Call("moveInputBefore") }
 //func (b* Block)moveNumberedIxpnputBefore  (
 
-func (b *Block) RemoveInput(name named.Input) {
+func (b *Block) RemoveInput(name named.Item) {
 	noExceptionIfMissing := false // default in blockly raises exception
 	b.Call("removeInput", name, noExceptionIfMissing)
 }
@@ -266,7 +266,7 @@ func (b *Block) setInput(i int, in *Input) {
 	b.inputList.SetIndex(i, in.Object)
 }
 
-func (b *Block) InputByName(str named.Input) (retInput *Input, retIndex int) {
+func (b *Block) InputByName(str named.Item) (retInput *Input, retIndex int) {
 	found := false
 	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
 		if in := b.Input(i); in.Name == str {
