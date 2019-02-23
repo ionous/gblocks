@@ -1,59 +1,44 @@
 package gblocks
 
-import "github.com/ionous/gblocks/named"
-
 import (
+	. "github.com/ionous/gblocks/block"
+	"github.com/ionous/gblocks/gtest"
+	"github.com/ionous/gblocks/inspect"
 	"github.com/kr/pretty"
 	r "reflect"
 	"testing"
 )
 
-type Enum int
-
-const (
-	DefaultChoice Enum = iota
-	AlternativeChoice
-)
-
-func (i Enum) String() (ret string) {
-	switch i {
-	case DefaultChoice:
-		ret = "DefaultChoice"
-	case AlternativeChoice:
-		ret = "AlternativeChoice"
-	}
-	return
-}
-
-type EnumStatement struct {
-	Enum
-}
-
 func TestEnumLabels(t *testing.T) {
 	var reg Registry
-	reg.enums.registerEnum(map[Enum]string{
+	if _, e := reg.RegisterEnum(map[Enum]string{
 		DefaultChoice:     "default",
 		AlternativeChoice: "alt",
-	})
-	desc := make(Dict)
-	reg.buildBlockDesc(r.TypeOf((*EnumStatement)(nil)).Elem(), desc)
-	t.Log(pretty.Sprint(desc))
-	expected := Dict{
-		"message0": "%1",
-		"args0": []Dict{
-			{
-				"name": "ENUM",
-				"type": "field_dropdown",
-				"options": []EnumPair{
-					{"default", "DefaultChoice"},
-					{"alt", "AlternativeChoice"},
+	}); e != nil {
+		t.Fatal(e)
+	} else {
+		if blockDesc, e := reg.testRegister(r.TypeOf((*EnumStatement)(nil))); e != nil {
+			t.Fatal(e)
+		} else {
+			t.Log(pretty.Sprint(blockDesc))
+			expected := block.Dict{
+				"message0": "%1",
+				"args0": []block.Dict{
+					{
+						"name": "ENUM",
+						"type": "field_dropdown",
+						"options": []inspect.EnumPair{
+							{"default", "DefaultChoice"},
+							{"alt", "AlternativeChoice"},
+						},
+					},
 				},
-			},
-		},
-		"type": named.Type("enum_statement"),
-	}
-	v := pretty.Diff(desc, expected)
-	if len(v) != 0 {
-		t.Fatal(v)
+				"type": block.Type("enum_statement"),
+			}
+			v := pretty.Diff(blockDesc, expected)
+			if len(v) != 0 {
+				t.Fatal(v)
+			}
+		}
 	}
 }

@@ -1,7 +1,8 @@
 package gblocks
 
 import (
-	"github.com/ionous/gblocks/named"
+	"github.com/ionous/gblocks/block"
+	"github.com/ionous/gblocks/inspect"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	r "reflect"
@@ -20,56 +21,54 @@ type CheckStatement struct {
 	NextStatement, PreviousStatement *CheckStatement
 }
 
-func TestCheckNext(t *testing.T) {
-	types := make(RegisteredTypes)
-	structType := r.TypeOf((*CheckNext)(nil)).Elem()
-	if ok := types.RegisterType(structType); !ok {
-		t.Fatal("couldnt register type")
+func TestCheckStatement(t *testing.T) {
+	var reg Registry
+	checkType := r.TypeOf((*CheckStatement)(nil))
+	if desc, e := reg.testRegister(checkType); e != nil {
+		t.Fatal(e)
 	} else {
-		check, e := types.CheckField(structType, StatementNext)
-		require.NoError(t, e, "check field")
-		constraints, ok := check.GetConstraints()
+		t.Log(pretty.Sprint(desc))
+		expected := block.Dict{
+			"message0":          "check statement", // has no fields, so uses its own name.
+			"previousStatement": []block.Type{"check_statement"},
+			"nextStatement":     []block.Type{"check_statement"},
+			"type":              block.Type("check_statement"),
+		}
+		v := pretty.Diff(desc, expected)
+		if len(v) != 0 {
+			t.Fatal(v)
+		}
+	}
+}
+
+func TestCheckNext(t *testing.T) {
+	var reg Registry
+	checkType, ptrType := r.TypeOf((*CheckStatement)(nil)), r.TypeOf((*CheckNext)(nil))
+	if _, e := reg.testRegister(checkType); e != nil {
+		t.Fatal("check statement", e)
+	} else if _, e := reg.testRegister(ptrType); e != nil {
+		t.Fatal("next statement", e)
+	} else if f, ok := ptrType.Elem().FieldByName(inspect.NextStatement); !ok {
+		t.Fatal("missing field")
+	} else {
+		constraints, ok := reg.GetConstraints(f.Type)
 		require.True(t, ok, "get constraints")
-		require.Equal(t, constraints, []named.Type{"check_next"})
+		require.Equal(t, constraints, []block.Type{"check_next"})
 	}
 }
 
 func TestCheckPrev(t *testing.T) {
-	types := make(RegisteredTypes)
-	structType := r.TypeOf((*CheckPrev)(nil)).Elem()
-	if ok := types.RegisterType(structType); !ok {
-		t.Fatal("couldnt register type")
+	var reg Registry
+	checkType, ptrType := r.TypeOf((*CheckStatement)(nil)), r.TypeOf((*CheckPrev)(nil))
+	if _, e := reg.testRegister(checkType); e != nil {
+		t.Fatal("check statement", e)
+	} else if _, e := reg.testRegister(ptrType); e != nil {
+		t.Fatal("prev statement", e)
+	} else if f, ok := ptrType.Elem().FieldByName(inspect.PreviousStatement); !ok {
+		t.Fatal("missing field")
 	} else {
-		check, e := types.CheckField(structType, StatementPrevious)
-		require.NoError(t, e, "check field")
-		constraints, ok := check.GetConstraints()
+		constraints, ok := reg.GetConstraints(f.Type)
 		require.True(t, ok, "get constraints")
-		require.Equal(t, constraints, []named.Type{"check_prev"})
-	}
-}
-
-func TestCheckDesc(t *testing.T) {
-	types := make(RegisteredTypes)
-	structType := r.TypeOf((*CheckStatement)(nil)).Elem()
-	if ok := types.RegisterType(structType); !ok {
-		t.Fatal("couldnt register type")
-	} else {
-		reg := Registry{types: types}
-		desc := make(Dict)
-		if _, e := reg.buildBlockDesc(r.TypeOf((*CheckStatement)(nil)).Elem(), desc); e != nil {
-			t.Fatal("couldnt describe block", e)
-		} else {
-			t.Log(pretty.Sprint(desc))
-			expected := Dict{
-				"message0":          "check statement", // has no fields, so uses its own name.
-				"previousStatement": []named.Type{"check_statement"},
-				"nextStatement":     []named.Type{"check_statement"},
-				"type":              named.Type("check_statement"),
-			}
-			v := pretty.Diff(desc, expected)
-			if len(v) != 0 {
-				t.Fatal(v)
-			}
-		}
+		require.Equal(t, constraints, []block.Type{"check_prev"})
 	}
 }

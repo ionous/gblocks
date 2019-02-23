@@ -2,7 +2,7 @@ package gblocks
 
 import (
 	"github.com/ionous/errutil"
-	"github.com/ionous/gblocks/named"
+	"github.com/ionous/gblocks/block"
 	"github.com/kr/pretty"
 	"github.com/stretchr/testify/require"
 	"strings"
@@ -10,14 +10,15 @@ import (
 )
 
 func addTestAtoms(ws *Workspace, reg *Registry, t *testing.T) (ret *Block, err error) {
-	if b, e := ws.NewBlock((*ShapeTest)(nil)); e != nil {
+	if b, e := ws.NewBlock((*MutableBlock)(nil)); e != nil {
 		err = e
 	} else if in, index := b.InputByName("MUTANT"); index < 0 {
 		err = errutil.New("addTestAtoms missing input")
 	} else if m := in.Mutation(); m == nil {
 		err = errutil.New("addTestAtoms missing mutation")
 	} else {
-		for _, atomType := range []named.Type{"atom_test", "atom_alt_test", "atom_test"} {
+		m := &InputMutation{Object: m}
+		for _, atomType := range []block.Type{"atom_test", "atom_alt_test", "atom_test"} {
 			if numInputs, e := m.addAtom(reg, atomType); e != nil {
 				err = e
 				break
@@ -34,13 +35,12 @@ func addTestAtoms(ws *Workspace, reg *Registry, t *testing.T) (ret *Block, err e
 }
 
 func TestMutationDecompose(t *testing.T) {
-	testShape(t, func(ws *Workspace, reg *Registry) {
+	testMutation(t, func(ws *Workspace, reg *Registry) {
 		b, e := addTestAtoms(ws, reg, t)
 		require.NoError(t, e)
 		//
 		t.Log("decomposing")
-		mui := NewBlankWorkspace(true)
-		mui.idGen = &orderedGenerator{name: "mui"}
+		mui := NewBlankWorkspace(true, &orderedGenerator{name: "mui"})
 		muiContainer, e := b.decompose(reg, mui)
 		require.NoError(t, e, "created mui container")
 		//
@@ -73,7 +73,7 @@ func reduceInputs(block *Block) (ret []string) {
 			}
 		}
 
-		in.visitStack(func(b *Block) (keepGoing bool) {
+		visitStack(in, func(b *Block) (keepGoing bool) {
 			ret = append(ret, b.Type.String())
 			return true
 		})
@@ -100,7 +100,7 @@ type listed struct {
 func listConnections(b *Block) (ret []listed) {
 	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
 		in := b.Input(i)
-		in.visitStack(func(nextBlock *Block) (keepGoing bool) {
+		visitStack(in, func(nextBlock *Block) (keepGoing bool) {
 			if cs := nextBlock.CachedConnections(); cs != nil {
 				targets := cs.blocks()
 				ret = append(ret, listed{nextBlock.Id, targets})
@@ -113,18 +113,17 @@ func listConnections(b *Block) (ret []listed) {
 
 // re/create the workspace blocks from the mutation dialog ui
 func TestMutationCompose(t *testing.T) {
-	testShape(t, func(ws *Workspace, reg *Registry) {
+	testMutation(t, func(ws *Workspace, reg *Registry) {
 		// create mutation blocks
-		mui := NewBlankWorkspace(true)
-		mui.idGen = &orderedGenerator{name: "mui"}
-		muiContainer, err := mui.NewBlock(named.SpecialType("mui_container", "shape_test"))
+		mui := NewBlankWorkspace(true, &orderedGenerator{name: "mui"})
+		muiContainer, err := mui.NewBlock(block.SpecialType("mui_container", "mutable_block"))
 		require.NoError(t, err)
 
 		var muiBlocks [3](*Block)
-		src := [3]named.Type{
-			named.SpecialType("mui", "test_mutation", "atom_test"),
-			named.SpecialType("mui", "test_mutation", "atom_alt_test"),
-			named.SpecialType("mui", "test_mutation", "atom_alt_test"),
+		src := [3]block.Type{
+			block.SpecialType("mui", "test_mutation", "atom_test"),
+			block.SpecialType("mui", "test_mutation", "atom_alt_test"),
+			block.SpecialType("mui", "test_mutation", "atom_alt_test"),
 		}
 
 		t.Log("building blocks")
@@ -141,7 +140,7 @@ func TestMutationCompose(t *testing.T) {
 		muiBlocks[0].NextConnection().Connect(muiBlocks[1].PreviousConnection())
 		muiBlocks[1].NextConnection().Connect(muiBlocks[2].PreviousConnection())
 
-		b, err := ws.NewBlock("shape_test")
+		b, err := ws.NewBlock("mutable_block")
 		require.NoError(t, err)
 
 		if e := b.compose(reg, muiContainer); e != nil {
@@ -158,7 +157,7 @@ func TestMutationCompose(t *testing.T) {
 // new a block with data. run a minimal check of connections.
 // save connections requires compose
 func TestMutationConnections(t *testing.T) {
-	testShape(t, func(ws *Workspace, reg *Registry) {
+	testMutation(t, func(ws *Workspace, reg *Registry) {
 		b, e := addTestAtoms(ws, reg, t)
 		require.NoError(t, e)
 		//
@@ -167,13 +166,12 @@ func TestMutationConnections(t *testing.T) {
 		require.NotNil(t, in)
 
 		// connect the first input
-		target, e := ws.NewBlock("shape_test")
+		target, e := ws.NewBlock("mutable_block")
 		require.NoError(t, e)
 		in.Connection().Connect(target.OutputConnection())
 
 		// decompose to create a mui
-		mui := NewBlankWorkspace(true)
-		mui.idGen = &orderedGenerator{name: "mui"}
+		mui := NewBlankWorkspace(true, &orderedGenerator{name: "mui"})
 		muiContainer, e := b.decompose(reg, mui)
 		if e != nil {
 			t.Fatal(e, "created mui container")
@@ -260,4 +258,22 @@ func TestMutationConnections(t *testing.T) {
 			require.NotEmpty(t, targets[2].targets, "reconnected target 2")
 		}
 	})
+}
+
+func testMutation(t *testing.T, fn func(*blockly.Workspace, *Registry)) {
+	reg := new(Registry)
+	// require.NoError(t,
+	// 	reg.RegisterMutation((*TestMutation)(nil),
+	// 		Mutation{"atom", (*AtomTest)(nil)},
+	// 		Mutation{"alt", (*AtomAltTest)(nil)},
+	// 	), "register mutations")
+	// //
+	require.NoError(t, reg.RegisterBlocks(nil,
+		(*MutableBlock)(nil),
+		(*AtomTest)(nil),
+		(*AtomAltTest)(nil),
+	), "register blocks")
+	ws := blockly.NewBlankWorkspace(false, &orderedGenerator{name: "main"})
+	fn(ws, reg)
+	ws.Dispose()
 }

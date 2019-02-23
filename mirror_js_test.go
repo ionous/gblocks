@@ -7,29 +7,6 @@ import (
 // 	"testing"
 )
 
-// // see also: blockly/tests/jsunit/block_test.js setupStackBlocks.
-type StackBlock struct {
-	PreviousStatement,
-	NextStatement interface{}
-}
-
-// see also: blockly/tests/jsunit/block_test.js setUpRowBlocks.
-type RowBlock struct {
-	// implement an interface that generates an output
-	Input interface {
-		Output() interface{}
-	}
-}
-
-type FieldBlock struct {
-	Number float32
-}
-
-// Output - implement a generic output
-func (b *RowBlock) Output() interface{} {
-	return b
-}
-
 // func testMirror(t *testing.T, fn func(*Workspace)) {
 // 	TheRegistry = Registry{}
 // 	require.NoError(t, RegisterBlock((*StackBlock)(nil), nil), "register stack")
@@ -37,7 +14,7 @@ func (b *RowBlock) Output() interface{} {
 // 	require.NoError(t, RegisterBlock((*FieldBlock)(nil), nil), "register fields")
 // 	ws := NewBlankWorkspace(false)
 // 	// replace timed event queue with direct event queue
-// 	GetBlockly().Events().EnableTestFiring()
+// 	blockly.Events().EnableTestFiring()
 // 	events.Set("fire", js.MakeFunc(func(_ *js.Object, args []*js.Object) interface{} {
 // 		events.TestFire(args[0])
 // 		return nil
@@ -51,13 +28,13 @@ func (b *RowBlock) Output() interface{} {
 // func xTestJsonStackBlock(t *testing.T) {
 // 	var reg Registry
 // 	opts := make(Dict)
-// 	structType := r.TypeOf((*StackBlock)(nil)).Elem()
-// 	typeName := named.TypeFromStruct(structType)
-// 	err := reg.registerType(typeName, structType, opts)
+// 	ptrType := r.TypeOf((*StackBlock)(nil))
+// 	typeName := block.TypeFromStruct(ptrType.Elem())
+// 	err := reg.registerType(typeName, ptrType, opts)
 // 	require.NoError(t, err, "register stack")
 // 	expected := Dict{
 // 		"message0":          "stack block",
-// 		"type":              named.Type("stack_block"),
+// 		"type":              block.Type("stack_block"),
 // 		"previousStatement": nil,
 // 		"nextStatement":     nil,
 // 	}
@@ -68,12 +45,12 @@ func (b *RowBlock) Output() interface{} {
 // func xTestJsonRowBlock(t *testing.T) {
 // 	var reg Registry
 // 	opts := make(Dict)
-// 	structType := r.TypeOf((*RowBlock)(nil)).Elem()
-// 	typeName := named.TypeFromStruct(structType)
-// 	err := reg.registerType(typeName, structType, opts)
+// 	ptrType := r.TypeOf((*RowBlock)(nil))
+// 	typeName := block.TypeFromStruct(ptrType.Elem())
+// 	err := reg.registerType(typeName, ptrType, opts)
 // 	require.NoError(t, err, "register row")
 // 	expected := Dict{
-// 		"type":     named.Type("row_block"),
+// 		"type":     block.Type("row_block"),
 // 		"message0": "%1",
 // 		"args0": []Dict{{
 // 			"type": "input_value",
@@ -88,12 +65,12 @@ func (b *RowBlock) Output() interface{} {
 // func xTestJsonFieldBlock(t *testing.T) {
 // 	var reg Registry
 // 	opts := make(Dict)
-// 	structType := r.TypeOf((*FieldBlock)(nil)).Elem()
-// 	typeName := named.TypeFromStruct(structType)
-// 	err := reg.registerType(typeName, structType, opts)
+// 	ptrType := r.TypeOf((*FieldBlock)(nil))
+// 	typeName := block.TypeFromStruct(ptrType.Elem())
+// 	err := reg.registerType(typeName, ptrType, opts)
 // 	require.NoError(t, err, "register stack")
 // 	expected := Dict{
-// 		"type":     named.Type("field_block"),
+// 		"type":     block.Type("field_block"),
 // 		"message0": "%1",
 // 		"args0": []Dict{{
 // 			"name": "NUMBER",

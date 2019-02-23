@@ -46,10 +46,9 @@ func TestListMutations(t *testing.T) {
 	// 	(*NeverEmptyListTest)(nil),
 	// 	(*ListElement)(nil),
 	// ), "register blocks")
-	// ws := NewBlankWorkspace(false)
-	// ws.idGen = &orderedGenerator{name: "lists"}
+	// ws := NewBlankWorkspace(false,&orderedGenerator{name: "lists"})
 	// // for testing, replace timed event queue with direct event queue
-	// GetBlockly().Events().EnableTestFiring()
+	// blockly.Events().EnableTestFiring()
 	// // fn(ws, reg)
 	// ws.Dispose()
 }
