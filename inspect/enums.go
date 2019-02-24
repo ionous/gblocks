@@ -19,7 +19,7 @@ func (ep EnumPairs) GetPairs(rtype r.Type) []EnumPair {
 }
 
 // a map of enum value to string
-func (ep *EnumPairs) RegisterEnum(mapping interface{}) (ret []EnumPair, err error) {
+func (ep *EnumPairs) AddEnum(mapping interface{}) (ret []EnumPair, err error) {
 	if src, srcType := r.ValueOf(mapping), r.TypeOf(mapping); srcType.Kind() != r.Map {
 		err = errutil.New("invalid enum mapping", srcType)
 	} else {

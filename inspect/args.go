@@ -1,23 +1,25 @@
 package inspect
 
 import (
+	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/block"
 	"github.com/ionous/gblocks/option"
+	r "reflect"
 	"strconv"
 	"strings"
 )
 
-// describes the inputs and fields of blocks
+// ArgumentBuilder - accumulate the inputs and fields of blocks.
 type ArgumentBuilder struct {
-	parent block.Item // empty if a top level block
-	enums  EnumPairs
-	deps   DependencyPool
-	msgs   []string
-	list   []block.Dict
+	enums EnumPairs
+	deps  DependencyPool
+	msgs  []string
+	list  []block.Dict
+	block block.Dict
 }
 
-func NewArgs(parent block.Item, enums EnumPairs, deps DependencyPool) *ArgumentBuilder {
-	return &ArgumentBuilder{parent: parent, enums: enums, deps: deps}
+func NewArgs(block block.Dict, enums EnumPairs, deps DependencyPool) *ArgumentBuilder {
+	return &ArgumentBuilder{block: block, enums: enums, deps: deps}
 }
 
 func (a *ArgumentBuilder) Len() int {
@@ -33,16 +35,38 @@ func (a *ArgumentBuilder) List() []block.Dict {
 }
 
 // send the current argument to the list of all args
-func (a *ArgumentBuilder) addArg(argDesc block.Dict) {
+func (a *ArgumentBuilder) AddDesc(argDesc block.Dict) {
 	a.list = append(a.list, argDesc)
 	a.msgs = append(a.msgs, "%"+strconv.Itoa(len(a.list)))
 }
 
-func (a *ArgumentBuilder) AddItem(it *Item) (err error) {
+var linkOptions = map[Class]string{NextLink: option.Next, PrevLink: option.Prev}
+
+func (a *ArgumentBuilder) AddMembers(parent block.Item, rtype r.Type) (err error) {
+	VisitItems(rtype, func(item *Item, e error) bool {
+		if e != nil {
+			err = errutil.Append(err, e)
+		} else if e := a.AddItem(parent, item); e != nil {
+			err = errutil.Append(err, e)
+		} else if a.block != nil {
+			if opt, ok := linkOptions[item.Class]; ok {
+				if types, ok := a.deps.GetConstraints(item.Type); !ok {
+					err = errutil.Append(err, errutil.New("link has no matching types", item))
+				} else {
+					a.block.Insert(opt, types)
+				}
+			}
+		}
+		return true // keepGoing
+	})
+	return
+}
+
+func (a *ArgumentBuilder) AddItem(parent block.Item, it *Item) (err error) {
 	// if the field has decoration; add a placeholder label for it.
 	if decoration, ok := it.Options[option.Decor].(string); ok {
 		// fix? validate dc is a valid decoration?
-		a.addArg(block.Dict{
+		a.AddDesc(block.Dict{
 			option.Name:  block.ItemFromString(block.ItemDecor).Push(it.Name),
 			option.Type:  block.LabelField,
 			option.Class: decoration,
@@ -53,14 +77,14 @@ func (a *ArgumentBuilder) AddItem(it *Item) (err error) {
 	// we dont add args ( other than decorations ) for next/prev links
 	if cls := it.Class; !cls.IsLink() {
 		itemDesc := it.Options.Copy()
-		if e := it.ItemDesc(a.parent, itemDesc, a.enums.GetPairs(it.Type)); e != nil {
+		if e := it.ItemDesc(parent, itemDesc, a.enums.GetPairs(it.Type)); e != nil {
 			err = e
 		} else if cls.Connects() {
 			if types, ok := a.deps.GetConstraints(it.Type); ok {
 				itemDesc.Insert(option.Check, types)
 			}
 		}
-		a.addArg(itemDesc)
+		a.AddDesc(itemDesc)
 	}
 	return
 }

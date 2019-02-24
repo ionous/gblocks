@@ -29,17 +29,10 @@ func (mi *mutableInput) addAtom(atomType block.Type) (ret int, err error) {
 	} else {
 		atomIndex := len(mi.atoms)
 		scope := mi.name.Index(atomIndex + 1)
-		args := inspect.NewArgs(scope, mi.workspace.enums, mi.workspace.deps)
-
-		inspect.VisitItems(ptrType.Elem(), func(item *inspect.Item, e error) bool {
-			if e != nil {
-				err = errutil.Append(err, e)
-			} else if e := args.AddItem(item); e != nil {
-				err = errutil.Append(err, e)
-			}
-			return true // keepGoing
-		})
-		if args.Len() > 0 {
+		args := inspect.NewArgs(nil, mi.workspace.enums, mi.workspace.deps)
+		if e := args.AddMembers(scope, ptrType.Elem()); e != nil {
+			err = e
+		} else if args.Len() > 0 {
 			b := mi.block
 			// generate new inputs from the atom
 			oldLen := b.NumInputs()

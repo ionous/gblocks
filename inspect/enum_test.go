@@ -1,23 +1,25 @@
-package gblocks
+package inspect
 
 import (
-	. "github.com/ionous/gblocks/block"
-	"github.com/ionous/gblocks/gtest"
-	"github.com/ionous/gblocks/inspect"
+	"github.com/ionous/gblocks/block"
+	. "github.com/ionous/gblocks/gtest"
 	"github.com/kr/pretty"
 	r "reflect"
 	"testing"
 )
 
-func TestEnumLabels(t *testing.T) {
-	var reg Registry
-	if _, e := reg.RegisterEnum(map[Enum]string{
+func TestAddEnum(t *testing.T) {
+	var tp TypePool
+	if _, e := tp.AddEnum(map[Enum]string{
 		DefaultChoice:     "default",
 		AlternativeChoice: "alt",
 	}); e != nil {
 		t.Fatal(e)
 	} else {
-		if blockDesc, e := reg.testRegister(r.TypeOf((*EnumStatement)(nil))); e != nil {
+		enumType := r.TypeOf((*EnumStatement)(nil))
+		if e := tp.AddType(enumType); e != nil {
+			t.Fatal(e)
+		} else if blockDesc, e := tp.BuildDesc(enumType, nil); e != nil {
 			t.Fatal(e)
 		} else {
 			t.Log(pretty.Sprint(blockDesc))
@@ -27,7 +29,7 @@ func TestEnumLabels(t *testing.T) {
 					{
 						"name": "ENUM",
 						"type": "field_dropdown",
-						"options": []inspect.EnumPair{
+						"options": []EnumPair{
 							{"default", "DefaultChoice"},
 							{"alt", "AlternativeChoice"},
 						},
@@ -35,8 +37,7 @@ func TestEnumLabels(t *testing.T) {
 				},
 				"type": block.Type("enum_statement"),
 			}
-			v := pretty.Diff(blockDesc, expected)
-			if len(v) != 0 {
+			if v := pretty.Diff(blockDesc, expected); len(v) != 0 {
 				t.Fatal(v)
 			}
 		}

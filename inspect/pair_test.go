@@ -1,30 +1,14 @@
 package inspect
 
 import (
+	. "github.com/ionous/gblocks/gtest"
 	"github.com/kr/pretty"
 	"testing"
 )
 
-type Enum int
-
-const (
-	DefaultChoice Enum = iota
-	AlternativeChoice
-)
-
-func (i Enum) String() (ret string) {
-	switch i {
-	case DefaultChoice:
-		ret = "DefaultChoice"
-	case AlternativeChoice:
-		ret = "AlternativeChoice"
-	}
-	return
-}
-
 func TestPairs(t *testing.T) {
 	var reg EnumPairs
-	if pairs, e := reg.RegisterEnum(map[Enum]string{
+	if pairs, e := reg.AddEnum(map[Enum]string{
 		DefaultChoice:     "default",
 		AlternativeChoice: "alt",
 	}); e != nil {
