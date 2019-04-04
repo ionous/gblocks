@@ -1,91 +1,108 @@
 package dom
 
 import (
-	"encoding/xml"
-	"fmt"
-	"os"
+	"testing"
+
+	"github.com/kr/pretty"
+	"github.com/stretchr/testify/require"
 )
 
-func ExampleMarshalIndent() {
-	v := &Toolbox{
+var common = struct {
+	data Toolbox
+	xml  string
+}{
+	xml: `<xml id="toolbox">` +
+		/* */ `<category name="logic" colour="%{BKY_LOGIC_HUE}">` +
+		/*  */ `<category name="If">` +
+		/*   */ `<block type="row_block">` +
+		/*   */ `</block>` +
+		/*  */ `</category>` +
+		/* */ `</category>` +
+		/* */ `<block type="stack_block">` +
+		/*  */ `<next>` +
+		/*   */ `<block type="stack_block"></block>` +
+		/*  */ `</next>` +
+		/* */ `</block>` +
+		/* */ `<block type="row_block">` +
+		/*  */ `<value name="INPUT">` +
+		/*   */ `<shadow type="row_block"></shadow>` +
+		/*  */ `</value>` +
+		/*  */ `<field name="NUMBER">10</field>` +
+		/* */ `</block>` +
+		/* */ `<block type="mutable_block">` +
+		/*  */ `<mutation>` +
+		/*   */ `<input name="MUTANT">` +
+		/*    */ `<atom type="atom1"></atom>` +
+		/*    */ `<atom type="atom2"></atom>` +
+		/*   */ `</input>` +
+		/*  */ `</mutation>` +
+		/* */ `</block>` +
+		`</xml>`,
+	data: Toolbox{
 		Id: "toolbox",
-		Categories: []*Category{
+		Categories: Categories{
 			&Category{
-				Name: "logic", Colour: "%{BKY_LOGIC_HUE}",
-				Categories: []*Category{
-					&Category{Name: "If"},
+				Name:   "logic",
+				Colour: "%{BKY_LOGIC_HUE}",
+				Categories: Categories{
+					&Category{
+						Name: "If",
+						Blocks: Blocks{
+							&Block{Type: "row_block"},
+						},
+					},
 				},
 			},
 		},
-		Blocks: []*Block{
+		Blocks: Blocks{
 			&Block{
-				XMLName: BlockName,
-				Type:    "stack_block",
-				Next: &Block{
-					XMLName: BlockName,
-					Type:    "stack_block",
+				Type: "stack_block",
+				Next: ShapeLink{
+					&Block{Type: "stack_block"},
 				},
 			},
 			&Block{
-				XMLName: ShadowName,
-				Type:    "row_block",
-				Items: []Item{
+				Type: "row_block",
+				Items: ItemList{Items{
 					&Value{
 						Name: "INPUT",
-						Block: &Block{
-							XMLName: BlockName,
-							Type:    "row_block",
-						},
+						Input: ShapeInput{
+							&Shadow{
+								Type: "row_block",
+							}},
 					},
 					&Field{
 						Name:    "NUMBER",
 						Content: "10",
 					},
-				},
+				}},
 			},
 			&Block{
-				XMLName: BlockName,
-				Type:    "mutable_block",
-				Mutations: &[]*Mutation{
+				Type: "mutable_block",
+				Mutations: &Mutations{
 					&Mutation{
-						Name: "MUTANT",
-						MutableInputs: []*Atom{
-							&Atom{"atom_test"},
+						Input: "MUTANT",
+						Atoms: Atoms{
+							[]string{"atom1", "atom2"},
 						},
 					},
 				},
 			},
 		},
-	}
+	},
+}
 
-	output, err := xml.MarshalIndent(v, "", " ")
-	if err != nil {
-		fmt.Printf("error: %v\n", err)
-	}
+func TestMarshal(t *testing.T) {
+	output, e := common.data.MarshalToString()
+	require.NoError(t, e)
+	require.Equal(t, common.xml, string(output))
+}
 
-	os.Stdout.Write(output)
-	// Output:
-	// 	<xml id="toolbox">
-	//  <category name="logic" colour="%{BKY_LOGIC_HUE}">
-	//   <category name="If"></category>
-	//  </category>
-	//  <block type="stack_block">
-	//   <next>
-	//    <block type="stack_block"></block>
-	//   </next>
-	//  </block>
-	//  <shadow type="row_block">
-	//   <value name="INPUT">
-	//    <block type="row_block"></block>
-	//   </value>
-	//   <field name="NUMBER">10</field>
-	//  </shadow>
-	//  <block type="mutable_block">
-	//   <mutation>
-	//    <input name="MUTANT">
-	//     <atom type="atom_test"></atom>
-	//    </input>
-	//   </mutation>
-	//  </block>
-	// </xml>
+func TestUnmarshalIndent(t *testing.T) {
+	data, e := NewToolboxFromString(common.xml)
+	require.NoError(t, e)
+	// t.Log(pretty.Sprint(data))
+	if diff := pretty.Diff(common.data, *data); len(diff) != 0 {
+		t.Fatal(diff)
+	}
 }
