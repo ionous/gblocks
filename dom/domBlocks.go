@@ -7,45 +7,43 @@ import (
 )
 
 type Block struct {
+	Id        string     `xml:"id,attr,omitempty"`
 	Type      string     `xml:"type,attr"`
+	Shadow    bool       `xml:"-"`
 	Mutations *Mutations `xml:"mutation>input,omitempty"`
-	Next      ShapeLink  `xml:"next,omitempty"` // values or fields
+	Next      BlockLink  `xml:"next,omitempty"` // values or fields
 	Items     ItemList   `xml:",any,omitempty"` // values or fields
 }
-
-type Shadow Block
-
-type Shape interface{ Shape() Shape }
-
-func (b *Block) Shape() Shape  { return b }
-func (s *Shadow) Shape() Shape { return s }
 
 func (b *Block) AppendMutation(m *Mutation) {
 	(*b.Mutations) = append((*b.Mutations), m)
 }
 
-func encodeShape(enc *xml.Encoder, shape Shape) (err error) {
-	switch n := shape.(type) {
-	case *Block:
-		err = enc.EncodeElement(n, xml.StartElement{Name: names.block})
-	case *Shadow:
-		err = enc.EncodeElement(n, xml.StartElement{Name: names.shadow})
-	default:
-		err = errutil.New("unknown type", n)
+func EncodeBlock(enc *xml.Encoder, b *Block) (err error) {
+	var n xml.Name
+	if b.Shadow {
+		n = names.shadow
+	} else {
+		n = names.block
 	}
-	return
+	return enc.EncodeElement(b, xml.StartElement{Name: n})
 }
 
-func decodeShape(dec *xml.Decoder, start *xml.StartElement) (ret Shape, err error) {
-	switch start.Name {
-	case names.shadow:
-		var out Shadow
-		ret, err = &out, dec.DecodeElement(&out, start)
-	case names.block:
-		var out Block
-		ret, err = &out, dec.DecodeElement(&out, start)
-	default:
-		err = errutil.New("unknown element", start.Name.Local)
+func DecodeBlock(dec *xml.Decoder, start *xml.StartElement) (ret *Block, err error) {
+	var out Block
+	if e := dec.DecodeElement(&out, start); e != nil {
+		err = e
+	} else {
+		switch start.Name {
+		case names.shadow:
+			out.Shadow = true
+			ret = &out
+		case names.block:
+			out.Shadow = false
+			ret = &out
+		default:
+			err = errutil.New("unknown element", start.Name.Local)
+		}
 	}
 	return
 }

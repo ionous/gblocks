@@ -11,7 +11,7 @@ type Item interface{ Item() Item }
 // ex: <value name=""><block type=""></block></value>
 type Value struct {
 	Name  string     `xml:"name,attr"`
-	Input ShapeInput `xml:",any,omitempty"`
+	Input BlockInput `xml:",any,omitempty"`
 }
 
 func (it *Value) Item() Item { return it }
@@ -19,7 +19,7 @@ func (it *Value) Item() Item { return it }
 // ex: <statement name=""><block type=""></block></statement>
 type Statement struct {
 	Name  string     `xml:"name,attr"`
-	Input ShapeInput `xml:",any,omitempty"`
+	Input BlockInput `xml:",any,omitempty"`
 }
 
 func (it *Statement) Item() Item { return it }
@@ -56,7 +56,7 @@ func (l ItemList) MarshalXML(enc *xml.Encoder, _ xml.StartElement) (err error) {
 	return
 }
 
-// called multiple times for each tag matched by ShapeList field
+// called multiple times for each tag matched by BlockList field
 func (l *ItemList) UnmarshalXML(dec *xml.Decoder, start xml.StartElement) (err error) {
 	switch start.Name {
 	case names.value:

@@ -47,9 +47,9 @@ var common = struct {
 				Categories: Categories{
 					&Category{
 						Name: "If",
-						Blocks: Blocks{
+						Blocks: BlockList{Blocks{
 							&Block{Type: "row_block"},
-						},
+						}},
 					},
 				},
 			},
@@ -57,7 +57,7 @@ var common = struct {
 		Blocks: Blocks{
 			&Block{
 				Type: "stack_block",
-				Next: ShapeLink{
+				Next: BlockLink{
 					&Block{Type: "stack_block"},
 				},
 			},
@@ -66,9 +66,10 @@ var common = struct {
 				Items: ItemList{Items{
 					&Value{
 						Name: "INPUT",
-						Input: ShapeInput{
-							&Shadow{
-								Type: "row_block",
+						Input: BlockInput{
+							&Block{
+								Type:   "row_block",
+								Shadow: true,
 							}},
 					},
 					&Field{
@@ -93,9 +94,12 @@ var common = struct {
 }
 
 func TestMarshal(t *testing.T) {
-	output, e := common.data.MarshalToString()
-	require.NoError(t, e)
-	require.Equal(t, common.xml, string(output))
+	var html string
+	require.NotPanics(t, func() {
+		html = common.data.OuterHTML()
+	})
+	require.Equal(t, common.xml, html)
+
 }
 
 func TestUnmarshalIndent(t *testing.T) {

@@ -26,8 +26,8 @@ type parser struct {
 }
 
 // parsing note:
-// for the type Toolbox { Shapes ShapeList `xml:"block,omitempty"` }
-// if ShapeList implements UnmarshalXml() the start.Name.Local == block.
+// for the type Toolbox { Blocks BlockList `xml:"block,omitempty"` }
+// if BlockList implements UnmarshalXml() the start.Name.Local == block.
 // the first Decoder.Token() will then be whatever follows that starting block;
 // an immediate EndElement, for example, would indicate an empty element </>.
 // a series of elements (</>,</>,</>) means UnmarshalXML() gets called multiple times.

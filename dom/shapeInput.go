@@ -2,30 +2,30 @@ package dom
 
 import "encoding/xml"
 
-// ShapeInput holds a connection from one statement block to another.
+// BlockInput holds a connection from one statement block to another.
 // Usually rendered as:
 // Usually rendered as:
-// |   Input ShapeInput `xml:",any,omitempty"`
+// |   Input BlockInput `xml:",any,omitempty"`
 // |   <next><block/></next>
-type ShapeInput struct {
-	Shape
+type BlockInput struct {
+	*Block
 }
 
 // custom serialization to toggle b/t block and shadow
-func (k ShapeInput) MarshalXML(enc *xml.Encoder, start xml.StartElement) (err error) {
-	if n := k.Shape; n != nil { // omit empty content
-		if e := encodeShape(enc, n); e != nil {
+func (k BlockInput) MarshalXML(enc *xml.Encoder, start xml.StartElement) (err error) {
+	if n := k.Block; n != nil { // omit empty content
+		if e := EncodeBlock(enc, n); e != nil {
 			err = e
 		}
 	}
 	return
 }
 
-func (k *ShapeInput) UnmarshalXML(dec *xml.Decoder, start xml.StartElement) (err error) {
-	if n, e := decodeShape(dec, &start); e != nil {
+func (k *BlockInput) UnmarshalXML(dec *xml.Decoder, start xml.StartElement) (err error) {
+	if n, e := DecodeBlock(dec, &start); e != nil {
 		err = e
 	} else {
-		k.Shape = n
+		k.Block = n
 	}
 	return
 }

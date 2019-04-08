@@ -26,28 +26,20 @@ type Blocks []*Block
 type Items []Item
 type Mutations []*Mutation
 
-func (t *Toolbox) OuterHTML() string {
-	output, err := xml.Marshal(t)
-	if err != nil {
-		panic(err)
-	}
-	return string(output)
-}
-
 type Category struct {
 	Name       string     `xml:"name,attr"`
 	Expanded   bool       `xml:"expanded,attr,omitempty"`
 	Colour     string     `xml:"colour,attr,omitempty"`
 	Categories Categories `xml:"category,omitempty"`
-	Blocks     Blocks     `xml:"block,omitempty"`
+	Blocks     BlockList  `xml:"block,omitempty"`
 }
 
-func (t *Toolbox) MarshalToString() (ret string, err error) {
+func (t *Toolbox) OuterHTML() (ret string) {
 	if bytes, e := xml.Marshal(struct {
 		XMLName xml.Name
 		*Toolbox
 	}{names.xml, t}); e != nil {
-		err = e
+		panic(e)
 	} else {
 		ret = string(bytes)
 	}
