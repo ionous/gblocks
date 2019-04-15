@@ -7,16 +7,45 @@ import (
 )
 
 type Block struct {
-	Id        string     `xml:"id,attr,omitempty"`
-	Type      string     `xml:"type,attr"`
-	Shadow    bool       `xml:"-"`
-	Mutations *Mutations `xml:"mutation>input,omitempty"`
-	Next      BlockLink  `xml:"next,omitempty"` // values or fields
-	Items     ItemList   `xml:",any,omitempty"` // values or fields
+	Id       string         `xml:"id,attr,omitempty"`
+	Type     string         `xml:"type,attr,omitempty"`
+	Shadow   bool           `xml:"-"`
+	Mutation *BlockMutation `xml:"mutation,omitempty"`
+	Next     BlockLink      `xml:"next,omitempty"` // values or fields
+	Items    ItemList       `xml:",any,omitempty"` // values or fields
 }
 
-func (b *Block) AppendMutation(m *Mutation) {
-	(*b.Mutations) = append((*b.Mutations), m)
+type BlockMutation struct {
+	Inputs Mutations `xml:"pin"`
+}
+type Mutations []*Mutation
+
+func (ms *BlockMutation) Append(in *Mutation) {
+	ms.Inputs = append(ms.Inputs, in)
+}
+
+func (ms *BlockMutation) MarshalMutation() (ret string, err error) {
+	out := struct {
+		XMLName xml.Name  `xml:"mutation"`
+		Inputs  Mutations `xml:"pin"`
+	}{Inputs: ms.Inputs}
+
+	if bytes, e := xml.Marshal(out); e != nil {
+		err = e
+	} else {
+		ret = string(bytes)
+	}
+	return
+}
+
+func UnmarshalMutation(str string) (ret BlockMutation, err error) {
+	var ms BlockMutation
+	if e := xml.Unmarshal([]byte(str), &ms); e != nil {
+		err = e
+	} else {
+		ret = ms
+	}
+	return
 }
 
 func EncodeBlock(enc *xml.Encoder, b *Block) (err error) {

@@ -33,8 +33,9 @@ type Field struct {
 func (it *Field) Item() Item { return it }
 
 type ItemList struct {
-	Items []Item
+	Items Items
 }
+type Items []Item
 
 func (l *ItemList) Append(it Item) {
 	l.Items = append(l.Items, it)

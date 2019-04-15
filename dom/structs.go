@@ -15,16 +15,12 @@ var names = struct {
 }
 
 type Toolbox struct {
-	Id         string     `xml:"id,attr,omitempty"`
-	Style      string     `xml:"style,attr,omitempty"`
 	Categories Categories `xml:"category,omitempty"`
 	Blocks     Blocks     `xml:"block,omitempty"`
 }
 
 type Categories []*Category
 type Blocks []*Block
-type Items []Item
-type Mutations []*Mutation
 
 type Category struct {
 	Name       string     `xml:"name,attr"`
@@ -34,16 +30,29 @@ type Category struct {
 	Blocks     BlockList  `xml:"block,omitempty"`
 }
 
-func (t *Toolbox) OuterHTML() (ret string) {
-	if bytes, e := xml.Marshal(struct {
+func (t *Toolbox) IndentHTML(indent string) (ret string) {
+	container := struct {
 		XMLName xml.Name
 		*Toolbox
-	}{names.xml, t}); e != nil {
+	}{names.xml, t}
+	var bytes []byte
+	var e error
+	if len(indent) > 0 {
+		bytes, e = xml.MarshalIndent(container, "", indent)
+	} else {
+		bytes, e = xml.Marshal(container)
+	}
+	if e != nil {
 		panic(e)
 	} else {
 		ret = string(bytes)
 	}
 	return
+}
+
+// return <xml></xml>
+func (t *Toolbox) OuterHTML() string {
+	return t.IndentHTML("")
 }
 
 func NewToolboxFromString(src string) (ret *Toolbox, err error) {

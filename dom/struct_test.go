@@ -11,7 +11,7 @@ var common = struct {
 	data Toolbox
 	xml  string
 }{
-	xml: `<xml id="toolbox">` +
+	xml: `<xml>` +
 		/* */ `<category name="logic" colour="%{BKY_LOGIC_HUE}">` +
 		/*  */ `<category name="If">` +
 		/*   */ `<block type="row_block">` +
@@ -31,15 +31,14 @@ var common = struct {
 		/* */ `</block>` +
 		/* */ `<block type="mutable_block">` +
 		/*  */ `<mutation>` +
-		/*   */ `<input name="MUTANT">` +
+		/*   */ `<pin name="MUTANT">` +
 		/*    */ `<atom type="atom1"></atom>` +
 		/*    */ `<atom type="atom2"></atom>` +
-		/*   */ `</input>` +
+		/*   */ `</pin>` +
 		/*  */ `</mutation>` +
 		/* */ `</block>` +
 		`</xml>`,
 	data: Toolbox{
-		Id: "toolbox",
 		Categories: Categories{
 			&Category{
 				Name:   "logic",
@@ -80,14 +79,14 @@ var common = struct {
 			},
 			&Block{
 				Type: "mutable_block",
-				Mutations: &Mutations{
+				Mutation: &BlockMutation{Mutations{
 					&Mutation{
 						Input: "MUTANT",
 						Atoms: Atoms{
 							[]string{"atom1", "atom2"},
 						},
 					},
-				},
+				}},
 			},
 		},
 	},
@@ -108,5 +107,40 @@ func TestUnmarshalIndent(t *testing.T) {
 	// t.Log(pretty.Sprint(data))
 	if diff := pretty.Diff(common.data, *data); len(diff) != 0 {
 		t.Fatal(diff)
+	}
+}
+
+// BlockMutation are directly parsed during mui compose/decompose
+func TestUnmarshalMutation(t *testing.T) {
+	str := `` +
+		/*  */ `<mutation>` +
+		/*   */ `<pin name="A">` +
+		/*    */ `<atom type="atom"/>` +
+		/*   */ `</pin>` +
+		/*   */ `<pin name="B">` +
+		/*    */ `<atom type="atom"/>` +
+		/*   */ `</pin>` +
+		/*  */ `</mutation>`
+
+	if ms, e := UnmarshalMutation(str); e != nil {
+		t.Fatal(e)
+	} else {
+		expected := BlockMutation{
+			Mutations{
+				&Mutation{
+					Input: "A",
+					Atoms: Atoms{
+						Types: []string{"atom"},
+					},
+				},
+				&Mutation{
+					Input: "B",
+					Atoms: Atoms{
+						Types: []string{"atom"},
+					},
+				},
+			},
+		}
+		require.Equal(t, expected, ms)
 	}
 }
