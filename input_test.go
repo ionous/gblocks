@@ -45,8 +45,9 @@ func TestInputs(t *testing.T) {
 							"type": "input_value",
 						},
 						{
-							"name": "STATEMENT",
-							"type": "input_statement",
+							"name":  "STATEMENT",
+							"type":  "input_statement",
+							"check": "input_block",
 						},
 						{
 							"name": "MUTATION",

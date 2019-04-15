@@ -106,21 +106,17 @@ func (c *context) itemDesc(name string, field *r.StructField, outMutations *muta
 
 	// input pointing to another block
 	case InputClass:
-		inputType := inputOption(tags)
-		target := field.Type
-		if target.Kind() == r.Ptr {
-			target = target.Elem()
-		}
 		var limits block.Limits
+		inputType := inputOption(tags)
 		switch inputType {
 		case block.ValueInput:
-			limits = c.GetTermsByType(target)
+			limits = c.GetTermsByType(field.Type)
 
 		case block.StatementInput:
-			limits = c.GetStatementsByType(target)
+			limits = c.GetStatementsByType(field.Type)
 
 		case block.DummyInput:
-			targetType := pascal.ToUnderscore(target.Name())
+			targetType := pascal.ToUnderscore(field.Type.Elem().Name())
 			if _, e := c.addMutationInput(name, targetType, outMutations); e != nil {
 				err = e
 			} else {
