@@ -16,13 +16,8 @@ const (
 	TextField     = "field_input"  // text input options['spellcheck''],
 	VariableField = "field_variable"
 
-	ItemDecor = "$decor"
-
 	NextStatement     = "NextStatement"
 	PreviousStatement = "PreviousStatement"
 
-	// colour            = "colour"
-	// helpUrl           = "helpUrl"
-	// mutator: "controls_if_mutator",
-	// extensions: ["controls_if_tooltip"]
+	//	ItemDecor = "$decor"
 )

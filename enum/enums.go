@@ -19,6 +19,15 @@ func (ep *Pairs) GetPairs(name string) []Pair {
 	return ep.mapping[name]
 }
 
+func (ep *Pairs) AddEnums(mappings ...interface{}) (err error) {
+	for _, m := range mappings {
+		if _, e := ep.AddEnum(m); e != nil {
+			err = errutil.Append(err, e)
+		}
+	}
+	return
+}
+
 // a map of enum value to string
 func (ep *Pairs) AddEnum(mapping interface{}) (ret []Pair, err error) {
 	if src, srcType := r.ValueOf(mapping), r.TypeOf(mapping); srcType.Kind() != r.Map {

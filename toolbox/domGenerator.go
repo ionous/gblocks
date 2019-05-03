@@ -47,9 +47,9 @@ type blockGen struct {
 
 func (g *blockGen) onInputPin(model tin.Model, ptrType r.Type) {
 	if g.events != nil && !g.mutating() {
-		// skip trying to auto-register fields of type interface{}
-		basicInterface := r.TypeOf((*interface{})(nil)).Elem()
-		if ptrType != basicInterface {
+		// skip trying to auto-register pins defined by an interface
+		// we need a struct to create a block
+		if ptrType.Kind() != r.Interface {
 			if t, e := model.TypeInfo(ptrType); e != nil {
 				g.events.OnError(e)
 			} else {
@@ -63,6 +63,8 @@ func (g *blockGen) fieldsOf(containerValue r.Value, containerType r.Type) {
 	for i, cnt := 0, containerType.NumField(); i < cnt; i++ {
 		// skip unexpected symbols ( only unexported symbols have a pkg path )
 		if f := containerType.Field(i); len(f.PkgPath) == 0 {
+			// if the container exists, then we can access the value of the field
+			// ( and not just its type )
 			var fieldVal r.Value
 			if containerValue.IsValid() {
 				fieldVal = containerValue.FieldByIndex(f.Index)
@@ -108,7 +110,8 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 			if str, ok := asString(fieldVal); ok {
 				ret = g.newField(itemName, str)
 			}
-
+		case r.Struct:
+			break // for now, just jump out. (ex. block.Option{}s)
 		case r.Bool:
 			if str, ok := asBool(fieldVal); ok {
 				ret = g.newField(itemName, str)

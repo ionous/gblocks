@@ -3,6 +3,8 @@ package tin
 import (
 	r "reflect"
 	"time"
+
+	"github.com/ionous/gblocks/block"
 )
 
 type Class int
@@ -18,6 +20,7 @@ const (
 	Float
 	Text
 	Date
+	Option
 	InputClass
 )
 
@@ -43,6 +46,8 @@ func Classify(t r.Type) (ret Class) {
 		ret = Text
 	default:
 		switch t {
+		case r.TypeOf((*block.Option)(nil)).Elem():
+			ret = Option
 		case r.TypeOf((*time.Time)(nil)).Elem():
 			ret = Date
 		}

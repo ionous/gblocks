@@ -28,6 +28,7 @@ func TestDescWithEnum(t *testing.T) {
 		expected := block.Dict{
 			"message0": "%1",
 			"type":     "enum_statement",
+			"tooltip":  "enum statement",
 			"args0": []block.Dict{
 				{
 					"name": "ENUM",
@@ -56,6 +57,7 @@ func TestDescWithOutput(t *testing.T) {
 		expected := block.Dict{
 			"message0": "%1",
 			"type":     "row_block",
+			"tooltip":  "row block",
 			"output":   nil,
 			"args0": []block.Dict{
 				{

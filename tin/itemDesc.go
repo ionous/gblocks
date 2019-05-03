@@ -47,7 +47,7 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 				}
 				if desc, e := c.itemDesc(name, &field, out); e != nil {
 					err = errutil.Append(err, e)
-				} else {
+				} else if len(desc) > 0 {
 					args.AddArg(desc)
 				}
 			}
@@ -62,9 +62,11 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 // desc for now -- could return an item element like quark
 func (c *context) itemDesc(name string, field *r.StructField, outMutations *mutant.InMutations) (ret block.Dict, err error) {
 	outDesc := make(block.Dict)
-
 	tags := parseTags(string(field.Tag))
 	switch cls := Classify(field.Type); cls {
+	case Option:
+		// skip for now
+
 	// a field of some sort ( ex. angle, checkbox, colour, date, dropdown, image, label, number, text, variable )
 	case Bool:
 		block.Merge(outDesc, tags, option.Name, name)

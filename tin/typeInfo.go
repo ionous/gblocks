@@ -9,7 +9,7 @@ import (
 
 // wrap a golang type with helpers for adapting to a blockly block.
 type TypeInfo struct {
-	Name    string
+	Name    string // under_scores
 	Model   Model
 	ptrType r.Type
 }
@@ -33,4 +33,18 @@ func (t *TypeInfo) LimitsOfNext(tins []*TypeInfo) block.Limits {
 // return the subset of types which have an ouput that can be assigned this type.
 func (t *TypeInfo) LimitsOfOutput(tins []*TypeInfo) (block.Limits, error) {
 	return limitsOfOutput(t.ptrType, &typeFilter{tins, TermBlock})
+}
+
+// visit all block.Option tags
+func (t *TypeInfo) VisitOptions(cb func(k, v string)) {
+	structType := t.ptrType.Elem()
+	for i, cnt := 0, structType.NumField(); i < cnt; i++ {
+		if field := structType.Field(i); len(field.PkgPath) == 0 {
+			if field.Name != block.NextStatement {
+				if Classify(field.Type) == Option {
+					visitTags(string(field.Tag), cb)
+				}
+			}
+		}
+	}
 }

@@ -24,7 +24,7 @@ func (it *fixedIt) PtrType() r.Type {
 }
 
 // return the mui block type, scoped to its mutation.
-// ex. "mui$block_mutation$block_mutation"
+// ex. "mui$mutation$atomw"
 func (it *fixedIt) BlockType() string {
 	return block.Scope("mui", it.mutable.name, "")
 }

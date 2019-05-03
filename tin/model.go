@@ -24,7 +24,7 @@ func (c Model) PtrInfo(ptr interface{}) (ret *TypeInfo, err error) {
 
 func (c Model) TypeInfo(ptrType r.Type) (ret *TypeInfo, err error) {
 	if ptrType.Kind() != r.Ptr || ptrType.Elem().Kind() != r.Struct {
-		err = errutil.New("expected pointer to struct")
+		err = errutil.New("expected pointer to struct, got", ptrType.String())
 	} else {
 		name := pascal.ToUnderscore(ptrType.Elem().Name())
 		ret = &TypeInfo{name, c, ptrType}

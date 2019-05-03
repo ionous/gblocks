@@ -2,6 +2,7 @@ package gblocks
 
 import (
 	r "reflect"
+	"strconv"
 	"strings"
 
 	"github.com/ionous/errutil"
@@ -98,9 +99,6 @@ func (m *Maker) makeDescByType(t *tin.TypeInfo, opt block.Dict, out *mutant.InMu
 		err = e
 	} else {
 		desc, hasContent := make(block.Dict), false
-		for k, v := range opt {
-			desc[k] = v
-		}
 		if msg := args.Message(); len(msg) > 0 {
 			block.Merge(desc, opt, option.Message(0), msg)
 			hasContent = true
@@ -112,6 +110,10 @@ func (m *Maker) makeDescByType(t *tin.TypeInfo, opt block.Dict, out *mutant.InMu
 		if !hasContent {
 			label := strings.Replace(t.Name, "_", " ", -1)
 			block.Merge(desc, opt, option.Message(0), label)
+		}
+		if _, exists := desc[option.Tooltip]; !exists {
+			tip := strings.Replace(t.Name, "_", " ", -1)
+			block.Merge(desc, opt, option.Tooltip, tip)
 		}
 		// note: optional for jsonInit, mandatory for defineBlocksWithJsonArray
 		block.Merge(desc, opt, option.Type, t.Name)
@@ -137,6 +139,22 @@ func (m *Maker) makeDescByType(t *tin.TypeInfo, opt block.Dict, out *mutant.InMu
 			panic(model.String())
 		}
 		if err == nil {
+			// overwrite with block options
+			t.VisitOptions(func(k, v string) {
+				var i interface{}
+				if n, e := strconv.ParseBool(v); e == nil {
+					i = n
+				} else if n, e := strconv.Atoi(v); e == nil {
+					i = n
+				} else {
+					i = v
+				}
+				desc[k] = i
+			})
+			// overwrite with original options
+			for k, v := range opt {
+				desc[k] = v
+			}
 			ret = desc
 		}
 	}

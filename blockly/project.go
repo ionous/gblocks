@@ -40,8 +40,8 @@ func (p *Globals) init() (okay bool) {
 }
 
 func (p *Globals) IsBlockRegistered(blockType string) (ret bool) {
-	if obj := p.Blockly.Get(blockType); obj.Bool() {
-		ret = true
+	if blocks := p.Blockly.Get("Blocks"); blocks.Bool() {
+		ret = blocks.Get(blockType).Bool()
 	}
 	return
 }

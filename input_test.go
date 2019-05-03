@@ -37,6 +37,7 @@ func TestInputs(t *testing.T) {
 			} else {
 				expectedDesc := block.Dict{
 					"type":              "input_block",
+					"tooltip":           "input block",
 					"previousStatement": "input_block",
 					"message0":          "%1 %2 %3",
 					"args0": []block.Dict{

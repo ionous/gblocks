@@ -44,9 +44,14 @@ func DescribeQuark(q Quark) block.Dict {
 
 func RegisterQuarks(p block.Project, qs Quarks) (err error) {
 	for q, ok := qs.Quarks(false); ok; q, ok = q.NextQuark() {
-		name, desc := q.BlockType(), DescribeQuark(q)
-		if e := p.RegisterBlock(name, desc); e != nil {
-			err = errutil.Append(err, e)
+		name := q.BlockType()
+		// note: there's a unique mutation ui for each block type
+		// but, we're not (currently) creating unique blocks for the quarks
+		if !p.IsBlockRegistered(name) {
+			desc := DescribeQuark(q)
+			if e := p.RegisterBlock(name, desc); e != nil {
+				err = errutil.Append(err, e)
+			}
 		}
 	}
 	return

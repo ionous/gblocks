@@ -22,6 +22,7 @@ func TestCheckNext(t *testing.T) {
 		expected := block.Dict{
 			"message0":          "check next",
 			"type":              "check_next",
+			"tooltip":           "check next",
 			"previousStatement": "check_next",
 			"nextStatement":     nil,
 		}
@@ -38,6 +39,7 @@ func TestCheckNext(t *testing.T) {
 		expected := block.Dict{
 			"message0":          "check next",
 			"type":              "check_next",
+			"tooltip":           "check next",
 			"previousStatement": "check_next",
 			"nextStatement":     "check_next",
 		}
@@ -58,6 +60,7 @@ func TestConstraintsAny(t *testing.T) {
 		expected := block.Dict{
 			"message0":      "stack block",
 			"type":          "stack_block",
+			"tooltip":       "stack block",
 			"nextStatement": nil,
 			// no prev because its a top block
 		}

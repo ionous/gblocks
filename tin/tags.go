@@ -7,9 +7,19 @@ import (
 
 // make dict map from tags
 // based on https://golang.org/pkg/reflect/#StructTag.Get which looks up the value of a single key.
-func parseTags(tag string) map[string]interface{} {
-	tags := make(map[string]interface{})
-	for tag != "" {
+func parseTags(tag string) (ret map[string]interface{}) {
+	if len(tag) > 0 {
+		tags := make(map[string]interface{})
+		visitTags(tag, func(k, v string) {
+			tags[k] = parseCommas(v)
+		})
+		ret = tags
+	}
+	return
+}
+
+func visitTags(tag string, cb func(k, v string)) {
+	for len(tag) > 0 {
 		// Skip leading space.
 		i := 0
 		for i < len(tag) && tag[i] == ' ' {
@@ -53,9 +63,8 @@ func parseTags(tag string) map[string]interface{} {
 		if err != nil {
 			break
 		}
-		tags[name] = parseCommas(value)
+		cb(name, value)
 	}
-	return tags
 }
 
 // returns a string or an array of strings.

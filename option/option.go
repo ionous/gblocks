@@ -20,6 +20,10 @@ const (
 	// custom options
 	Decor = "decor"
 	Input = "input"
+
+	Colour  = "colour"
+	Tooltip = "tooltip"
+	Help    = "helpUrl"
 )
 
 func Message(i int) string {
