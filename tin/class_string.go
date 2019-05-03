@@ -4,9 +4,9 @@ package tin
 
 import "fmt"
 
-const _Class_name = "UnknownBoolIntUintFloatTextDateInputClass"
+const _Class_name = "UnknownBoolIntUintFloatTextDateOptionInputClass"
 
-var _Class_index = [...]uint8{0, 7, 11, 14, 18, 23, 27, 31, 41}
+var _Class_index = [...]uint8{0, 7, 11, 14, 18, 23, 27, 31, 37, 47}
 
 func (i Class) String() string {
 	if i < 0 || i >= Class(len(_Class_index)-1) {
