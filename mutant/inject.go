@@ -6,7 +6,7 @@ import (
 )
 
 // add inputs to a block immediately after an existing input
-// ( unfortunately, they wind up at the end of the block )
+// ( unfortunately, they wind up at the end of the block by default )
 type injector struct {
 	b           block.Shape
 	in          block.Input

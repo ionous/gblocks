@@ -37,6 +37,11 @@ func (c *context) addMutationInput(inputName, mutationName string, out *mutant.I
 func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutations) (ret block.Args, err error) {
 	var args block.Args
 	structType := ptrType.Elem()
+	// a field (ex. enum) followed by a mutation will vanish;
+	// collapsing into the invisible dummy input used for tracking mutations.
+	// we need to flush those fields into a separate visible dummy input.
+	// ( or stop the mutation from hiding, but that needs more data in InMutation/s  )
+	var standaloneFields int
 	for i, cnt := 0, structType.NumField(); i < cnt; i++ {
 		if field := structType.Field(i); len(field.PkgPath) == 0 {
 			if field.Name != block.NextStatement {
@@ -48,6 +53,19 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 				if desc, e := c.itemDesc(name, &field, out); e != nil {
 					err = errutil.Append(err, e)
 				} else if len(desc) > 0 {
+					switch desc[option.Type] {
+					case block.StatementInput, block.ValueInput:
+						standaloneFields = 0
+						break
+					case block.DummyInput:
+						if standaloneFields > 0 {
+							visibleDummy := block.Dict{option.Type: block.DummyInput}
+							args.AddArg(visibleDummy)
+						}
+						break
+					default:
+						standaloneFields++
+					}
 					args.AddArg(desc)
 				}
 			}

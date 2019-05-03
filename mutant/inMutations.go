@@ -29,6 +29,8 @@ func (m *InMutations) Quarks(paletteOnly bool) (ret Quark, okay bool) {
 	return it.advance()
 }
 
+// produce a description of the mui container.
+// each input in the container represents a mutable input in the workspace block.
 func (m *InMutations) DescribeContainer(containerName string) (ret block.Dict) {
 	var args block.Args
 	for _, in := range m.Inputs {

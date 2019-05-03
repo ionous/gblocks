@@ -17,13 +17,12 @@ const (
 	Text      = "text"
 	Type      = "type"
 	Value     = "value"
+	Input     = "input"
+	Colour    = "colour"
+	Tooltip   = "tooltip"
+	Help      = "helpUrl"
 	// custom options
 	Decor = "decor"
-	Input = "input"
-
-	Colour  = "colour"
-	Tooltip = "tooltip"
-	Help    = "helpUrl"
 )
 
 func Message(i int) string {
