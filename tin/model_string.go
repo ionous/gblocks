@@ -4,9 +4,9 @@ package tin
 
 import "fmt"
 
-const _Model_name = "UnknownModelTopBlockMidBlockTermBlockMutation"
+const _Model_name = "UnknownModelTopBlockMidBlockTermBlock"
 
-var _Model_index = [...]uint8{0, 12, 20, 28, 37, 45}
+var _Model_index = [...]uint8{0, 12, 20, 28, 37}
 
 func (i Model) String() string {
 	if i < 0 || i >= Model(len(_Model_index)-1) {
