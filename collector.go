@@ -7,7 +7,6 @@ import (
 )
 
 // provide a sink ( similar to gblocks.TypeCollector ) to collect blocks visited during toolbox creation
-// note, this needs tin and toolbox does not -- so could go in gblocks maybe
 type TypeCollector struct {
 	types     []*tin.TypeInfo
 	lastError error

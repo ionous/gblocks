@@ -51,3 +51,15 @@ func ToUnderscore(s string) (ret string) {
 	}
 	return
 }
+
+// currently only handles a few common cases
+func ToPascal(s string) (ret string) {
+	if len(s) > 0 {
+		split := camelcase.Split(s)
+		for i, s := range split {
+			split[i] = strings.Title(s)
+		}
+		ret = strings.Join(split, " ")
+	}
+	return
+}

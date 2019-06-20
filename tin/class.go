@@ -13,7 +13,7 @@ type Class int
 
 //go:generate stringer -type=Class
 const (
-	Unknown Class = iota
+	UnknownClass Class = iota
 	Bool
 	Int
 	Uint

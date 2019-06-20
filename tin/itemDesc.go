@@ -2,7 +2,6 @@ package tin
 
 import (
 	r "reflect"
-	"strings"
 
 	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/block"
@@ -127,7 +126,7 @@ func (c *context) itemDesc(name string, field *r.StructField, outMutations *muta
 	// input pointing to another block
 	case InputClass:
 		var limits block.Limits
-		inputType := inputOption(tags)
+		inputType, _ := option.InputOption(tags)
 		switch inputType {
 		case block.ValueInput:
 			limits = c.GetTermsByType(field.Type)
@@ -146,31 +145,18 @@ func (c *context) itemDesc(name string, field *r.StructField, outMutations *muta
 		}
 		if err == nil {
 			block.Merge(outDesc, tags, option.Name, name)
-			block.Merge(outDesc, tags, option.Type, inputType)
+			block.Merge(outDesc, nil, option.Type, inputType) // pass nil to ignore orignal value
 			if !limits.IsUnlimited() {
 				block.Merge(outDesc, tags, option.Check, limits.Check())
 			}
 		}
 
 	default:
-		err = errutil.New("invalid type", name, field.Type.Name())
+		err = errutil.New("invalid type", field.Name, field.Type.Name(), cls.String())
 		break
 	}
 	if err == nil {
 		ret = outDesc
 	}
 	return
-}
-
-// fix? if really needed to decouple this, could have an "input" factory
-func inputOption(out block.Dict) string {
-	opt, _ := out[option.Input].(string)
-	lower := strings.ToLower(opt)
-	switch lower {
-	case "":
-		lower = "value"
-	case "mutation":
-		lower = "dummy"
-	}
-	return "input_" + lower
 }

@@ -3,13 +3,15 @@ package tin
 import (
 	"strconv"
 	"strings"
+
+	"github.com/ionous/gblocks/block"
 )
 
 // make dict map from tags
 // based on https://golang.org/pkg/reflect/#StructTag.Get which looks up the value of a single key.
-func parseTags(tag string) (ret map[string]interface{}) {
+func parseTags(tag string) (ret block.Dict) {
 	if len(tag) > 0 {
-		tags := make(map[string]interface{})
+		tags := make(block.Dict)
 		visitTags(tag, func(k, v string) {
 			tags[k] = parseCommas(v)
 		})

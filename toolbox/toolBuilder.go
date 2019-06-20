@@ -3,6 +3,8 @@ package toolbox
 import (
 	r "reflect" // for inspecting go-lang ptrValues
 
+	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/block"
 	"github.com/ionous/gblocks/dom"
 	"github.com/ionous/gblocks/tin"
 )
@@ -36,6 +38,35 @@ func (l *Builder) AddStatement(ptr interface{}) *Builder {
 func (l *Builder) AddTopStatement(ptr interface{}) *Builder {
 	ptrVal := r.ValueOf(ptr)
 	return l.addPtrVal(ptrVal, tin.TopBlock)
+}
+
+// add a list of concrete structs;
+// signature has to be interface so that lists can be of concrete types.
+func (l *Builder) AddBlocks(blocks interface{}) *Builder {
+	slice := r.ValueOf(blocks)
+	for i, cnt := 0, slice.Len(); i < cnt; i++ {
+		v := slice.Index(i)
+		var structType r.Type
+		var ptrVal r.Value
+		if v.Kind() == r.Struct {
+			ptrVal, structType = v.Addr(), v.Type()
+		} else if v.Kind() == r.Ptr {
+			ptrVal, structType = v, v.Type().Elem()
+		} else if v.Kind() == r.Interface {
+			v := v.Elem()
+			ptrVal, structType = v, v.Type().Elem()
+		} else {
+			e := errutil.New("v is unknown", v.Kind().String())
+			panic(e)
+		}
+
+		model := tin.TermBlock
+		if _, ok := structType.FieldByName(block.NextStatement); ok {
+			model = tin.MidBlock
+		}
+		l.addPtrVal(ptrVal, model)
+	}
+	return l
 }
 
 func (l *Builder) addPtrVal(ptrVal r.Value, model tin.Model) *Builder {

@@ -25,7 +25,7 @@ type CheckNext struct {
 	NextStatement *CheckNext
 }
 
-// // see also: blockly/tests/jsunit/block_test.js setupStackBlocks.
+// see also: blockly/tests/jsunit/block_test.js setupStackBlocks.
 type StackBlock struct {
 	NextStatement interface{}
 }

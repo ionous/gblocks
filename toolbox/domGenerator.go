@@ -6,6 +6,7 @@ import (
 	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/block"
 	"github.com/ionous/gblocks/dom"
+	"github.com/ionous/gblocks/option"
 	"github.com/ionous/gblocks/pascal"
 	"github.com/ionous/gblocks/tin"
 )
@@ -134,47 +135,38 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 
 		// input containing another block
 		case r.Ptr, r.Interface:
-			var mutation bool
-			var statement bool
-			// w/o a tag, we wind up with an input term.
-			if tag, ok := f.Tag.Lookup("input"); ok {
-				if tag == "mutation" {
-					mutation = true
-					if g.mutating() {
-						if g.events != nil {
-							e := errutil.New("can't handle mutations inside mutations")
-							g.events.OnError(e)
-						}
-					} else {
-						var nv r.Value
-						if fieldVal.IsValid() && !fieldVal.IsNil() {
-							// write the atom names to a dom.Mutation
-							nv = fieldVal.Elem()
-						}
-						// add the <mutation></mutation> el
-						if g.block.Mutation == nil {
-							g.block.Mutation = new(dom.BlockMutation)
-						}
-						if m, ok := newMutation(itemName, nv, f.Type.Elem()); ok {
-							g.block.Mutation.Append(m)
-						}
-						// expand the fields directly into the current dom node.
-						// a$blockId$IN$0$FIELD
-						sub := g.newMutationGenerator(itemName)
-						sub.fieldsOf(nv, f.Type.Elem())
-					}
-				} else if tag == "statement" {
-					// process the link
-					if b, ok := g.addBlock(tin.MidBlock, fieldVal, f.Type); ok {
-						ret = g.newStatement(itemName, b)
-					}
-					statement = true
-				}
-			}
-			// not a statement, not a mutation?
-			if !mutation && !statement {
+			switch inputType, _ := option.InputOption(f.Tag); inputType {
+			case block.ValueInput:
 				if b, ok := g.addBlock(tin.TermBlock, fieldVal, f.Type); ok {
 					ret = g.newValue(itemName, b)
+				}
+			case block.StatementInput:
+				if b, ok := g.addBlock(tin.MidBlock, fieldVal, f.Type); ok {
+					ret = g.newStatement(itemName, b)
+				}
+			case block.DummyInput:
+				if g.mutating() {
+					if g.events != nil {
+						e := errutil.New("can't handle mutations inside mutations")
+						g.events.OnError(e)
+					}
+				} else {
+					var nv r.Value
+					if fieldVal.IsValid() && !fieldVal.IsNil() {
+						// write the atom names to a dom.Mutation
+						nv = fieldVal.Elem()
+					}
+					// add the <mutation></mutation> el
+					if g.block.Mutation == nil {
+						g.block.Mutation = new(dom.BlockMutation)
+					}
+					if m, ok := newMutation(itemName, nv, f.Type.Elem()); ok {
+						g.block.Mutation.Append(m)
+					}
+					// expand the fields directly into the current dom node.
+					// a$blockId$IN$0$FIELD
+					sub := g.newMutationGenerator(itemName)
+					sub.fieldsOf(nv, f.Type.Elem())
 				}
 			}
 		}
