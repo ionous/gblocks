@@ -45,7 +45,7 @@ func (it *quarkIt) LimitsOfNext() block.Limits {
 func (it *quarkIt) Atomize(scope string, db mutant.Atomizer) (ret block.Args, err error) {
 	c := context{Atomizer: db}
 	if args, e := c.buildItems(scope, it.PtrType(), nil); e != nil {
-		err = errutil.New(e, "while atomizing", it.Name())
+		err = errutil.Fmt("while atomizing %q,%s", it.Name(), e)
 	} else {
 		ret = args
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/ionous/gblocks/mutant"
 )
 
+// iteration over the extra fields of a mutation.
 type fixedIt struct {
 	mutable *Mutable
 }
@@ -48,7 +49,7 @@ func (it *fixedIt) LimitsOfNext() (ret block.Limits) {
 func (it *fixedIt) Atomize(scope string, db mutant.Atomizer) (ret block.Args, err error) {
 	c := context{Atomizer: db}
 	if args, e := c.buildItems(scope, it.mutable.ptrType, nil); e != nil {
-		err = errutil.New(e, "while atomizing the fixed fields of", it.mutable.name)
+		err = errutil.Fmt("%s while atomizing the fixed fields of %q", e, it.mutable.name)
 	} else {
 		ret = args
 	}

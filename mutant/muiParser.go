@@ -37,7 +37,7 @@ func (mp *muiParser) expandInput(muiInput block.Input) (ret []string, err error)
 	} else if injector, e := newInjector(mp.target, name); e != nil {
 		err = e
 	} else if a, e := mp.createAtomsAt(muiInput, mutation, injector); e != nil {
-		err = errutil.New(e, "when creating atoms")
+		err = errutil.New("error creating atoms", e)
 	} else {
 		injector.finalizeInputs()
 		ret = a

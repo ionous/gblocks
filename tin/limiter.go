@@ -75,10 +75,22 @@ func _limitsOf(slotType r.Type, it typeIterator) (ret block.Limits) {
 			}
 		}
 	}
-	if unassigned == 0 {
-		// if nothing was unassigned; everything was assigned; we can return unliited
-		ret = block.MakeUnlimited()
-	} else if len(types) > 0 {
+
+	/* --
+	   when we are describing the container of a mutation
+	   the inputs are described individually -- so they appear unlimited --
+	   but they are (usually) incompatible with each other.
+	   FIXME -
+	   a better way might be to give the first input a check containing the name of the mutation struct
+	   and have those first blocks include that name. ( rather than their own name )
+	   these unlimited lists get rather long.
+
+	   	if unassigned == 0 {
+	   		// if nothing was unassigned; everything was assigned; we can return unlimited
+	   		ret = block.MakeUnlimited()
+	   	} else
+	*/
+	if len(types) > 0 {
 		ret = block.MakeLimits(types)
 	} else {
 		ret = block.MakeOffLimits()
@@ -87,15 +99,17 @@ func _limitsOf(slotType r.Type, it typeIterator) (ret block.Limits) {
 }
 
 // if there is no output connection return is nil
+// otherwise returns an r.Ptr or r.Interface type
 func _outputType(ptrType r.Type) (ret r.Type, err error) {
-	if output, ok := ptrType.MethodByName("Output"); ok {
-		if cnt := output.Type.NumOut(); cnt != 1 {
-			err = errutil.New("unexpected output count", cnt)
-		} else if t := output.Type.Out(0); Classify(t) != InputClass {
-			err = errutil.New("unexpected output type", t)
-		} else {
-			ret = t
-		}
+	if output, ok := ptrType.MethodByName("Output"); !ok {
+		ret = ptrType // MOD: if there's no explicit output; allow our own ptr
+	} else if cnt := output.Type.NumOut(); cnt != 1 {
+		err = errutil.New("unexpected output count", cnt)
+	} else if t := output.Type.Out(0); Classify(t) != InputClass {
+		err = errutil.New("unexpected output type", t)
+	} else {
+		ret = t
 	}
+
 	return
 }

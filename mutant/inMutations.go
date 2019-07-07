@@ -40,6 +40,11 @@ func (m *InMutations) DescribeContainer(containerName string) (ret block.Dict) {
 			option.Name: in,
 			option.Type: block.StatementInput,
 		}
+		// DescribeQuark sets a prev of the quark name.
+		// we need to limit the input to those acceptable types
+		// we're asking for the "mutation" generically
+		// normally we'd what "all available types" to be "no limit"
+		// but that doesnt work well here -- where we are mixing these multiple types together
 		if !l.IsUnlimited() {
 			arg[option.Check] = l.Check()
 		}
@@ -81,7 +86,7 @@ func (m *InMutations) CreateMui(mui block.Workspace, b block.Shape, inputs Mutab
 	return
 }
 
-// aka. compose.
+// aka. compose -- turn the mui into new workspace inputs
 // adds new inputs to target, returns the atoms for those inputs
 func (m *InMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret MutableInputs, err error) {
 	// remove all the dynamic inputs from the blocks; we're about to recreate/recompose them.
@@ -89,7 +94,7 @@ func (m *InMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, 
 	RemoveAtoms(target)
 	mp := muiParser{m, target, db}
 	if atoms, e := mp.expandInputs(muiContainer); e != nil {
-		err = errutil.New("fill from mui", e)
+		err = errutil.New("DistillMui()", e)
 	} else {
 		RestoreConnections(target, cs) // no return
 		ret = atoms
@@ -101,7 +106,7 @@ func (m *InMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, 
 func (m *InMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret MutableInputs, err error) {
 	dp := domParser{m, items, b, make(MutableInputs)}
 	if e := dp.parseDom(&mutationEls); e != nil {
-		err = errutil.New("load mutation", e)
+		err = errutil.New("LoadMutation()", e)
 	} else {
 		ret = dp.inputs
 	}

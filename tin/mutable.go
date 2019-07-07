@@ -21,8 +21,9 @@ func (m *Mutable) Name() string {
 
 // quarks which can appear at the top of an mui input stack.
 func (m *Mutable) Limits() (ret block.Limits) {
-	// either the fixed field's block -- and only that one
-	// or if the limits of the quarks that can attach to the ptr's next statement
+	// if the mutation has "extra content" -- members other than just the next statement
+	// limit the first block to the just that one block.
+	// otherwise, return the quarks that can attach to the ptr's next statement.
 	if first, ok := m.firstBlock(); ok {
 		ret = block.MakeLimits([]string{first.Name()})
 	} else {
@@ -67,7 +68,7 @@ func (m *Mutable) types() (ret typeIterator, okay bool) {
 	return
 }
 
-//
+// return an iterator over the "extra" members of a mutation.
 func (m *Mutable) firstBlock() (ret *fixedIt, okay bool) {
 	if HasContent(m.ptrType.Elem()) {
 		ret, okay = &fixedIt{mutable: m}, true
@@ -75,7 +76,7 @@ func (m *Mutable) firstBlock() (ret *fixedIt, okay bool) {
 	return
 }
 
-// does the passed struct type have blockly-like items (either fields or inputs.)
+// does the passed struct have members other than "NextStatement"?
 func HasContent(elem r.Type) bool {
 	var extraFields int
 	if _, ok := elem.FieldByName(block.NextStatement); ok {

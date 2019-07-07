@@ -18,9 +18,9 @@ type context struct {
 func (c *context) addMutationInput(inputName, mutationName string, out *mutant.InMutations) (ret *Mutable, err error) {
 	if out == nil {
 		// typically a mutation in a mutation
-		err = errutil.New("invalid context for mutation", mutationName)
+		err = errutil.Fmt("invalid context for mutation %q", mutationName)
 	} else if m, ok := c.mutables.FindMutable(mutationName); !ok {
-		err = errutil.New("couldnt find mutation named", mutationName)
+		err = errutil.Fmt("couldnt find mutation named  %q", mutationName)
 	} else {
 		if out.Mutations == nil {
 			out.Mutations = make(map[string]mutant.InMutation)

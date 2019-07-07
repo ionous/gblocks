@@ -75,6 +75,8 @@ func (m *Maker) registerType(t *tin.TypeInfo, p block.Project, mbs mutant.Mutate
 				}
 			}
 		}
+		// FIX: some sort of default dict for the maker?
+		desc[option.InputsInline] = true
 		if e := p.RegisterBlock(t.Name, desc); e != nil {
 			err = errutil.Append(err, e)
 		}
