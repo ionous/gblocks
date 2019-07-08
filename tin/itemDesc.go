@@ -111,7 +111,10 @@ func (c *context) itemDesc(name string, field *r.StructField, outMutations *muta
 
 	case Text:
 		block.Merge(outDesc, tags, option.Name, name)
-		if _, ok := outDesc["readOnly"]; ok {
+		if choices := c.GetPairs(field.Type.Name()); choices != nil {
+			block.Merge(outDesc, tags, option.Type, block.DropdownField)
+			block.Merge(outDesc, tags, option.Choices, choices)
+		} else if _, ok := outDesc["readOnly"]; ok {
 			block.Merge(outDesc, tags, option.Type, block.LabelField)
 			block.Merge(outDesc, tags, option.Text, pascal.ToSpaces(field.Name))
 		} else {

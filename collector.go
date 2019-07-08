@@ -68,7 +68,7 @@ func (tc *TypeCollector) addType(ptr interface{}, model tin.Model) (okay bool) {
 	if t, e := model.PtrInfo(ptr); e != nil {
 		err = e
 	} else if _, found := tin.FindByName(tc.types, t.Name); found {
-		err = errutil.New("type already registered", t)
+		err = errutil.New("type already registered", t.Name)
 	} else {
 		tc.types = append(tc.types, t)
 	}
@@ -84,7 +84,7 @@ func (tc *TypeCollector) addType(ptr interface{}, model tin.Model) (okay bool) {
 func (tc *TypeCollector) addOnce(t *tin.TypeInfo) (okay bool) {
 	var err error
 	if nm, found := tin.FindByName(tc.types, t.Name); found && nm.Model != t.Model {
-		err = errutil.New("type already registered", t)
+		err = errutil.New("type mismatch", t.Name, "was", nm.Model, "now", t.Model)
 	} else if !found {
 		tc.types = append(tc.types, t)
 	}
