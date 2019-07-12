@@ -134,7 +134,6 @@ func TestMutations(t *testing.T) {
 	}
 
 	// "a$ wsBlockId $ INPUT_NAME $ atomNum $ FIELD_NAME"
-	// --- the first atom will be number 1; 0 for the built-in fields.
 	expected := `` +
 		/**/ `<block id="bl1" type="mutable_block">` +
 		/* */ `<mutation>` +
@@ -145,8 +144,8 @@ func TestMutations(t *testing.T) {
 		/*   */ `<atom type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
-		/* */ `<field name="a$bl1$MUTANT$2$ATOM_FIELD">Text</field>` +
-		/* */ `<value name="a$bl1$MUTANT$3$ATOM_INPUT">` +
+		/* */ `<field name="a$bl1$MUTANT$0$ATOM_FIELD">Text</field>` +
+		/* */ `<value name="a$bl1$MUTANT$1$ATOM_INPUT">` +
 		/*  */ `<block id="bl2" type="mutable_block">` +
 		/*   */ `<mutation>` +
 		/*    */ `<pin name="MUTANT">` +

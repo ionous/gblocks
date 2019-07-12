@@ -16,6 +16,9 @@ func TestCheckNext(t *testing.T) {
 		t.Fatal(e)
 	} else {
 		// when all types match, we should get an unlimited next statement
+		// MOD: we can'd do that optimization b/c of mui inputs
+		// the mui container gets an arbitrary set of mutating inputs
+		// the blocks shouldnt swap between inputs, even though each isolated input looks like its unlimited
 		m := Maker{types: types}
 		desc, e := m.makeDesc("check_next", nil)
 		require.NoError(t, e)
@@ -24,7 +27,8 @@ func TestCheckNext(t *testing.T) {
 			"type":              "check_next",
 			"tooltip":           "check next",
 			"previousStatement": "check_next",
-			"nextStatement":     nil,
+			//"nextStatement":     nil,
+			"nextStatement": "check_next",
 		}
 		require.Equal(t, expected, desc)
 	}

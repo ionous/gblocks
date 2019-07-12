@@ -37,8 +37,13 @@ func LimitsOfOutput(tins []*TypeInfo, name string) (ret block.Limits, err error)
 }
 
 // find the limits of the pointer's next link
-func LimitsOfType(tins []*TypeInfo, ptrType r.Type, model Model) block.Limits {
-	return limitsOf(ptrType, &typeFilter{tins, model})
+func LimitsOfType(tins []*TypeInfo, ptrType r.Type, model Model) (ret block.Limits) {
+	if len(tins) > 0 {
+		ret = limitsOf(ptrType, &typeFilter{tins, model})
+	} else {
+		ret = block.MakeOffLimits()
+	}
+	return
 }
 
 func findMatchingType(tins []*TypeInfo, typeName string, model Model) (ret *TypeInfo, err error) {

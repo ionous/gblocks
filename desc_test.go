@@ -64,6 +64,8 @@ func TestDescWithOutput(t *testing.T) {
 					"name": "INPUT",
 					"type": "input_value",
 					// no check, because row block is the only type
+					// MOD: re: mui, that's no longer true.
+					"check": "row_block",
 				},
 			},
 		}

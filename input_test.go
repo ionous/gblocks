@@ -42,8 +42,9 @@ func TestInputs(t *testing.T) {
 					"message0":          "%1 %2 %3",
 					"args0": []block.Dict{
 						{
-							"name": "VALUE",
-							"type": "input_value",
+							"name":  "VALUE",
+							"type":  "input_value",
+							"check": "row_block",
 						},
 						{
 							"name":  "STATEMENT",

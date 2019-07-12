@@ -26,13 +26,23 @@ func (t *TypeInfo) BuildItems(scope string, db mutant.Atomizer, mutables Mutable
 }
 
 // return the subset of types which can be assigned this type.
-func (t *TypeInfo) LimitsOfNext(tins []*TypeInfo) block.Limits {
-	return limitsOfNext(t.ptrType, &typeFilter{tins, MidBlock})
+func (t *TypeInfo) LimitsOfNext(tins []*TypeInfo) (ret block.Limits) {
+	if len(tins) > 0 {
+		ret = limitsOfNext(t.ptrType, &typeFilter{tins, MidBlock})
+	} else {
+		ret = block.MakeOffLimits()
+	}
+	return
 }
 
 // return the subset of types which have an ouput that can be assigned this type.
-func (t *TypeInfo) LimitsOfOutput(tins []*TypeInfo) (block.Limits, error) {
-	return limitsOfOutput(t.ptrType, &typeFilter{tins, TermBlock})
+func (t *TypeInfo) LimitsOfOutput(tins []*TypeInfo) (ret block.Limits, err error) {
+	if len(tins) > 0 {
+		ret, err = limitsOfOutput(t.ptrType, &typeFilter{tins, TermBlock})
+	} else {
+		ret = block.MakeOffLimits()
+	}
+	return
 }
 
 // visit all block.Option tags

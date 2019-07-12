@@ -53,8 +53,10 @@ func (ep *Pairs) AddEnum(mapping interface{}) (ret []Pair, err error) {
 			err = errutil.New("expected a string underlying the value type", valueType)
 		} else if pairs, e := makePairs(src); e != nil {
 			err = e
+		} else if e := ep.addPairs(keyType.Name(), pairs); e != nil {
+			err = e
 		} else {
-			ret, err = ep.addPairs(keyType.Name(), pairs)
+			ret = pairs
 		}
 	}
 	return
@@ -84,18 +86,24 @@ func (ep *Pairs) AddList(choices interface{}) (ret []Pair, err error) {
 			err = errutil.New("expected a string underlying the key type", keyType)
 		} else if pairs, e := makePairsFromList(list); e != nil {
 			err = e
+		} else if e := ep.addPairs(keyType.Name(), pairs); e != nil {
+			err = e
 		} else {
-			ret, err = ep.addPairs(keyType.Name(), pairs)
+			ret = pairs
 		}
 	}
 	return
 }
-func (ep *Pairs) addPairs(name string, pairs []Pair) (ret []Pair, err error) {
-	if ep.mapping == nil {
+
+func (ep *Pairs) addPairs(name string, pairs []Pair) (err error) {
+	if len(pairs) == 0 {
+		err = errutil.Fmt("pair %q unexpectedly empty", name)
+	} else if ep.mapping == nil {
 		ep.mapping = map[string][]Pair{name: pairs}
+	} else if _, exists := ep.mapping[name]; exists {
+		err = errutil.Fmt("pair %q already exists", name)
 	} else {
 		ep.mapping[name] = pairs
-		ret = pairs
 	}
 	return
 }

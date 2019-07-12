@@ -21,17 +21,17 @@ func (g *blockGen) newAtomGenerator() *blockGen {
 }
 
 func (g *blockGen) newStatement(itemName string, block *dom.Block) *dom.Statement {
-	pathName := g.pathName(itemName)
+	pathName := g.newInput(itemName)
 	return &dom.Statement{Name: pathName, Input: dom.BlockInput{block}}
 }
 
 func (g *blockGen) newValue(itemName string, block *dom.Block) *dom.Value {
-	pathName := g.pathName(itemName)
+	pathName := g.newInput(itemName)
 	return &dom.Value{Name: pathName, Input: dom.BlockInput{block}}
 }
 
 func (g *blockGen) newField(itemName string, val string) *dom.Field {
-	pathName := g.pathName(itemName)
+	pathName := g.newInput(itemName)
 	return &dom.Field{pathName, val}
 }
 
@@ -39,11 +39,12 @@ func (g *blockGen) mutating() bool {
 	return len(g.scope) > 0
 }
 
-func (g *blockGen) pathName(item string) (ret string) {
+func (g *blockGen) newInput(item string) (ret string) {
 	if !g.mutating() {
 		ret = item
 	} else {
 		zeroIndexed := strconv.Itoa(g.atomNum)
+		g.atomNum++
 		ret = block.Scope(g.scope, zeroIndexed, item)
 	}
 	return
