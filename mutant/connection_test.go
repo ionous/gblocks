@@ -27,8 +27,9 @@ func TestSaveConnections(t *testing.T) {
 	for i := 0; i < b.NumInputs(); i++ {
 		in := b.Input(i)
 		if inc := in.Connection(); inc != nil {
+			zeroIndexed := strconv.Itoa(i)
 			tgt := &mock.MockConnection{
-				Name:   "c" + strconv.Itoa(i),
+				Name:   "c" + zeroIndexed,
 				Source: dst,
 			}
 			inc.Connect(tgt)

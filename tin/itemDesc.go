@@ -58,6 +58,7 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 						break
 					case block.DummyInput:
 						if standaloneFields > 0 {
+							// inject a dummy input before the new pending input to separate fields
 							visibleDummy := block.Dict{option.Type: block.DummyInput}
 							args.AddArg(visibleDummy)
 						}
@@ -66,6 +67,14 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 						standaloneFields++
 					}
 					args.AddArg(desc)
+					// atoms that are fields need to be encapsulated ( pushed down into ) a dummy input
+					// otherwise they will get their own blank input, and RemoveAtoms will fail.
+					// ( resulting in expansion of each mui input block into 4x workspace fields )
+					if standaloneFields > 0 && len(scope) > 0 {
+						visibleDummy := block.Dict{option.Name: name, option.Type: block.DummyInput}
+						args.AddArg(visibleDummy)
+						standaloneFields = 0
+					}
 				}
 			}
 		}

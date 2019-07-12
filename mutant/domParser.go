@@ -71,12 +71,14 @@ func (ap *atomParser) parseAtoms(atoms []string) (ret []string, err error) {
 }
 
 // parse an individual <atom>
+// atomNum is zero indexed
 func (ap *atomParser) parseAtom(quark string, atomNum int) (ret string, err error) {
 	if q, ok := FindQuark(ap.min, quark); !ok {
 		err = errutil.New("quark not found", quark)
 	} else {
 		wsBlockId, inputName := ap.block.BlockId(), ap.target().InputName()
-		atomScope := block.Scope("a", wsBlockId, inputName, strconv.Itoa(atomNum))
+		zeroIndexed := strconv.Itoa(atomNum)
+		atomScope := block.Scope("a", wsBlockId, inputName, zeroIndexed)
 		if args, e := q.Atomize(atomScope, ap.db); e != nil {
 			err = e
 		} else if e := ap.inject(args); e != nil {

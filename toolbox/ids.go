@@ -15,7 +15,8 @@ type IdGenerator struct {
 }
 
 func (g *IdGenerator) NewId() string {
-	newId := "bl" + strconv.Itoa(g.nextId+1)
+	oneIndexed := strconv.Itoa(g.nextId + 1)
+	newId := "bl" + oneIndexed
 	g.nextId++
 	return newId
 }

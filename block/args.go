@@ -24,6 +24,8 @@ func (args *Args) List() []Dict {
 }
 
 func (args *Args) AddArg(desc Dict) {
+	// format args are one indexed
 	args.list = append(args.list, desc)
-	args.msgs = append(args.msgs, "%"+strconv.Itoa(len(args.list)))
+	oneIndexed := strconv.Itoa(len(args.list))
+	args.msgs = append(args.msgs, "%"+oneIndexed)
 }

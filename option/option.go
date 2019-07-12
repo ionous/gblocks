@@ -29,12 +29,19 @@ const (
 	Decor = "decor"
 )
 
+// block dict key for a group of args
+// args are zero indexed; but format strings are one indexed
+// ex. "message0": "%1",
 func Message(i int) string {
-	return "message" + strconv.Itoa(i)
+	zeroIndexed := strconv.Itoa(i)
+	return "message" + zeroIndexed
 }
 
+// block dict key for a group of args
+// args are zero indexed
 func Args(i int) string {
-	return "args" + strconv.Itoa(i)
+	zeroIndexed := strconv.Itoa(i)
+	return "args" + zeroIndexed
 }
 
 // extract the desired blockly input type ( a string name ) from a dictionary of struct tags.

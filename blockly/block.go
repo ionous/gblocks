@@ -239,6 +239,7 @@ func (b *Block) NumInputs() int {
 	return b.inputList.Length()
 }
 
+// Inputs are zeroIndexed
 func (b *Block) Input(i int) block.Input {
 	if cnt := b.inputList.Length(); i < 0 || i >= cnt {
 		println("out of range", i, "of", cnt)

@@ -16,7 +16,8 @@ func (g *blockGen) newMutationGenerator(itemName string) *blockGen {
 func (g *blockGen) newAtomGenerator() *blockGen {
 	// place the inputs of atoms inside the same block
 	// increase the shadowing depth for sub-blocks
-	return &blockGen{g.block, g.domGenerator, g.shadowing.Children(), g.scope, g.atomNum + 1}
+	// MOD-stravis: this was g.atomNum+1 -- but if we do that then the paths arent zero indexed
+	return &blockGen{g.block, g.domGenerator, g.shadowing.Children(), g.scope, g.atomNum}
 }
 
 func (g *blockGen) newStatement(itemName string, block *dom.Block) *dom.Statement {
@@ -42,7 +43,8 @@ func (g *blockGen) pathName(item string) (ret string) {
 	if !g.mutating() {
 		ret = item
 	} else {
-		ret = block.Scope(g.scope, strconv.Itoa(g.atomNum), item)
+		zeroIndexed := strconv.Itoa(g.atomNum)
+		ret = block.Scope(g.scope, zeroIndexed, item)
 	}
 	return
 }

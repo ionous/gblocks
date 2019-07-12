@@ -14,7 +14,7 @@ type muiBuilder struct {
 	inputs    MutableInputs // atoms which will create blocks to fill the container
 }
 
-// Build a m ui from existing workspace blocks.
+// Build mui from existing workspace blocks.
 // aka decompose
 func (l *muiBuilder) fillContainer() (err error) {
 	l.container.InitSvg() // from blockly examples
@@ -34,8 +34,8 @@ func (l *muiBuilder) fillInput(muiInput block.Input) (err error) {
 		err = errutil.New("input not mutable", inputName)
 	} else if atoms, ok := l.inputs[inputName]; ok {
 		stack := muiInput.Connection()
-		for index, atom := range atoms {
-			if b, e := l.createBlock(min, inputName, atom, index); e != nil {
+		for i, atom := range atoms {
+			if b, e := l.createBlock(min, inputName, atom, i); e != nil {
 				err = errutil.Append(err, e)
 			} else {
 				// link the new block into the stack
@@ -48,12 +48,14 @@ func (l *muiBuilder) fillInput(muiInput block.Input) (err error) {
 }
 
 // create a mui block to represent the named quark
+// atomNum is zeroIndexed
 func (l *muiBuilder) createBlock(min InMutation, inputName, atom string, atomNum int) (ret block.Shape, err error) {
 	if q, ok := FindQuark(min, atom); !ok {
 		err = errutil.New("couldnt find atom", min, atom)
 	} else {
 		mui := l.container.BlockWorkspace()
-		muiBlockId := block.Scope(l.wsBlockId, inputName, strconv.Itoa(atomNum))
+		zeroIndexed := strconv.Itoa(atomNum)
+		muiBlockId := block.Scope(l.wsBlockId, inputName, zeroIndexed)
 		if muiBlock, e := mui.NewBlockWithId(muiBlockId, q.BlockType()); e != nil {
 			err = e
 		} else {
