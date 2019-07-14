@@ -20,7 +20,7 @@ func (t *TypeInfo) String() string {
 }
 
 // expand the contents of this type into fields and inputs usable by blockly
-func (t *TypeInfo) BuildItems(scope string, db mutant.Atomizer, mutables Mutables, out *mutant.InMutations) (block.Args, error) {
+func (t *TypeInfo) BuildItems(scope string, db mutant.Atomizer, mutables Mutations, out *mutant.BlockMutations) (block.Args, error) {
 	c := context{db, mutables}
 	return c.buildItems(scope, t.ptrType, out)
 }

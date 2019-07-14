@@ -18,10 +18,10 @@ func TestInputs(t *testing.T) {
 	in := (*test.InputBlock)(nil)
 	row := (*test.RowBlock)(nil)
 	mutation := (*test.BlockMutation)(nil)
-	ms := tin.Mutables{}
+	ms := tin.Mutations{}
 	if e := ms.AddMutation(mutation); e != nil {
 		t.Fatal(e)
-	} else if mutation, ok := ms.FindMutable("block_mutation"); !ok {
+	} else if mutation, ok := ms.GetMutationInfo("block_mutation"); !ok {
 		t.Fatal("cant find mutation")
 	} else {
 		if types, e := new(TypeCollector).
@@ -31,7 +31,7 @@ func TestInputs(t *testing.T) {
 			t.Fatal(e)
 		} else {
 			m := Maker{types: types, mutables: ms}
-			var mins mutant.InMutations
+			var mins mutant.BlockMutations
 			if desc, e := m.makeDesc("input_block", &mins); e != nil {
 				t.Fatal(e)
 			} else {

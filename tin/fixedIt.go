@@ -11,7 +11,7 @@ import (
 
 // iteration over the extra fields of a mutation.
 type fixedIt struct {
-	mutable *Mutable
+	mutable *MutationInfo
 }
 
 // return the unscoped name

@@ -8,7 +8,7 @@ import (
 )
 
 type muiBuilder struct {
-	mins      *InMutations // turns atoms into blocks
+	mins      *BlockMutations // turns atoms into blocks
 	wsBlockId string
 	container block.Shape   // container to fill
 	inputs    MutableInputs // atoms which will create blocks to fill the container
@@ -49,7 +49,7 @@ func (l *muiBuilder) fillInput(muiInput block.Input) (err error) {
 
 // create a mui block to represent the named quark
 // atomNum is zeroIndexed
-func (l *muiBuilder) createBlock(min InMutation, inputName, atom string, atomNum int) (ret block.Shape, err error) {
+func (l *muiBuilder) createBlock(min Mutation, inputName, atom string, atomNum int) (ret block.Shape, err error) {
 	if q, ok := FindQuark(min, atom); !ok {
 		err = errutil.New("couldnt find atom", min, atom)
 	} else {

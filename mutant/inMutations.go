@@ -9,29 +9,29 @@ import (
 
 // acts as an ordered map of input name to input mutation.
 // a blockly mutator consists of all the input mutations for a given block.
-type InMutations struct {
-	Inputs    []string              // ordered input names (b/c go maps arent ordered)
-	Mutations map[string]InMutation // input name to mutation data
+type BlockMutations struct {
+	Inputs    []string            // ordered input names (b/c go maps arent ordered)
+	Mutations map[string]Mutation // input name to mutation data
 }
 
-func (m *InMutations) Mutates() bool {
+func (m *BlockMutations) Mutates() bool {
 	return len(m.Inputs) > 0
 }
 
-func (m *InMutations) GetMutation(n string) (ret InMutation, okay bool) {
+func (m *BlockMutations) GetMutation(n string) (ret Mutation, okay bool) {
 	ret, okay = m.Mutations[n]
 	return
 }
 
 // visit all quarks defined by all input mutations
-func (m *InMutations) Quarks(paletteOnly bool) (ret Quark, okay bool) {
+func (m *BlockMutations) Quarks(paletteOnly bool) (ret Quark, okay bool) {
 	it := muteIt{m, -1, nil, paletteOnly}
 	return it.advance()
 }
 
 // produce a description of the mui container.
 // each input in the container represents a mutable input in the workspace block.
-func (m *InMutations) DescribeContainer(containerName string) (ret block.Dict) {
+func (m *BlockMutations) DescribeContainer(containerName string) (ret block.Dict) {
 	var args block.Args
 	for _, in := range m.Inputs {
 		min := m.Mutations[in] // InMutation
@@ -58,7 +58,7 @@ func (m *InMutations) DescribeContainer(containerName string) (ret block.Dict) {
 }
 
 // register the mui container and all of its mui blocks with blockly
-func (m *InMutations) Preregister(blockType string, p block.Project) (err error) {
+func (m *BlockMutations) Preregister(blockType string, p block.Project) (err error) {
 	containerName := ContainerName(blockType)
 	desc := m.DescribeContainer(containerName)
 	if e := p.RegisterBlock(containerName, desc); e != nil {
@@ -70,7 +70,7 @@ func (m *InMutations) Preregister(blockType string, p block.Project) (err error)
 }
 
 // aka "decompose" -- Populate the mutator popup with this block's components.
-func (m *InMutations) CreateMui(mui block.Workspace, b block.Shape, inputs MutableInputs) (ret block.Shape, err error) {
+func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs MutableInputs) (ret block.Shape, err error) {
 	containerName := ContainerName(b.BlockType())
 	if container, e := mui.NewBlock(containerName); e != nil {
 		err = e
@@ -88,7 +88,7 @@ func (m *InMutations) CreateMui(mui block.Workspace, b block.Shape, inputs Mutab
 
 // aka. compose -- turn the mui into new workspace inputs
 // adds new inputs to target, returns the atoms for those inputs
-func (m *InMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret MutableInputs, err error) {
+func (m *BlockMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret MutableInputs, err error) {
 	// remove all the dynamic inputs from the blocks; we're about to recreate/recompose them.
 	// note: the connections for those inputs have already been saved in cs.
 	RemoveAtoms(target)
@@ -103,7 +103,7 @@ func (m *InMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, 
 }
 
 // aka. domToMutation
-func (m *InMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret MutableInputs, err error) {
+func (m *BlockMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret MutableInputs, err error) {
 	dp := domParser{m, items, b, make(MutableInputs)}
 	if e := dp.parseDom(&mutationEls); e != nil {
 		err = errutil.New("LoadMutation()", e)
@@ -115,7 +115,7 @@ func (m *InMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls do
 
 // serialize the mutation to xml friendly data
 // we use a structured intermediary to simplify testing in go.
-func (m *InMutations) SaveMutation(inputs MutableInputs) (ret dom.BlockMutation) {
+func (m *BlockMutations) SaveMutation(inputs MutableInputs) (ret dom.BlockMutation) {
 	for _, inputName := range m.Inputs {
 		if atoms, ok := inputs[inputName]; ok {
 			// if there are atoms, create a node for the data.

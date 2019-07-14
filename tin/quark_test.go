@@ -11,7 +11,7 @@ import (
 
 // verify the mui block names and descriptions generated for test.BlockMutation
 func TestQuarks(t *testing.T) {
-	var ms Mutables
+	var ms Mutations
 	mut, e := ms.addMutation((*test.BlockMutation)(nil),
 		(*test.AtomTest)(nil),
 		(*test.AtomAltTest)(nil))
@@ -50,9 +50,9 @@ func TestQuarks(t *testing.T) {
 	}
 	require.Equal(t, expected, pal)
 
-	mins := mutant.InMutations{
+	mins := mutant.BlockMutations{
 		[]string{"IN"},
-		map[string]mutant.InMutation{"IN": mut},
+		map[string]mutant.Mutation{"IN": mut},
 	}
 	container := mins.DescribeContainer(mutant.ContainerName("block"))
 	expectedContainer := block.Dict{
@@ -74,7 +74,7 @@ func TestQuarksNoFixedFields(t *testing.T) {
 		NextStatement test.NextAtom
 	}
 	//
-	var ms Mutables
+	var ms Mutations
 	mut, e := ms.addMutation((*BlockMutation)(nil),
 		(*test.AtomTest)(nil),
 		(*test.AtomAltTest)(nil))
@@ -91,7 +91,7 @@ func TestQuarksNoFixedFields(t *testing.T) {
 func TestQuarksEmpty(t *testing.T) {
 	type BlockMutation struct{}
 	//
-	var ms Mutables
+	var ms Mutations
 	mut, e := ms.addMutation((*BlockMutation)(nil))
 	require.NoError(t, e)
 	//

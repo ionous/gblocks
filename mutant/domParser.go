@@ -15,15 +15,15 @@ import (
 //   </pin>
 // </mutation>
 type domParser struct {
-	mins   *InMutations  // description of mutatable inputs
-	db     Atomizer      // to expand atoms into inputs
-	block  block.Shape   // target block
-	inputs MutableInputs // info on expanded inputs
+	mins   *BlockMutations // description of mutatable inputs
+	db     Atomizer        // to expand atoms into inputs
+	block  block.Shape     // target block
+	inputs MutableInputs   // info on expanded inputs
 }
 
 type atomParser struct {
 	*domParser
-	min InMutation
+	min Mutation
 	*injector
 }
 

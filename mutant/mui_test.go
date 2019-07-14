@@ -73,14 +73,14 @@ func TestCreateMockBlock(t *testing.T) {
 }
 
 func TestDescribeContainer(t *testing.T) {
-	mutator := mock.NewInMutations(common.inputs, common.quarks)
+	mutator := mock.NewMutations(common.inputs, common.quarks)
 	muiContainer := mutator.DescribeContainer(mutant.ContainerName("test"))
 	require.Equal(t, common.muiContainer, muiContainer)
 }
 
 func TestPreregister(t *testing.T) {
 	var reg mock.Registry
-	mutator := mock.NewInMutations(common.inputs, common.quarks)
+	mutator := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, mutator.Preregister("test", &reg))
 	var keys []string
 	for k, _ := range reg.Blocks {
@@ -109,7 +109,7 @@ func TestPreregister(t *testing.T) {
 func TestCreateMui(t *testing.T) {
 	var reg mock.Registry
 	muispace := reg.NewMockSpace()
-	mutator := mock.NewInMutations(common.inputs, common.quarks)
+	mutator := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, mutator.Preregister("mockType", &reg))
 	wsblock := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
 	c, e := mutator.CreateMui(muispace, wsblock, common.inputAtoms)
@@ -154,7 +154,7 @@ func TestDistillMui(t *testing.T) {
 	muispace := reg.NewMockSpace()
 	// have to create the mui in order to fill from it.
 	// (  a container with inputs containing stacks of atoms )
-	mutator := mock.NewInMutations(common.inputs, common.quarks)
+	mutator := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, mutator.Preregister("mockType", &reg))
 	c, e := mutator.CreateMui(muispace, b, common.inputAtoms)
 	require.NoError(t, e)

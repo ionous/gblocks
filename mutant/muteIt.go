@@ -2,7 +2,7 @@ package mutant
 
 // walk over all quarks in a block's worth of input mutations
 type muteIt struct {
-	*InMutations
+	*BlockMutations
 	input int
 	Quark
 	paletteOnly bool
@@ -19,7 +19,7 @@ func (it *muteIt) NextQuark() (ret Quark, okay bool) {
 
 // create a new iterator
 func (it *muteIt) clone(next int, sub Quark) *muteIt {
-	return &muteIt{it.InMutations, next, sub, it.paletteOnly}
+	return &muteIt{it.BlockMutations, next, sub, it.paletteOnly}
 }
 
 func (it *muteIt) advance() (ret *muteIt, okay bool) {

@@ -12,7 +12,7 @@ func ContainerName(blockType string) string {
 
 // a single input's mutation
 // ex. tin.Mutable
-type InMutation interface {
+type Mutation interface {
 	// name of the original mutation type ( in blockly friendly format )
 	Name() string
 	// blocks which can directly attach to the mutation's input

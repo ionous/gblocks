@@ -9,12 +9,12 @@ import (
 // instance data for mutations
 // implements block.Mutator
 type Mutator struct {
-	mins          *InMutations  // descriptions of atoms
-	atomizer      Atomizer      // needed to expand quarks into atoms
-	mutableBlocks MutatedBlocks // per-block mutation data (pooled across mutators)
+	mins          *BlockMutations // descriptions of atoms
+	atomizer      Atomizer        // needed to expand quarks into atoms
+	mutableBlocks MutatedBlocks   // per-block mutation data (pooled across mutators)
 }
 
-func NewMutator(mins *InMutations, db Atomizer, mbs MutatedBlocks) *Mutator {
+func NewMutator(mins *BlockMutations, db Atomizer, mbs MutatedBlocks) *Mutator {
 	return &Mutator{mins, db, mbs}
 }
 

@@ -8,19 +8,19 @@ import (
 )
 
 // records the original golang representation of a mutation description.
-// implements InMutation
-type Mutable struct {
+// implements mutant.Mutation
+type MutationInfo struct {
 	name    string // name of the mutation type
 	ptrType r.Type // original description of the mutation
 	quarks  []r.Type
 }
 
-func (m *Mutable) Name() string {
+func (m *MutationInfo) Name() string {
 	return m.name
 }
 
 // quarks which can appear at the top of an mui input stack.
-func (m *Mutable) Limits() (ret block.Limits) {
+func (m *MutationInfo) Limits() (ret block.Limits) {
 	// if the mutation has "extra content" -- members other than just the next statement
 	// limit the first block to the just that one block.
 	// otherwise, return the quarks that can attach to the ptr's next statement.
@@ -33,7 +33,7 @@ func (m *Mutable) Limits() (ret block.Limits) {
 }
 
 // what mui blocks in this mutable can attach to the next statement of the passed type.
-func (m *Mutable) limitsOfNext(ptrType r.Type) (ret block.Limits) {
+func (m *MutationInfo) limitsOfNext(ptrType r.Type) (ret block.Limits) {
 	if types, ok := m.types(); ok {
 		ret = limitsOfNext(ptrType, types)
 	} else {
@@ -43,12 +43,12 @@ func (m *Mutable) limitsOfNext(ptrType r.Type) (ret block.Limits) {
 }
 
 //
-func (m *Mutable) FirstBlock() (ret mutant.Quark, okay bool) {
+func (m *MutationInfo) FirstBlock() (ret mutant.Quark, okay bool) {
 	return m.firstBlock()
 }
 
 // list of elements for a mutation
-func (m *Mutable) Quarks(paletteOnly bool) (ret mutant.Quark, okay bool) {
+func (m *MutationInfo) Quarks(paletteOnly bool) (ret mutant.Quark, okay bool) {
 	if !paletteOnly {
 		ret, okay = m.firstBlock()
 	}
@@ -59,7 +59,7 @@ func (m *Mutable) Quarks(paletteOnly bool) (ret mutant.Quark, okay bool) {
 }
 
 //
-func (m *Mutable) types() (ret typeIterator, okay bool) {
+func (m *MutationInfo) types() (ret typeIterator, okay bool) {
 	if x, ok := m.firstBlock(); ok {
 		ret, okay = x, true
 	} else {
@@ -69,7 +69,7 @@ func (m *Mutable) types() (ret typeIterator, okay bool) {
 }
 
 // return an iterator over the "extra" members of a mutation.
-func (m *Mutable) firstBlock() (ret *fixedIt, okay bool) {
+func (m *MutationInfo) firstBlock() (ret *fixedIt, okay bool) {
 	if HasContent(m.ptrType.Elem()) {
 		ret, okay = &fixedIt{mutable: m}, true
 	}
@@ -86,7 +86,7 @@ func HasContent(elem r.Type) bool {
 }
 
 //
-func (m *Mutable) firstQuark() (ret *quarkIt, okay bool) {
+func (m *MutationInfo) firstQuark() (ret *quarkIt, okay bool) {
 	if len(m.quarks) > 0 {
 		ret, okay = &quarkIt{mutable: m}, true
 	}

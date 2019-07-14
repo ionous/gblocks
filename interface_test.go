@@ -12,7 +12,7 @@ import (
 // expand an atom that contains an interface
 func TestInterface(t *testing.T) {
 	// 1. register a mutation that has an input with an interface
-	ms := tin.Mutables{}
+	ms := tin.Mutations{}
 	if e := ms.AddMutation((*test.BlockMutation)(nil),
 		(*test.AtomWithInterface)(nil),
 	); e != nil {
@@ -23,7 +23,7 @@ func TestInterface(t *testing.T) {
 		GetTypes(); e != nil {
 		t.Fatal(t, e)
 		// find the just added mutation
-	} else if mutable, ok := ms.FindMutable("block_mutation"); !ok {
+	} else if mutable, ok := ms.GetMutationInfo("block_mutation"); !ok {
 		t.Fatal("find the mutation")
 		// find the "atom with interface" quark
 	} else if q, ok := mutable.Quarks(true); !ok {

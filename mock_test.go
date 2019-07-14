@@ -15,7 +15,7 @@ func TestMockBlock(t *testing.T) {
 	in := (*test.InputBlock)(nil)
 	row := (*test.RowBlock)(nil)
 	mutation := (*test.BlockMutation)(nil)
-	ms := tin.Mutables{}
+	ms := tin.Mutations{}
 	if e := ms.AddMutation(mutation); e != nil {
 		t.Fatal(e)
 	}
@@ -26,7 +26,7 @@ func TestMockBlock(t *testing.T) {
 		t.Fatal(e)
 	} else {
 		m := Maker{types: types, mutables: ms}
-		var ins mutant.InMutations
+		var ins mutant.BlockMutations
 		if desc, e := m.makeDesc("input_block", &ins); e != nil {
 			t.Fatal(e)
 		} else {

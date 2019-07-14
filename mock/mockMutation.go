@@ -16,8 +16,8 @@ type MockMutation struct {
 
 // create unique mutations for every input
 // based on one common set of quarks.
-func NewInMutations(inputs []string, quarks []string) mutant.InMutations {
-	mutations := make(map[string]mutant.InMutation)
+func NewMutations(inputs []string, quarks []string) mutant.BlockMutations {
+	mutations := make(map[string]mutant.Mutation)
 	var names []string
 	for _, input := range inputs {
 		parts := strings.Split(input, ":")
@@ -30,7 +30,7 @@ func NewInMutations(inputs []string, quarks []string) mutant.InMutations {
 		mutations[inputName] = mutation
 		names = append(names, inputName)
 	}
-	return mutant.InMutations{names, mutations}
+	return mutant.BlockMutations{names, mutations}
 }
 
 func (m *MockMutation) String() string {

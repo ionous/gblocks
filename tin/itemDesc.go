@@ -12,18 +12,18 @@ import (
 
 type context struct {
 	mutant.Atomizer
-	mutables Mutables
+	mutations Mutations
 }
 
-func (c *context) addMutationInput(inputName, mutationName string, out *mutant.InMutations) (ret *Mutable, err error) {
+func (c *context) addMutationInput(inputName, mutationName string, out *mutant.BlockMutations) (ret *MutationInfo, err error) {
 	if out == nil {
 		// typically a mutation in a mutation
 		err = errutil.Fmt("invalid context for mutation %q", mutationName)
-	} else if m, ok := c.mutables.FindMutable(mutationName); !ok {
+	} else if m, ok := c.mutations.GetMutationInfo(mutationName); !ok {
 		err = errutil.Fmt("couldnt find mutation named  %q", mutationName)
 	} else {
 		if out.Mutations == nil {
-			out.Mutations = make(map[string]mutant.InMutation)
+			out.Mutations = make(map[string]mutant.Mutation)
 		}
 		out.Inputs = append(out.Inputs, inputName)
 		out.Mutations[inputName] = m
@@ -33,13 +33,13 @@ func (c *context) addMutationInput(inputName, mutationName string, out *mutant.I
 }
 
 // create arg descriptions for the passed pointer type
-func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutations) (ret block.Args, err error) {
+func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.BlockMutations) (ret block.Args, err error) {
 	var args block.Args
 	structType := ptrType.Elem()
 	// a field (ex. enum) followed by a mutation will vanish;
 	// collapsing into the invisible dummy input used for tracking mutations.
 	// we need to flush those fields into a separate visible dummy input.
-	// ( or stop the mutation from hiding, but that needs more data in InMutation/s  )
+	// ( or stop the mutation from hiding, but that needs more data in Mutation/s  )
 	var standaloneFields int
 	for i, cnt := 0, structType.NumField(); i < cnt; i++ {
 		if field := structType.Field(i); len(field.PkgPath) == 0 {
@@ -86,7 +86,7 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 }
 
 // desc for now -- could return an item element like quark
-func (c *context) itemDesc(name string, field *r.StructField, outMutations *mutant.InMutations) (ret block.Dict, err error) {
+func (c *context) itemDesc(name string, field *r.StructField, outMutations *mutant.BlockMutations) (ret block.Dict, err error) {
 	outDesc := make(block.Dict)
 	tags := parseTags(string(field.Tag))
 	switch cls := Classify(field.Type); cls {

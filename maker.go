@@ -15,11 +15,11 @@ import (
 
 type Maker struct {
 	pairs    enum.Pairs
-	mutables tin.Mutables // for buildItems, BlockStats
+	mutables tin.Mutations // for buildItems, BlockStats
 	types    []*tin.TypeInfo
 }
 
-func NewMaker(pairs enum.Pairs, mutations tin.Mutables, types []*tin.TypeInfo) *Maker {
+func NewMaker(pairs enum.Pairs, mutations tin.Mutations, types []*tin.TypeInfo) *Maker {
 	return &Maker{pairs, mutations, types}
 }
 
@@ -57,7 +57,7 @@ func (m *Maker) RegisterBlocks(p block.Project, mbs mutant.MutatedBlocks, opts m
 }
 
 func (m *Maker) registerType(t *tin.TypeInfo, p block.Project, mbs mutant.MutatedBlocks, opt block.Dict) (err error) {
-	var mins mutant.InMutations
+	var mins mutant.BlockMutations
 	if desc, e := m.makeDescByType(t, opt, &mins); e != nil {
 		err = e
 	} else {
@@ -85,7 +85,7 @@ func (m *Maker) registerType(t *tin.TypeInfo, p block.Project, mbs mutant.Mutate
 }
 
 // return a description of the named block in a format blockly can use for registration.
-func (m *Maker) makeDesc(name string, out *mutant.InMutations) (ret block.Dict, err error) {
+func (m *Maker) makeDesc(name string, out *mutant.BlockMutations) (ret block.Dict, err error) {
 	if t, ok := tin.FindByName(m.types, name); !ok {
 		err = errutil.New("unknown type", name)
 	} else {
@@ -95,7 +95,7 @@ func (m *Maker) makeDesc(name string, out *mutant.InMutations) (ret block.Dict, 
 }
 
 //
-func (m *Maker) makeDescByType(t *tin.TypeInfo, opt block.Dict, out *mutant.InMutations) (ret block.Dict, err error) {
+func (m *Maker) makeDescByType(t *tin.TypeInfo, opt block.Dict, out *mutant.BlockMutations) (ret block.Dict, err error) {
 	var db mutant.Atomizer = m
 	if args, e := t.BuildItems("", db, m.mutables, out); e != nil {
 		err = e

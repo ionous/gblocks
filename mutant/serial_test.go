@@ -50,7 +50,7 @@ func TestSerialization(t *testing.T) {
 		`</mutation>`
 
 	b := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
-	mutator := mock.NewInMutations(common.inputs, common.quarks)
+	mutator := mock.NewMutations(common.inputs, common.quarks)
 
 	db := &mock.MockDatabase{common.atomProducts}
 	inputs, e := mutator.LoadMutation(b, db, data)

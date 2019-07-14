@@ -11,7 +11,7 @@ import (
 
 // walks a quark, returning each quark in turn.
 type quarkIt struct {
-	mutable *Mutable
+	mutable *MutationInfo
 	i       int
 }
 

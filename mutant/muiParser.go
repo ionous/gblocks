@@ -6,7 +6,7 @@ import (
 )
 
 type muiParser struct {
-	mins   *InMutations
+	mins   *BlockMutations
 	target block.Shape // workspace block
 	db     Atomizer
 }
@@ -48,7 +48,7 @@ func (mp *muiParser) expandInput(muiInput block.Input) (ret []string, err error)
 // FIX: refactor?  nearly same as atomParser
 // for every block connected to the mutation ui's input...
 // return the atoms generated
-func (mp *muiParser) createAtomsAt(muiInput block.Input, min InMutation, injector *injector) (ret []string, err error) {
+func (mp *muiParser) createAtomsAt(muiInput block.Input, min Mutation, injector *injector) (ret []string, err error) {
 	var atoms []string
 	if block.VisitStack(muiInput, func(muiBlock block.Shape) (keepGoing bool) {
 		// determine which workspace atom corresponds to the (user selected) mutation ui block
