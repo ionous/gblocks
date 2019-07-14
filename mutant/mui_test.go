@@ -12,7 +12,7 @@ import (
 
 var common = struct {
 	inputs, quarks []string
-	inputAtoms     mutant.MutableInputs
+	inputAtoms     mutant.AtomizedInputs
 	muiContainer   block.Dict
 	atomProducts   map[string][]mock.MockAtom
 	// workspace inputs after expanding the mutable input atoms
@@ -20,7 +20,7 @@ var common = struct {
 }{
 	inputs: []string{"I1:input_dummy", "I2:input_dummy", "I3:input_dummy"},
 	quarks: []string{"a1", "a2", "a3"},
-	inputAtoms: mutant.MutableInputs{
+	inputAtoms: mutant.AtomizedInputs{
 		"I1": []string{"a1", "a1"},
 		"I2": []string{"a2"},
 		"I3": []string{"a1", "a2", "a3"},

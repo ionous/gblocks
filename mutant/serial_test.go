@@ -25,7 +25,7 @@ func TestSerialization(t *testing.T) {
 			},
 		},
 	}}
-	expectedInputs := mutant.MutableInputs{
+	expectedInputs := mutant.AtomizedInputs{
 		"I1": {"a1"},
 		"I3": {"a2", "a3"},
 	}

@@ -18,7 +18,7 @@ type domParser struct {
 	mins   *BlockMutations // description of mutatable inputs
 	db     Atomizer        // to expand atoms into inputs
 	block  block.Shape     // target block
-	inputs MutableInputs   // info on expanded inputs
+	inputs AtomizedInputs  // info on expanded inputs
 }
 
 type atomParser struct {
@@ -50,7 +50,7 @@ func (dp *domParser) parseInput(inputEl *dom.Mutation) (err error) {
 			if atoms, e := ap.parseAtoms(atoms.Types); e != nil {
 				err = errutil.New("parsing", name, e)
 			} else {
-				dp.inputs[name] = atoms
+				dp.inputs.SetAtomsForInput(name, atoms)
 				ap.finalizeInputs()
 			}
 		}

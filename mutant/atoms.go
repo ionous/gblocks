@@ -6,9 +6,21 @@ import (
 	"github.com/ionous/gblocks/block"
 )
 
-// MutableInputs --  per mutable input, a listing the user's selected atoms
-type MutableInputs map[string][]string
+// AtomizedInputs --  per mutable input, a listing the user's selected atoms
+type AtomizedInputs map[string][]string
 
+func MakeAtomizedInputs() AtomizedInputs {
+	return make(AtomizedInputs)
+}
+
+func (mi *AtomizedInputs) GetAtomsForInput(inputName string) ([]string, bool) {
+	ret, ok := (*mi)[inputName]
+	return ret, ok
+}
+
+func (mi *AtomizedInputs) SetAtomsForInput(inputName string, atoms []string) {
+	(*mi)[inputName] = atoms
+}
 
 func RemoveAtoms(b block.Inputs) {
 	prefix := block.Scope("a", "")

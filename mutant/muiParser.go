@@ -12,15 +12,15 @@ type muiParser struct {
 }
 
 // mutation ui -> workspace; aka "compose"
-func (mp *muiParser) expandInputs(muiContainer block.Shape) (ret MutableInputs, err error) {
-	out := make(MutableInputs)
-	for _, name := range mp.mins.Inputs {
-		if muiInput, index := muiContainer.InputByName(name); index < 0 {
-			err = errutil.New("cant find mutable input in mutation ui", name)
+func (mp *muiParser) expandInputs(muiContainer block.Shape) (ret AtomizedInputs, err error) {
+	out := MakeAtomizedInputs()
+	for _, inputName := range mp.mins.Inputs {
+		if muiInput, index := muiContainer.InputByName(inputName); index < 0 {
+			err = errutil.New("cant find mutable input in mutation ui", inputName)
 		} else if atoms, e := mp.expandInput(muiInput); e != nil {
 			err = errutil.Append(err, e)
 		} else {
-			out[name] = atoms
+			out.SetAtomsForInput(inputName, atoms)
 		}
 	}
 	if err == nil {

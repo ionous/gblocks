@@ -26,7 +26,7 @@ func (mbs MutatedBlocks) OnDelete(id string) {
 }
 
 type mutableBlock struct {
-	inputs      MutableInputs
+	inputs      AtomizedInputs
 	connections SavedConnections
 }
 
@@ -61,7 +61,7 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 func (a *Mutator) Decompose(main block.Shape, popup block.Workspace) (block.Shape, error) {
 	id := main.BlockId()
 	// does this block have previous mutation data?
-	var inputs MutableInputs
+	var inputs AtomizedInputs
 	if m, ok := a.mutableBlocks[id]; ok {
 		inputs = m.inputs
 	} else {

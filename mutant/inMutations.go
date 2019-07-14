@@ -70,7 +70,7 @@ func (m *BlockMutations) Preregister(blockType string, p block.Project) (err err
 }
 
 // aka "decompose" -- Populate the mutator popup with this block's components.
-func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs MutableInputs) (ret block.Shape, err error) {
+func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs AtomizedInputs) (ret block.Shape, err error) {
 	containerName := ContainerName(b.BlockType())
 	if container, e := mui.NewBlock(containerName); e != nil {
 		err = e
@@ -88,7 +88,7 @@ func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs Mu
 
 // aka. compose -- turn the mui into new workspace inputs
 // adds new inputs to target, returns the atoms for those inputs
-func (m *BlockMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret MutableInputs, err error) {
+func (m *BlockMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret AtomizedInputs, err error) {
 	// remove all the dynamic inputs from the blocks; we're about to recreate/recompose them.
 	// note: the connections for those inputs have already been saved in cs.
 	RemoveAtoms(target)
@@ -103,8 +103,8 @@ func (m *BlockMutations) DistillMui(target, muiContainer block.Shape, db Atomize
 }
 
 // aka. domToMutation
-func (m *BlockMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret MutableInputs, err error) {
-	dp := domParser{m, items, b, make(MutableInputs)}
+func (m *BlockMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret AtomizedInputs, err error) {
+	dp := domParser{m, items, b, MakeAtomizedInputs()}
 	if e := dp.parseDom(&mutationEls); e != nil {
 		err = errutil.New("LoadMutation()", e)
 	} else {
@@ -115,9 +115,9 @@ func (m *BlockMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls
 
 // serialize the mutation to xml friendly data
 // we use a structured intermediary to simplify testing in go.
-func (m *BlockMutations) SaveMutation(inputs MutableInputs) (ret dom.BlockMutation) {
+func (m *BlockMutations) SaveMutation(inputs AtomizedInputs) (ret dom.BlockMutation) {
 	for _, inputName := range m.Inputs {
-		if atoms, ok := inputs[inputName]; ok {
+		if atoms, ok := inputs.GetAtomsForInput(inputName); ok {
 			// if there are atoms, create a node for the data.
 			if numAtoms := len(atoms); numAtoms > 0 {
 				ret.Append(&dom.Mutation{inputName, dom.Atoms{atoms}})
