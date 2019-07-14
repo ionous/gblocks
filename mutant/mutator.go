@@ -24,8 +24,8 @@ func (a *Mutator) Delete(id string) {
 }
 
 func (a *Mutator) MutationToDom(main block.Shape) (ret string, err error) {
-	if m, ok := a.blockPool.GetMutatedBlock(main); ok {
-		dom := a.mins.SaveMutation(m.atoms)
+	if src, ok := a.blockPool.GetMutatedBlock(main); ok {
+		dom := a.mins.SaveMutation(src.atoms)
 		ret, err = dom.MarshalMutation()
 		//println("mutation to dom", ret)
 	}
@@ -52,21 +52,20 @@ func (a *Mutator) Decompose(main block.Shape, popup block.Workspace) (block.Shap
 
 // fill the workspace shape from the mui layout
 func (a *Mutator) Compose(main, mui block.Shape) (err error) {
-	if m, ok := a.blockPool.GetMutatedBlock(main); !ok {
+	if target, ok := a.blockPool.GetMutatedBlock(main); !ok {
 		err = errutil.New("couldnt find block", main)
-	} else if atoms, e := a.mins.DistillMui(m, mui, a.atomizer); e != nil {
+	} else if atoms, e := a.mins.DistillMui(target, mui, a.atomizer); e != nil {
 		err = e
 	} else {
-		m.atoms = atoms
+		target.atoms = atoms
 	}
 	return
 }
 
 func (a *Mutator) SaveConnections(main, mui block.Shape) (err error) {
 	// note: can be missing the first call.
-	if m, ok := a.blockPool.GetMutatedBlock(main); ok {
-		cs := SaveConnections(main, mui)
-		m.connections = cs
+	if target, ok := a.blockPool.GetMutatedBlock(main); ok {
+		target.SaveConnections(mui)
 	}
 	return
 }
