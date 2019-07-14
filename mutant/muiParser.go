@@ -7,7 +7,7 @@ import (
 
 type muiParser struct {
 	mins   *BlockMutations
-	target block.Shape // workspace block
+	target *mutatedBlock
 	db     Atomizer
 }
 
@@ -34,7 +34,7 @@ func (mp *muiParser) expandInput(muiInput block.Input) (ret []string, err error)
 	name := muiInput.InputName()
 	if mutation, ok := mp.mins.GetMutation(name); !ok {
 		err = errutil.New("input not mutable", name)
-	} else if injector, e := newInjector(mp.target, name); e != nil {
+	} else if injector, e := newInjector(mp.target.block, name); e != nil {
 		err = e
 	} else if a, e := mp.createAtomsAt(muiInput, mutation, injector); e != nil {
 		err = errutil.New("error creating atoms", e)

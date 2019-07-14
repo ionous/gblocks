@@ -39,9 +39,9 @@ func TestSaveConnections(t *testing.T) {
 
 	// create a matching mui block
 	muispace := reg.NewMockSpace()
-	mins := mock.NewMutations(common.inputs, common.quarks)
-	require.NoError(t, mins.Preregister("mockType", &reg))
-	c, e := mins.CreateMui(muispace, b, common.inputAtoms)
+	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+	require.NoError(t, blockMutations.Preregister("mockType", &reg))
+	c, e := blockMutations.CreateMui(muispace, b, common.inputAtoms)
 	require.NoError(t, e)
 	//
 	initialConnections := []string{
@@ -63,7 +63,7 @@ func TestSaveConnections(t *testing.T) {
 		block.Scope("a", "mock", "I3", "0", "TERM"):  connections["c1"],
 		block.Scope("a", "mock", "I3", "2", "STATE"): connections["c9"],
 	}
-	mutant.RestoreConnections(b, remap)
+	remap.RestoreConnections(b)
 	// test the connections by walking the block
 	remapped := []string{
 		block.Scope("a", "mock", "I1", "0", "TERM:c6"),
@@ -75,7 +75,7 @@ func TestSaveConnections(t *testing.T) {
 		"remapped connections")
 	// finally, restore into an empty block
 	emptyBlock := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
-	mutant.RestoreConnections(emptyBlock, remap)
+	remap.RestoreConnections(emptyBlock)
 	require.Empty(t, inputConnections(emptyBlock),
 		"restored connections into an empty block")
 }

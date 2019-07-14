@@ -10,15 +10,14 @@ func ContainerName(blockType string) string {
 	return block.Scope("mui", blockType)
 }
 
-// a single input's mutation
-// ex. tin.Mutable
+// the description of a single input's mutation
 type Mutation interface {
 	// name of the original mutation type ( in blockly friendly format )
 	Name() string
-	// blocks which can directly attach to the mutation's input
+	// quarks which can directly attach to the mutation's input
 	Limits() block.Limits
 	// returns an optional fixed-in-place first quark
 	FirstBlock() (Quark, bool)
-	// iterator over all quarks (mui bocks) which can be used for this mutaiton
+	// all quarks (mui bock types) available for this mutation
 	Quarks(paletteOnly bool) (Quark, bool)
 }

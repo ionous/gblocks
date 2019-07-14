@@ -7,17 +7,18 @@ import (
 	"github.com/ionous/gblocks/option"
 )
 
-// acts as an ordered map of input name to input mutation.
-// a blockly mutator consists of all the input mutations for a given block.
+// descriptions of the mutable inputs for a given type of block.
 type BlockMutations struct {
-	Inputs    []string            // ordered input names (b/c go maps arent ordered)
+	Inputs    []string            // ordered input names (b/c golang maps are unordered)
 	Mutations map[string]Mutation // input name to mutation data
 }
 
+// does this block type have any mutations?
 func (m *BlockMutations) Mutates() bool {
 	return len(m.Inputs) > 0
 }
 
+// return the mutation description for the passed input name.
 func (m *BlockMutations) GetMutation(n string) (ret Mutation, okay bool) {
 	ret, okay = m.Mutations[n]
 	return
@@ -34,7 +35,7 @@ func (m *BlockMutations) Quarks(paletteOnly bool) (ret Quark, okay bool) {
 func (m *BlockMutations) DescribeContainer(containerName string) (ret block.Dict) {
 	var args block.Args
 	for _, in := range m.Inputs {
-		min := m.Mutations[in] // InMutation
+		min := m.Mutations[in] // Mutation
 		l := min.Limits()
 		arg := block.Dict{
 			option.Name: in,
@@ -88,15 +89,15 @@ func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs At
 
 // aka. compose -- turn the mui into new workspace inputs
 // adds new inputs to target, returns the atoms for those inputs
-func (m *BlockMutations) DistillMui(target, muiContainer block.Shape, db Atomizer, cs SavedConnections) (ret AtomizedInputs, err error) {
+func (m *BlockMutations) DistillMui(target *mutatedBlock, muiContainer block.Shape, db Atomizer) (ret AtomizedInputs, err error) {
 	// remove all the dynamic inputs from the blocks; we're about to recreate/recompose them.
 	// note: the connections for those inputs have already been saved in cs.
-	RemoveAtoms(target)
+	target.RemoveAtoms()
 	mp := muiParser{m, target, db}
 	if atoms, e := mp.expandInputs(muiContainer); e != nil {
 		err = errutil.New("DistillMui()", e)
 	} else {
-		RestoreConnections(target, cs) // no return
+		target.RestoreConnections() // no return value
 		ret = atoms
 	}
 	return

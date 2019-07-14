@@ -46,7 +46,7 @@ func (m *Maker) GetStatementsByType(t r.Type) block.Limits {
 // submit all previously added blocks to a blockly-like project.
 // mbs is the target for user generated mutation instance data ( where these blocks will write to if necessary )
 // opts contains per-block type extra options.
-func (m *Maker) RegisterBlocks(p block.Project, mbs mutant.MutatedBlocks, opts map[string]block.Dict) (err error) {
+func (m *Maker) RegisterBlocks(p block.Project, mbs *mutant.MutatedBlocks, opts map[string]block.Dict) (err error) {
 	// types is a slice of tin.TypeInfo
 	for _, t := range m.types {
 		if e := m.registerType(t, p, mbs, opts[t.Name]); e != nil {
@@ -56,7 +56,7 @@ func (m *Maker) RegisterBlocks(p block.Project, mbs mutant.MutatedBlocks, opts m
 	return
 }
 
-func (m *Maker) registerType(t *tin.TypeInfo, p block.Project, mbs mutant.MutatedBlocks, opt block.Dict) (err error) {
+func (m *Maker) registerType(t *tin.TypeInfo, p block.Project, mbs *mutant.MutatedBlocks, opt block.Dict) (err error) {
 	var mins mutant.BlockMutations
 	if desc, e := m.makeDescByType(t, opt, &mins); e != nil {
 		err = e

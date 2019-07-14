@@ -60,9 +60,9 @@ func SaveConnections(main, mui block.Inputs) SavedConnections {
 	return out
 }
 
-func RestoreConnections(block block.Shape, savedConnections SavedConnections) {
+func (cs SavedConnections) RestoreConnections(block block.Shape) {
 	// we expect names like: "a$ muiBlockId $ FIELD"
-	for atomInput, oldDst := range savedConnections {
+	for atomInput, oldDst := range cs {
 		Reconnect(oldDst, block, atomInput)
 	}
 	return

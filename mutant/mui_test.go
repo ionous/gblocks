@@ -73,15 +73,15 @@ func TestCreateMockBlock(t *testing.T) {
 }
 
 func TestDescribeContainer(t *testing.T) {
-	mutator := mock.NewMutations(common.inputs, common.quarks)
-	muiContainer := mutator.DescribeContainer(mutant.ContainerName("test"))
+	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+	muiContainer := blockMutations.DescribeContainer(mutant.ContainerName("test"))
 	require.Equal(t, common.muiContainer, muiContainer)
 }
 
 func TestPreregister(t *testing.T) {
 	var reg mock.Registry
-	mutator := mock.NewMutations(common.inputs, common.quarks)
-	require.NoError(t, mutator.Preregister("test", &reg))
+	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+	require.NoError(t, blockMutations.Preregister("test", &reg))
 	var keys []string
 	for k, _ := range reg.Blocks {
 		keys = append(keys, k)
@@ -109,10 +109,10 @@ func TestPreregister(t *testing.T) {
 func TestCreateMui(t *testing.T) {
 	var reg mock.Registry
 	muispace := reg.NewMockSpace()
-	mutator := mock.NewMutations(common.inputs, common.quarks)
-	require.NoError(t, mutator.Preregister("mockType", &reg))
+	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+	require.NoError(t, blockMutations.Preregister("mockType", &reg))
 	wsblock := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
-	c, e := mutator.CreateMui(muispace, wsblock, common.inputAtoms)
+	c, e := blockMutations.CreateMui(muispace, wsblock, common.inputAtoms)
 	require.NoError(t, e, "CreateMui")
 	idTypes := listStack(c)
 	expectedIdTypes := []string{
@@ -154,13 +154,15 @@ func TestDistillMui(t *testing.T) {
 	muispace := reg.NewMockSpace()
 	// have to create the mui in order to fill from it.
 	// (  a container with inputs containing stacks of atoms )
-	mutator := mock.NewMutations(common.inputs, common.quarks)
-	require.NoError(t, mutator.Preregister("mockType", &reg))
-	c, e := mutator.CreateMui(muispace, b, common.inputAtoms)
+	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+	require.NoError(t, blockMutations.Preregister("mockType", &reg))
+	blocks := mutant.NewMutatedBlocks()
+	mb := blocks.EnsureMutatedBlock(b)
+	c, e := blockMutations.CreateMui(muispace, b, common.inputAtoms)
 	require.NoError(t, e)
 	// now, fill the b with the blocks from the container
 	db := &mock.MockDatabase{common.atomProducts}
-	inputAtoms, e := mutator.DistillMui(b, c, db, nil)
+	inputAtoms, e := blockMutations.DistillMui(mb, c, db)
 	require.NoError(t, e)
 	require.Equal(t, common.inputAtoms, inputAtoms)
 	//
