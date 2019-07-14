@@ -39,9 +39,11 @@ func TestSaveConnections(t *testing.T) {
 
 	// create a matching mui block
 	muispace := reg.NewMockSpace()
+	blocks := mutant.NewMutatedBlocks()
 	blockMutations := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, blockMutations.Preregister("mockType", &reg))
-	c, e := blockMutations.CreateMui(muispace, b, common.inputAtoms)
+	mb := blocks.CreateMutatedBlock(b, common.inputAtoms)
+	c, e := blockMutations.CreateMui(muispace, mb)
 	require.NoError(t, e)
 	//
 	initialConnections := []string{

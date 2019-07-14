@@ -109,10 +109,12 @@ func TestPreregister(t *testing.T) {
 func TestCreateMui(t *testing.T) {
 	var reg mock.Registry
 	muispace := reg.NewMockSpace()
+	blocks := mutant.NewMutatedBlocks()
 	blockMutations := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, blockMutations.Preregister("mockType", &reg))
 	wsblock := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
-	c, e := blockMutations.CreateMui(muispace, wsblock, common.inputAtoms)
+	mb := blocks.CreateMutatedBlock(wsblock, common.inputAtoms)
+	c, e := blockMutations.CreateMui(muispace, mb)
 	require.NoError(t, e, "CreateMui")
 	idTypes := listStack(c)
 	expectedIdTypes := []string{
@@ -157,8 +159,8 @@ func TestDistillMui(t *testing.T) {
 	blockMutations := mock.NewMutations(common.inputs, common.quarks)
 	require.NoError(t, blockMutations.Preregister("mockType", &reg))
 	blocks := mutant.NewMutatedBlocks()
-	mb := blocks.EnsureMutatedBlock(b)
-	c, e := blockMutations.CreateMui(muispace, b, common.inputAtoms)
+	mb := blocks.CreateMutatedBlock(b, common.inputAtoms)
+	c, e := blockMutations.CreateMui(muispace, mb)
 	require.NoError(t, e)
 	// now, fill the b with the blocks from the container
 	db := &mock.MockDatabase{common.atomProducts}

@@ -14,9 +14,11 @@ type MutatedBlocks struct {
 	blocks map[string]*mutatedBlock
 }
 
-func (mbs *MutatedBlocks) AddMutatedBlock(main block.Shape, atoms AtomizedInputs) {
+func (mbs *MutatedBlocks) CreateMutatedBlock(main block.Shape, atoms AtomizedInputs) (ret *mutatedBlock) {
 	wid := main.BlockId()
-	mbs.blocks[wid] = &mutatedBlock{main, atoms, nil}
+	ret = &mutatedBlock{main, atoms, nil}
+	mbs.blocks[wid] = ret
+	return
 }
 
 func (mbs *MutatedBlocks) GetMutatedBlock(main block.Shape) (*mutatedBlock, bool) {

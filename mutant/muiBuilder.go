@@ -9,9 +9,8 @@ import (
 
 type muiBuilder struct {
 	mins      *BlockMutations // turns atoms into blocks
-	wsBlockId string
-	container block.Shape    // container to fill
-	inputs    AtomizedInputs // atoms which will create blocks to fill the container
+	container block.Shape     // container to fill
+	src       *mutatedBlock
 }
 
 // Build mui from existing workspace blocks.
@@ -32,7 +31,7 @@ func (l *muiBuilder) fillInput(muiInput block.Input) (err error) {
 	inputName := muiInput.InputName()
 	if min, ok := l.mins.GetMutation(inputName); !ok {
 		err = errutil.New("input not mutable", inputName)
-	} else if atoms, ok := l.inputs.GetAtomsForInput(inputName); ok {
+	} else if atoms, ok := l.src.GetAtomsForInput(inputName); ok {
 		stack := muiInput.Connection()
 		for i, atom := range atoms {
 			if b, e := l.createBlock(min, inputName, atom, i); e != nil {
@@ -55,7 +54,7 @@ func (l *muiBuilder) createBlock(min Mutation, inputName, atom string, atomNum i
 	} else {
 		mui := l.container.BlockWorkspace()
 		zeroIndexed := strconv.Itoa(atomNum)
-		muiBlockId := block.Scope(l.wsBlockId, inputName, zeroIndexed)
+		muiBlockId := block.Scope(l.src.block.BlockId(), inputName, zeroIndexed)
 		if muiBlock, e := mui.NewBlockWithId(muiBlockId, q.BlockType()); e != nil {
 			err = e
 		} else {

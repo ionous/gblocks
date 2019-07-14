@@ -11,13 +11,13 @@ type mutatedBlock struct {
 	connections SavedConnections
 }
 
-// func (mb *mutatedBlock) ContainerName() string {
-// 	return ContainerName(mb.block.BlockType())
-// }
+func (mb *mutatedBlock) ContainerName() string {
+	return ContainerName(mb.block.BlockType())
+}
 
-// func (mb *mutatedBlock) GetAtomsForInput(inputName string) ([]string, bool) {
-// 	return mb.atoms.GetAtomsForInput(inputName)
-// }
+func (mb *mutatedBlock) GetAtomsForInput(inputName string) ([]string, bool) {
+	return mb.atoms.GetAtomsForInput(inputName)
+}
 
 func (mb *mutatedBlock) RemoveAtoms() {
 	RemoveAtoms(mb.block)

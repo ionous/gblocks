@@ -39,7 +39,7 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 	} else if atoms, e := a.mins.LoadMutation(main, a.atomizer, els); e != nil {
 		err = e
 	} else {
-		a.blockPool.AddMutatedBlock(main, atoms)
+		a.blockPool.CreateMutatedBlock(main, atoms)
 	}
 	return
 }
@@ -47,7 +47,7 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 // create the mui shapes
 func (a *Mutator) Decompose(main block.Shape, popup block.Workspace) (block.Shape, error) {
 	mb := a.blockPool.EnsureMutatedBlock(main)
-	return a.mins.CreateMui(popup, main, mb.atoms)
+	return a.mins.CreateMui(popup, mb)
 }
 
 // fill the workspace shape from the mui layout

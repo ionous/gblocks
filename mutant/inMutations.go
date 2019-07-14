@@ -71,12 +71,12 @@ func (m *BlockMutations) Preregister(blockType string, p block.Project) (err err
 }
 
 // aka "decompose" -- Populate the mutator popup with this block's components.
-func (m *BlockMutations) CreateMui(mui block.Workspace, b block.Shape, inputs AtomizedInputs) (ret block.Shape, err error) {
-	containerName := ContainerName(b.BlockType())
+func (m *BlockMutations) CreateMui(mui block.Workspace, src *mutatedBlock) (ret block.Shape, err error) {
+	containerName := src.ContainerName()
 	if container, e := mui.NewBlock(containerName); e != nil {
 		err = e
 	} else {
-		l := muiBuilder{m, b.BlockId(), container, inputs}
+		l := muiBuilder{m, container, src}
 		if e := l.fillContainer(); e != nil {
 			container.Dispose()
 			err = e
