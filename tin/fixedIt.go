@@ -16,18 +16,18 @@ type fixedIt struct {
 
 // return the unscoped name
 func (it *fixedIt) Name() string {
-	return block.Scope(it.mutable.name, "")
+	return it.mutable.name
 }
 
-// return the unscoped name
+// return the underlying type
 func (it *fixedIt) PtrType() r.Type {
 	return it.mutable.ptrType
 }
 
 // return the mui block type, scoped to its mutation.
-// ex. "mui$mutation$atomw"
+// ex. "mui, mutation"
 func (it *fixedIt) BlockType() string {
-	return block.Scope("mui", it.mutable.name, "")
+	return block.Scope("mui", it.mutable.name)
 }
 
 // return the displayed label of the indexed mui block

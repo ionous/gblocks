@@ -45,10 +45,10 @@ func TestSaveConnections(t *testing.T) {
 	require.NoError(t, e)
 	//
 	initialConnections := []string{
-		"a$mock$I1$0$TERM:c1",
-		"a$mock$I1$1$TERM:c2",
-		"a$mock$I3$0$TERM:c6",
-		"a$mock$I3$2$STATE:c9"}
+		block.Scope("a", "mock", "I1", "0", "TERM:c1"),
+		block.Scope("a", "mock", "I1", "1", "TERM:c2"),
+		block.Scope("a", "mock", "I3", "0", "TERM:c6"),
+		block.Scope("a", "mock", "I3", "2", "STATE:c9")}
 	require.Equal(t, initialConnections, inputConnections(b),
 		"initial connections from block")
 	cs := mutant.SaveConnections(b, c)
@@ -58,18 +58,18 @@ func TestSaveConnections(t *testing.T) {
 	// note: we cant delete a connection without actually deleting the input
 	// we test that at the end by restoring into an empty block
 	remap := mutant.SavedConnections{
-		"a$mock$I1$0$TERM":  connections["c6"],
-		"a$mock$I1$1$TERM":  connections["c2"],
-		"a$mock$I3$0$TERM":  connections["c1"],
-		"a$mock$I3$2$STATE": connections["c9"],
+		block.Scope("a", "mock", "I1", "0", "TERM"):  connections["c6"],
+		block.Scope("a", "mock", "I1", "1", "TERM"):  connections["c2"],
+		block.Scope("a", "mock", "I3", "0", "TERM"):  connections["c1"],
+		block.Scope("a", "mock", "I3", "2", "STATE"): connections["c9"],
 	}
 	mutant.RestoreConnections(b, remap)
 	// test the connections by walking the block
 	remapped := []string{
-		"a$mock$I1$0$TERM:c6",
-		"a$mock$I1$1$TERM:c2",
-		"a$mock$I3$0$TERM:c1",
-		"a$mock$I3$2$STATE:c9",
+		block.Scope("a", "mock", "I1", "0", "TERM:c6"),
+		block.Scope("a", "mock", "I1", "1", "TERM:c2"),
+		block.Scope("a", "mock", "I3", "0", "TERM:c1"),
+		block.Scope("a", "mock", "I3", "2", "STATE:c9"),
 	}
 	require.Equal(t, remapped, inputConnections(b),
 		"remapped connections")

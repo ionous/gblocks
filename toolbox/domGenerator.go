@@ -164,7 +164,7 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 						g.block.Mutation.Append(m)
 					}
 					// expand the fields directly into the current dom node.
-					// a$blockId$IN$0$FIELD
+					// a, blockId, IN, 0, FIELD
 					sub := g.newMutationGenerator(itemName)
 					sub.fieldsOf(nv, f.Type.Elem())
 				}
@@ -194,7 +194,7 @@ func (g *blockGen) addBlock(model tin.Model, fieldVal r.Value, fieldType r.Type)
 func newMutation(name string, mval r.Value, mtype r.Type) (ret *dom.Mutation, okay bool) {
 	var types []string
 	if tin.HasContent(mtype) {
-		typeName := block.Scope(pascal.ToUnderscore(mtype.Name()), "")
+		typeName := pascal.ToUnderscore(mtype.Name())
 		types = append(types, typeName)
 	}
 	if next, ok := mval, mval.IsValid(); ok {

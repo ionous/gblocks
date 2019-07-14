@@ -36,7 +36,7 @@ func TestInterface(t *testing.T) {
 		// of the two terms we added -- 'mutable block' and 'interfacing term' --
 		// only the latter should be attachable to its input.
 		expected := block.NewArgs("%1", block.Dict{
-			"name":  "scoped$INPUT",
+			"name":  block.Scope("scoped", "INPUT"),
 			"type":  "input_value",
 			"check": "interfacing_term",
 		})

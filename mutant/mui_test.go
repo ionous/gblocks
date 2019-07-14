@@ -26,7 +26,7 @@ var common = struct {
 		"I3": []string{"a1", "a2", "a3"},
 	},
 	muiContainer: block.Dict{
-		"type":     "mui$test",
+		"type":     block.Scope("mui", "test"),
 		"message0": "%1 %2 %3",
 		"args0": []block.Dict{{
 			"name":  "I1",
@@ -45,19 +45,23 @@ var common = struct {
 	atomProducts: map[string][]mock.MockAtom{
 		"a1": []mock.MockAtom{{Name: "TERM", Type: block.ValueInput}},
 		"a2": []mock.MockAtom{{Name: "NUM", Type: block.NumberField}},
-		"a3": []mock.MockAtom{{Name: "TEXT", Type: block.TextField}, {Name: "STATE", Type: block.StatementInput}},
+		"a3": []mock.MockAtom{
+			{Name: "TEXT", Type: block.TextField},
+			{Name: "STATE", Type: block.StatementInput},
+		},
 	},
 	expandedInputs: []string{
-		// a$ blockId $ INPUT $ atomNum $ FIELD : type
+		// a, blockId, INPUT, atomNum, FIELD:type
 		"I1:input_dummy",
-		/*a1*/ "a$mock$I1$0$TERM:input_value",
-		/*a1*/ "a$mock$I1$1$TERM:input_value",
+		/*a1*/ block.Scope("a", "mock", "I1", "0", "TERM:input_value"),
+		/*a1*/ block.Scope("a", "mock", "I1", "1", "TERM:input_value"),
 		"I2:input_dummy",
-		/*a2*/ "a$mock$I2$0$NUM:field_number",
+		/*a2*/ block.Scope("a", "mock", "I2", "0", "NUM:field_number"),
 		"I3:input_dummy",
-		/*a1*/ "a$mock$I3$0$TERM:input_value",
-		/*a2*/ "a$mock$I3$1$NUM:field_number",
-		/*a3*/ "a$mock$I3$2$TEXT:field_input", "a$mock$I3$2$STATE:input_statement",
+		/*a1*/ block.Scope("a", "mock", "I3", "0", "TERM:input_value"),
+		/*a2*/ block.Scope("a", "mock", "I3", "1", "NUM:field_number"),
+		/*a3*/ block.Scope("a", "mock", "I3", "2", "TEXT:field_input"),
+		block.Scope("a", "mock", "I3", "2", "STATE:input_statement"),
 	},
 }
 
@@ -88,16 +92,17 @@ func TestPreregister(t *testing.T) {
 	// and we expect to see unique quarks for each mutation
 	// ( also the mui container which can hold the quarks )
 	expected := []string{
-		"mui$I1$a1",
-		"mui$I1$a2",
-		"mui$I1$a3",
-		"mui$I2$a1",
-		"mui$I2$a2",
-		"mui$I2$a3",
-		"mui$I3$a1",
-		"mui$I3$a2",
-		"mui$I3$a3",
-		"mui$test"}
+		block.Scope("mui", "I1", "a1"),
+		block.Scope("mui", "I1", "a2"),
+		block.Scope("mui", "I1", "a3"),
+		block.Scope("mui", "I2", "a1"),
+		block.Scope("mui", "I2", "a2"),
+		block.Scope("mui", "I2", "a3"),
+		block.Scope("mui", "I3", "a1"),
+		block.Scope("mui", "I3", "a2"),
+		block.Scope("mui", "I3", "a3"),
+		block.Scope("mui", "test"),
+	}
 	require.Equal(t, expected, keys)
 }
 
@@ -111,9 +116,12 @@ func TestCreateMui(t *testing.T) {
 	require.NoError(t, e, "CreateMui")
 	idTypes := listStack(c)
 	expectedIdTypes := []string{
-		"mock$I1$0:mui$I1$a1", "mock$I1$1:mui$I1$a1",
-		"mock$I2$0:mui$I2$a2",
-		"mock$I3$0:mui$I3$a1", "mock$I3$1:mui$I3$a2", "mock$I3$2:mui$I3$a3",
+		block.Scope("mock", "I1", "0:mui", "I1", "a1"),
+		/**/ block.Scope("mock", "I1", "1:mui", "I1", "a1"),
+		block.Scope("mock", "I2", "0:mui", "I2", "a2"),
+		block.Scope("mock", "I3", "0:mui", "I3", "a1"),
+		/**/ block.Scope("mock", "I3", "1:mui", "I3", "a2"),
+		/**/ block.Scope("mock", "I3", "2:mui", "I3", "a3"),
 	}
 	require.Equal(t, expectedIdTypes, idTypes, "expectedIdTypes")
 }

@@ -18,6 +18,4 @@ const (
 
 	NextStatement     = "NextStatement"
 	PreviousStatement = "PreviousStatement"
-
-	//	ItemDecor = "$decor"
 )

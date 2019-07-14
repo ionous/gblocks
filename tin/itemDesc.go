@@ -46,7 +46,7 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.InMutatio
 			if field.Name != block.NextStatement {
 				name := pascal.ToCaps(field.Name)
 				if len(scope) > 0 {
-					// ex. a$ muiBlockId $ FIELD
+					// ex. a, muiBlockId, FIELD
 					name = block.Scope(scope, name)
 				}
 				if desc, e := c.itemDesc(name, &field, out); e != nil {

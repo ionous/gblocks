@@ -28,24 +28,22 @@ func SaveConnections(main, mui block.Inputs) SavedConnections {
 			// name helper:
 			muiBlockId := muiBlock.BlockId()
 			// inputs names created from existing data ( via atomParser.parseAtom ):
-			//    input= "a$ wsBlockId $ INPUT $ atomNum $ FIELD"
+			//    input= "a, wsBlockId, INPUT, atomNum, FIELD"
 			//
 			// mui block ids created from existing data ( via muiBuilder.createBlock ):
-			//    muiBlockId= "wsBlockId $ INPUT $ atomNum"
+			//    muiBlockId= "wsBlockId, INPUT, atomNum"
 			//
 			// if the user placed the mui block themselves, the id will be random:
 			//    muiBlockId= "auto-generated"
 			//
 			// re/creating workspace inputs from the mui ( via muiParser.createAtomsAt ) yields:
-			// 	  input= "a$ <muiBlockId> $ FIELD"
+			// 	  input= "a, <muiBlockId>, FIELD"
 			//
-			// when we save/restore an input here, we use: "a$ <muiBlockId> $ FIELD":
-			//    save slot= "a$ wsBlockId $ INPUT $ atomNum $ FIELD" or
-			//               "a$ auto-generated $ FIELD"
+			// when we save/restore an input here, we use: "a, <muiBlockId>, FIELD":
+			//    save slot= "a, wsBlockId, INPUT, atomNum, FIELD" or
+			//               "a, auto-generated, FIELD"
 			//
 			// note: the blockId is used to differentiate blocks when multiple popups are open
-			// ( blockly seems to expect globally unique block ids;
-			//   but it's possible workspace unique ids would be fine. )
 			//
 			atomPrefix := block.Scope("a", muiBlockId)
 			for i, cnt := 0, main.NumInputs(); i < cnt; i++ {

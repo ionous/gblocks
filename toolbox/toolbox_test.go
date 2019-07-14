@@ -2,8 +2,10 @@ package toolbox_test
 
 import (
 	"encoding/xml"
+	"fmt"
 	"testing"
 
+	"github.com/ionous/gblocks/block"
 	. "github.com/ionous/gblocks/test"
 	"github.com/ionous/gblocks/toolbox"
 	"github.com/stretchr/testify/require"
@@ -133,23 +135,26 @@ func TestMutations(t *testing.T) {
 		Mutant *MutationExtraless `input:"mutation"`
 	}
 
-	// "a$ wsBlockId $ INPUT_NAME $ atomNum $ FIELD_NAME"
+	// "a, wsBlockId, INPUT_NAME, atomNum, FIELD_NAME"
+	el := func(tag string, parts ...string) string {
+		return fmt.Sprintf("<%s name=%q>", tag, block.Scope(parts...))
+	}
 	expected := `` +
 		/**/ `<block id="bl1" type="mutable_block">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
-		/*   */ `<atom type="block_mutation$"></atom>` +
+		/*   */ `<atom type="block_mutation"></atom>` +
 		/*   */ `<atom type="atom_test"></atom>` +
 		/*   */ `<atom type="atom_alt_test"></atom>` +
 		/*   */ `<atom type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
-		/* */ `<field name="a$bl1$MUTANT$0$ATOM_FIELD">Text</field>` +
-		/* */ `<value name="a$bl1$MUTANT$1$ATOM_INPUT">` +
+		/* */ el("field", "a", "bl1", "MUTANT", "0", "ATOM_FIELD") + `Text</field>` +
+		/* */ el("value", "a", "bl1", "MUTANT", "1", "ATOM_INPUT") +
 		/*  */ `<block id="bl2" type="mutable_block">` +
 		/*   */ `<mutation>` +
 		/*    */ `<pin name="MUTANT">` +
-		/*     */ `<atom type="block_mutation$"></atom>` +
+		/*     */ `<atom type="block_mutation"></atom>` +
 		/*  */ `</pin>` +
 		/*   */ `</mutation>` +
 		/*  */ `</block>` +
@@ -165,7 +170,7 @@ func TestMutations(t *testing.T) {
 		/**/ `<block id="bl4" type="mutable_block">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
-		/*   */ `<atom type="block_mutation$"></atom>` +
+		/*   */ `<atom type="block_mutation"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
 		/**/ `</block>` +

@@ -18,7 +18,10 @@ func TestQuarks(t *testing.T) {
 	require.NoError(t, e)
 	//
 	quarks := mutant.PaletteQuarks(mut)
-	expectedQuarks := []string{"mui$block_mutation$atom_test", "mui$block_mutation$atom_alt_test"}
+	expectedQuarks := []string{
+		block.Scope("mui", "block_mutation", "atom_test"),
+		block.Scope("mui", "block_mutation", "atom_alt_test"),
+	}
 	require.Equal(t, expectedQuarks, quarks)
 	var pal []interface{}
 	for q, ok := mut.Quarks(false); ok; q, ok = q.NextQuark() {
@@ -27,19 +30,19 @@ func TestQuarks(t *testing.T) {
 
 	expected := []interface{}{
 		block.Dict{
-			"type":              "mui$block_mutation$",
+			"type":              block.Scope("mui", "block_mutation"),
 			"message0":          "block",
-			"previousStatement": "block_mutation$",
+			"previousStatement": block.Scope("block_mutation"),
 			"nextStatement":     []string{"atom_test", "atom_alt_test"},
 		},
 		block.Dict{
-			"type":              "mui$block_mutation$atom_test",
+			"type":              block.Scope("mui", "block_mutation", "atom_test"),
 			"message0":          "atom test",
 			"previousStatement": "atom_test",
 			"nextStatement":     []string{"atom_test", "atom_alt_test"},
 		},
 		block.Dict{
-			"type":              "mui$block_mutation$atom_alt_test",
+			"type":              block.Scope("mui", "block_mutation", "atom_alt_test"),
 			"message0":          "atom alt test",
 			"previousStatement": "atom_alt_test",
 			"nextStatement":     []string{"atom_test", "atom_alt_test"},
@@ -53,13 +56,13 @@ func TestQuarks(t *testing.T) {
 	}
 	container := mins.DescribeContainer(mutant.ContainerName("block"))
 	expectedContainer := block.Dict{
-		"type":     "mui$block",
+		"type":     block.Scope("mui", "block"),
 		"message0": "%1",
 		"args0": []block.Dict{
 			{
 				"name":  "IN",
 				"type":  "input_statement",
-				"check": "block_mutation$",
+				"check": block.Scope("block_mutation"),
 			},
 		},
 	}
@@ -78,7 +81,10 @@ func TestQuarksNoFixedFields(t *testing.T) {
 	require.NoError(t, e)
 	//
 	names := mutant.PaletteQuarks(mut)
-	expectedQuarks := []string{"mui$block_mutation$atom_test", "mui$block_mutation$atom_alt_test"}
+	expectedQuarks := []string{
+		block.Scope("mui", "block_mutation", "atom_test"),
+		block.Scope("mui", "block_mutation", "atom_alt_test"),
+	}
 	require.Equal(t, expectedQuarks, names)
 }
 

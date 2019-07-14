@@ -3,6 +3,7 @@ package mutant_test
 import (
 	"testing"
 
+	"github.com/ionous/gblocks/block"
 	"github.com/ionous/gblocks/dom"
 	"github.com/ionous/gblocks/mock"
 	"github.com/ionous/gblocks/mutant"
@@ -30,12 +31,12 @@ func TestSerialization(t *testing.T) {
 	}
 	expandedInputs := []string{
 		"I1:input_dummy",
-		/**/ "a$mock$I1$0$TERM:input_value",
+		/**/ block.Scope("a", "mock", "I1", "0", "TERM:input_value"),
 		"I2:input_dummy",
 		"I3:input_dummy",
-		/**/ "a$mock$I3$0$NUM:field_number",
-		/**/ "a$mock$I3$1$TEXT:field_input",
-		/**/ "a$mock$I3$1$STATE:input_statement",
+		/**/ block.Scope("a", "mock", "I3", "0", "NUM:field_number"),
+		/**/ block.Scope("a", "mock", "I3", "1", "TEXT:field_input"),
+		/**/ block.Scope("a", "mock", "I3", "1", "STATE:input_statement"),
 	}
 	expectedOutput := `` +
 		`<mutation>` +

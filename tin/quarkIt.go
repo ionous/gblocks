@@ -26,7 +26,7 @@ func (it *quarkIt) PtrType() r.Type {
 }
 
 // return the mui block type, scoped to its mutation.
-// ex. "mui$block_mutation$test_atom"
+// ex. "mui, block_mutation, test_atom"
 func (it *quarkIt) BlockType() string {
 	return block.Scope("mui", it.mutable.name, it.Name())
 }
