@@ -15,19 +15,19 @@ func TestStack(t *testing.T) {
 	// text generated from blockly developer tools
 	// https://blockly-demo.appspot.com/static/demos/blockfactory/index.html
 	expected := `` +
-		`<block id="bl1" type="stack_block">` +
+		`<block type="stack_block">` +
 		/**/ `<next>` +
-		/* */ `<block id="bl2" type="stack_block">` +
+		/* */ `<block type="stack_block">` +
 		/*  */ `<next>` +
-		/*   */ `<block id="bl3" type="stack_block">` +
+		/*   */ `<block type="stack_block">` +
 		/*   */ `</block>` +
 		/*  */ `</next>` +
 		/* */ `</block>` +
 		/**/ `</next>` +
 		`</block>`
-	ids := &toolbox.IdGenerator{}
+
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, ids, types).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types).
 		AddStatement(
 			&StackBlock{
 				NextStatement: &StackBlock{
@@ -50,19 +50,19 @@ func TestStack(t *testing.T) {
 
 func TestRow(t *testing.T) {
 	expected := `` +
-		/* */ `<block id="bl1" type="row_block">` +
+		/* */ `<block type="row_block">` +
 		/*  */ `<value name="INPUT">` +
-		/*   */ `<block id="bl2" type="row_block">` +
+		/*   */ `<block type="row_block">` +
 		/*    */ `<value name="INPUT">` +
-		/*     */ `<block id="bl3" type="row_block">` +
+		/*     */ `<block type="row_block">` +
 		/*     */ `</block>` +
 		/*    */ `</value>` +
 		/*   */ `</block>` +
 		/*  */ `</value>` +
 		/* */ `</block>`
-	ids := &toolbox.IdGenerator{}
+
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, ids, types).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types).
 		AddTerm(
 			&RowBlock{
 				Input: &RowBlock{
@@ -87,14 +87,14 @@ func TestRow(t *testing.T) {
 // test no ids and no collector while we are at it.
 func TestFieldBlock(t *testing.T) {
 	expected := `` +
-		/**/ `<block id="bl1" type="field_block">` +
+		/**/ `<block type="field_block">` +
 		/**/ `</block>` +
-		/**/ `<block id="bl2" type="field_block">` +
+		/**/ `<block type="field_block">` +
 		/* */ `<field name="NUMBER">10</field>` +
 		/**/ `</block>`
-	ids := &toolbox.IdGenerator{}
+
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, ids, types).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types).
 		AddTerm(&FieldBlock{0}).
 		AddTerm(&FieldBlock{10}).
 		Blocks()
@@ -118,7 +118,7 @@ func TestNoCollection(t *testing.T) {
 		/**/ `<block type="field_block">` +
 		/* */ `<field name="NUMBER">10</field>` +
 		/**/ `</block>`
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, nil, nil).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, nil).
 		AddTerm(&FieldBlock{0}).
 		AddTerm(&FieldBlock{10}).
 		Blocks()
@@ -135,12 +135,12 @@ func TestMutations(t *testing.T) {
 		Mutant *MutationExtraless `input:"mutation"`
 	}
 
-	// "a, wsBlockId, INPUT_NAME, atomNum, FIELD_NAME"
+	// "a, INPUT_NAME, atomNum, FIELD_NAME"
 	el := func(tag string, parts ...string) string {
 		return fmt.Sprintf("<%s name=%q>", tag, block.Scope(parts...))
 	}
 	expected := `` +
-		/**/ `<block id="bl1" type="mutable_block">` +
+		/**/ `<block type="mutable_block">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
 		/*   */ `<atom type="block_mutation"></atom>` +
@@ -149,9 +149,9 @@ func TestMutations(t *testing.T) {
 		/*   */ `<atom type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
-		/* */ el("field", "a", "bl1", "MUTANT", "0", "ATOM_FIELD") + `Text</field>` +
-		/* */ el("value", "a", "bl1", "MUTANT", "1", "ATOM_INPUT") +
-		/*  */ `<block id="bl2" type="mutable_block">` +
+		/* */ el("field", "a", "MUTANT", "0", "ATOM_FIELD") + `Text</field>` +
+		/* */ el("value", "a", "MUTANT", "1", "ATOM_INPUT") +
+		/*  */ `<block type="mutable_block">` +
 		/*   */ `<mutation>` +
 		/*    */ `<pin name="MUTANT">` +
 		/*     */ `<atom type="block_mutation"></atom>` +
@@ -160,28 +160,27 @@ func TestMutations(t *testing.T) {
 		/*  */ `</block>` +
 		/* */ `</value>` +
 		/**/ `</block>` +
-		/**/ `<block id="bl3" type="block_extraless">` +
+		/**/ `<block type="block_extraless">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
 		/*   */ `<atom type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
 		/**/ `</block>` +
-		/**/ `<block id="bl4" type="mutable_block">` +
+		/**/ `<block type="mutable_block">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
 		/*   */ `<atom type="block_mutation"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
 		/**/ `</block>` +
-		/**/ `<block id="bl5" type="block_extraless">` +
+		/**/ `<block type="block_extraless">` +
 		/* */ `<mutation>` +
 		/* */ `</mutation>` +
 		/**/ `</block>`
 
-	ids := &toolbox.IdGenerator{}
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, ids, types).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types).
 		AddTerm(
 			&MutableBlock{
 				Mutant: &BlockMutation{
@@ -226,19 +225,19 @@ type StatementBlock struct {
 
 func TestStatement(t *testing.T) {
 	expected := `` +
-		/**/ `<block id="bl1" type="statement_block">` +
+		/**/ `<block type="statement_block">` +
 		/* */ `<statement name="DO">` +
-		/*   */ `<shadow id="bl2" type="stack_block">` +
+		/*   */ `<shadow type="stack_block">` +
 		/*    */ `<next>` +
-		/*     */ `<shadow id="bl3" type="stack_block">` +
+		/*     */ `<shadow type="stack_block">` +
 		/*     */ `</shadow>` +
 		/*   */ `</next>` +
 		/*  */ `</shadow>` +
 		/* */ `</statement>` +
 		/**/ `</block>`
-	ids := &toolbox.IdGenerator{}
+
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.SubShadow, ids, types).
+	blocks := toolbox.NewBlocks(toolbox.SubShadow, types).
 		AddStatement(
 			&StatementBlock{
 				Do: &StackBlock{NextStatement: &StackBlock{}},
@@ -261,7 +260,7 @@ func TestEnum(t *testing.T) {
 		/* */ `<field name="ENUM">AlternativeChoice</field>` +
 		/**/ `</block>`
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, nil, types).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types).
 		AddStatement(&EnumStatement{AlternativeChoice}).
 		Blocks()
 	if collected, e := types.Collected(); e != nil {

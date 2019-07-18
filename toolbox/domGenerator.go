@@ -18,7 +18,6 @@ type Events interface {
 }
 
 type domGenerator struct {
-	ids    Ids
 	events Events
 }
 
@@ -27,12 +26,7 @@ type domGenerator struct {
 func (gen *domGenerator) genBlock(blockVal r.Value, shadowing Shadowing) *dom.Block {
 	blockType := blockVal.Type()
 	blockName := pascal.ToUnderscore(blockType.Name())
-	var id string
-	if gen.ids != nil {
-		id = gen.ids.NewId()
-	}
-
-	block := &dom.Block{Id: id, Type: blockName, Shadow: shadowing == IsShadow}
+	block := &dom.Block{Type: blockName, Shadow: shadowing == IsShadow}
 	g := blockGen{block: block, domGenerator: gen, shadowing: shadowing}
 	g.fieldsOf(blockVal, blockType)
 	return g.block

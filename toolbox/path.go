@@ -8,7 +8,7 @@ import (
 )
 
 func (g *blockGen) newMutationGenerator(itemName string) *blockGen {
-	scope := block.Scope("a", g.block.Id, itemName)
+	scope := block.Scope("a", itemName)
 	return &blockGen{g.block, g.domGenerator, g.shadowing, scope, g.atomNum}
 }
 

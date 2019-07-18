@@ -17,8 +17,8 @@ type Builder struct {
 }
 
 // build a toolbox detecting and (optionally) registering new blocks to the Maker.
-func NewBlocks(s Shadowing, ids Ids, events Events) *Builder {
-	return &Builder{shadowing: s, gen: domGenerator{ids, events}}
+func NewBlocks(s Shadowing, events Events) *Builder {
+	return &Builder{shadowing: s, gen: domGenerator{events}}
 }
 
 func (l *Builder) Blocks() dom.BlockList {

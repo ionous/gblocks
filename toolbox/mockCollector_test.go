@@ -9,7 +9,6 @@ import (
 // provide a sink ( similar to gblocks.Maker ) to collect blocks visited during toolbox creation
 // note, this needs tin and toolbox does not -- so could go in gblocks maybe
 type testCollector struct {
-	Ids       toolbox.IdGenerator
 	Types     []*tin.TypeInfo
 	LastError error
 }
@@ -17,7 +16,7 @@ type testCollector struct {
 // return a toolbox builder which registers blocks to this maker
 // same as: Maker.NewBlocks(toolbox.SubShadow)
 func (m *testCollector) NewBlocks(shadowing toolbox.Shadowing) *toolbox.Builder {
-	return toolbox.NewBlocks(shadowing, &m.Ids, m)
+	return toolbox.NewBlocks(shadowing, m)
 }
 
 func (m *testCollector) OnBlock(t *tin.TypeInfo) {
