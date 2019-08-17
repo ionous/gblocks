@@ -1,70 +1,72 @@
 package mutant_test
 
-import (
-	"testing"
+//
 
-	"github.com/ionous/gblocks/block"
-	"github.com/ionous/gblocks/dom"
-	"github.com/ionous/gblocks/mock"
-	"github.com/ionous/gblocks/mutant"
-	"github.com/stretchr/testify/require"
-)
+//
+//	"github.com/ionous/gblocks/block"
+//	"github.com/ionous/gblocks/dom"
+//	"github.com/ionous/gblocks/mock"
+//	"github.com/ionous/gblocks/mutant"
+//	"github.com/kr/pretty"
+//	"github.com/stretchr/testify/require"
 
-func TestSerialization(t *testing.T) {
-	data := dom.BlockMutation{dom.Mutations{
-		&dom.Mutation{
-			Input: "I1",
-			Atoms: dom.Atoms{
-				[]string{"a1"},
-			},
-		},
-		&dom.Mutation{
-			Input: "I3",
-			Atoms: dom.Atoms{
-				[]string{"a2", "a3"},
-			},
-		},
-	}}
-	expectedInputs := mutant.AtomizedInputs{
-		"I1": {"a1"},
-		"I3": {"a2", "a3"},
-	}
-	expandedInputs := []string{
-		"I1:input_dummy",
-		/**/ block.Scope("a", "mock", "I1", "0", "TERM:input_value"),
-		"I2:input_dummy",
-		"I3:input_dummy",
-		/**/ block.Scope("a", "mock", "I3", "0", "NUM:field_number"),
-		/**/ block.Scope("a", "mock", "I3", "1", "TEXT:field_input"),
-		/**/ block.Scope("a", "mock", "I3", "1", "STATE:input_statement"),
-	}
-	expectedOutput := `` +
-		`<mutation>` +
-		/**/ `<pin name="I1">` +
-		/* */ `<atom type="a1"></atom>` +
-		/**/ `</pin>` +
-		/**/ `<pin name="I3">` +
-		/* */ `<atom type="a2"></atom>` +
-		/* */ `<atom type="a3"></atom>` +
-		/**/ `</pin>` +
-		`</mutation>`
+//
+// func TestSerialization(t *testing.T) {
+// 	data := dom.BlockMutation{dom.Mutations{
+// 		&dom.Mutation{
+// 			Input: "M1",
+// 			Atoms: dom.Atoms{
+// 				[]string{"A"},
+// 			},
+// 		},
+// 		&dom.Mutation{¥
+// 			Input: "M3",
+// 			Atoms: dom.Atoms{
+// 				[]string{"B", "C"},
+// 			},
+// 		},
+// 	}}
+// 	expandedInputs := []string{
+// 		"M1:input_dummy",
+// 		/**/ block.Scope("a", "M1", "0", "TERM:input_value"),
+// 		"M2:input_dummy",
+// 		"M3:input_dummy",
+// 		/**/ block.Scope("a", "M3", "0", "NUM:field_number"),
+// 		/**/ block.Scope("a", "M3", "1", "TEXT:field_input"),
+// 		/**/ block.Scope("a", "M3", "1", "STATE:input_statement"),
+// 	}
+// 	expectedOutput := `` +
+// 		`<mutation>` +
+// 		/**/ `<pin name="M1">` +
+// 		/* */ `<atom type="A"></atom>` +
+// 		/**/ `</pin>` +
+// 		/**/ `<pin name="M3">` +
+// 		/* */ `<atom type="B"></atom>` +
+// 		  `<atom type="C"></atom>` +
+// 		/**/ `</pin>` +
+// 		`</mutation>`
 
-	b := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
-	blockMutations := mock.NewMutations(common.inputs, common.quarks)
+// 	b := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
+// 	arch := mock.NewMutations(common.inputs, common.quarks)
 
-	db := &mock.MockDatabase{common.atomProducts}
-	inputs, e := blockMutations.LoadMutation(b, db, data)
-	require.NoError(t, e)
-	require.Equal(t, expectedInputs, inputs)
-	expanded := listInputs(b)
-	require.Equal(t, expandedInputs, expanded)
+// 	db := &mock.MockDatabase{common.atomProducts}
+// 	blocks := mutant.NewMutatedBlocks()
 
-	// save the in-memory data, makes sure it matches the original input
-	serial := blockMutations.SaveMutation(inputs)
-	require.Equal(t, data, serial)
-	if str, e := serial.MarshalMutation(); e != nil {
-		t.Fatal(e)
-	} else {
-		require.Equal(t, expectedOutput, str)
-	}
-}
+// 	mb := blocks.CreateMutatedBlock(b, arch, db)
+// 	e := mb.LoadMutation(&data)
+// 	require.NoError(t, e)
+// 	expanded := listInputs(b)
+// 	require.Equal(t, expandedInputs, expanded)
+
+// 	// save the in-memory data, makes sure it matches the original input
+// 	serial := mb.SaveMutation()
+// 	if v := pretty.Diff(data, serial); len(v) != 0 {
+// 		t.Log(pretty.Sprint(serial))
+// 		t.Fatal(v)
+// 	}
+// 	if str, e := serial.MarshalMutation(); e != nil {
+// 		t.Fatal(e)
+// 	} else {
+// 		require.Equal(t, expectedOutput, str)
+// 	}
+// }

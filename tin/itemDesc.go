@@ -15,23 +15,6 @@ type context struct {
 	mutations Mutations
 }
 
-func (c *context) addMutationInput(inputName, mutationName string, out *mutant.BlockMutations) (ret *MutationInfo, err error) {
-	if out == nil {
-		// typically a mutation in a mutation
-		err = errutil.Fmt("invalid context for mutation %q", mutationName)
-	} else if m, ok := c.mutations.GetMutationInfo(mutationName); !ok {
-		err = errutil.Fmt("couldnt find mutation named  %q", mutationName)
-	} else {
-		if out.Mutations == nil {
-			out.Mutations = make(map[string]mutant.Mutation)
-		}
-		out.Inputs = append(out.Inputs, inputName)
-		out.Mutations[inputName] = m
-		ret = m
-	}
-	return
-}
-
 // create arg descriptions for the passed pointer type
 func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.BlockMutations) (ret block.Args, err error) {
 	var args block.Args
@@ -46,7 +29,7 @@ func (c *context) buildItems(scope string, ptrType r.Type, out *mutant.BlockMuta
 			if field.Name != block.NextStatement {
 				name := pascal.ToCaps(field.Name)
 				if len(scope) > 0 {
-					// ex. a, muiBlockId, FIELD
+					// ex. "a, FIELD"
 					name = block.Scope(scope, name)
 				}
 				if desc, e := c.itemDesc(name, &field, out); e != nil {
@@ -147,17 +130,21 @@ func (c *context) itemDesc(name string, field *r.StructField, outMutations *muta
 			limits = c.GetStatementsByType(field.Type)
 
 		case block.DummyInput:
-			targetType := pascal.ToUnderscore(field.Type.Elem().Name())
-			if _, e := c.addMutationInput(name, targetType, outMutations); e != nil {
-				err = e
+			mutationName := pascal.ToUnderscore(field.Type.Elem().Name())
+			if outMutations == nil {
+				// typically a mutation in a mutation
+				err = errutil.Fmt("invalid context for mutation %q", mutationName)
+			} else if min, ok := c.mutations.GetMutationInfo(mutationName); !ok {
+				err = errutil.Fmt("couldnt find mutation named  %q", mutationName)
 			} else {
+				outMutations.AddMutation(name, min)
 				// note: we dont expand the fixed mutation b/c we'd need to know block id.
 				// instead we use atoms, injecting when we generate a toolbox; load from xml.
 			}
 		}
 		if err == nil {
 			block.Merge(outDesc, tags, option.Name, name)
-			block.Merge(outDesc, nil, option.Type, inputType) // pass nil to ignore orignal value
+			block.Merge(outDesc, nil, option.Type, inputType) // pass nil to ignore original value
 			if !limits.IsUnlimited() {
 				block.Merge(outDesc, tags, option.Check, limits.Check())
 			}

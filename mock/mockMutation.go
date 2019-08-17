@@ -9,14 +9,14 @@ import (
 
 // a single input's mutation
 type MockMutation struct {
-	name   string // name of the mutation
+	name   string // name of the mutation; mocked as its corresponding input name
 	limits block.Limits
 	quarks []string
 }
 
 // create unique mutations for every input
 // based on one common set of quarks.
-func NewMutations(inputs []string, quarks []string) mutant.BlockMutations {
+func NewMutations(inputs []string, quarks []string) *mutant.BlockMutations {
 	mutations := make(map[string]mutant.Mutation)
 	var names []string
 	for _, input := range inputs {
@@ -30,7 +30,7 @@ func NewMutations(inputs []string, quarks []string) mutant.BlockMutations {
 		mutations[inputName] = mutation
 		names = append(names, inputName)
 	}
-	return mutant.BlockMutations{names, mutations}
+	return &mutant.BlockMutations{names, mutations}
 }
 
 func (m *MockMutation) String() string {

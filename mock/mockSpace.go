@@ -44,7 +44,7 @@ func (ws *MockSpace) NewBlockWithId(blockId, blockType string) (ret block.Shape,
 func (ws *MockSpace) NewBlock(blockType string) (ret block.Shape, err error) {
 	idc := ws.ids[blockType]
 	zeroIndexed := strconv.Itoa(idc)
-	blockId := blockType + ":" + zeroIndexed
+	blockId := blockType + "#" + zeroIndexed
 	if b, e := ws.NewBlockWithId(blockId, blockType); e != nil {
 		err = e
 	} else {

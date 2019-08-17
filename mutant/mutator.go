@@ -9,14 +9,14 @@ import (
 // instance data for mutations
 // implements block.Mutator
 type Mutator struct {
-	mins     *BlockMutations // descriptions of atoms
+	arch     *BlockMutations // descriptions of atoms
 	atomizer Atomizer        // needed to expand quarks into atoms
 	// everyone has the same atomizer, so consider putting in the mutated blocks
 	blockPool *MutatedBlocks // per-block mutation data (pooled across mutators)
 }
 
-func NewMutator(mins *BlockMutations, db Atomizer, mbs *MutatedBlocks) *Mutator {
-	return &Mutator{mins, db, mbs}
+func NewMutator(arch *BlockMutations, db Atomizer, mbs *MutatedBlocks) *Mutator {
+	return &Mutator{arch, db, mbs}
 }
 
 func (a *Mutator) Delete(id string) {
@@ -25,39 +25,34 @@ func (a *Mutator) Delete(id string) {
 
 func (a *Mutator) MutationToDom(main block.Shape) (ret string, err error) {
 	if src, ok := a.blockPool.GetMutatedBlock(main); ok {
-		dom := a.mins.SaveMutation(src.atoms)
+		dom := src.SaveMutation()
 		ret, err = dom.MarshalMutation()
-		//println("mutation to dom", ret)
 	}
 	return
 }
 
 func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
-	//println("dom to mutation", str)
 	if els, e := dom.UnmarshalMutation(str); e != nil {
 		err = e
-	} else if atoms, e := a.mins.LoadMutation(main, a.atomizer, els); e != nil {
-		err = e
 	} else {
-		a.blockPool.CreateMutatedBlock(main, atoms)
+		target := a.blockPool.CreateMutatedBlock(main, a.arch, a.atomizer)
+		err = target.LoadMutation(&els)
 	}
 	return
 }
 
-// create the mui shapes
+// create the mui container from workspace data.
 func (a *Mutator) Decompose(main block.Shape, popup block.Workspace) (block.Shape, error) {
-	mb := a.blockPool.EnsureMutatedBlock(main)
-	return a.mins.CreateMui(popup, mb)
+	src := a.blockPool.CreateMutatedBlock(main, a.arch, a.atomizer)
+	return src.CreateMui(popup)
 }
 
-// fill the workspace shape from the mui layout
+// create workspace inputs from the atoms the user selected and arranged in the mui popup
 func (a *Mutator) Compose(main, mui block.Shape) (err error) {
 	if target, ok := a.blockPool.GetMutatedBlock(main); !ok {
 		err = errutil.New("couldnt find block", main)
-	} else if atoms, e := a.mins.DistillMui(target, mui, a.atomizer); e != nil {
+	} else if e := target.CreateFromMui(mui); e != nil {
 		err = e
-	} else {
-		target.atoms = atoms
 	}
 	return
 }
@@ -71,7 +66,7 @@ func (a *Mutator) SaveConnections(main, mui block.Shape) (err error) {
 }
 
 func (a *Mutator) PostMixin(b block.Shape) (err error) {
-	for _, name := range a.mins.Inputs {
+	for _, name := range a.arch.Inputs {
 		if in, index := b.InputByName(name); index < 0 {
 			err = errutil.New("couldnt find mutation during mixin", b)
 		} else {
@@ -82,5 +77,5 @@ func (a *Mutator) PostMixin(b block.Shape) (err error) {
 }
 
 func (a *Mutator) Quarks() (ret []string) {
-	return PaletteQuarks(a.mins)
+	return PaletteQuarks(a.arch)
 }

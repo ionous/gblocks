@@ -1,16 +1,22 @@
 package mutant
 
 import (
-	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/block"
-	"github.com/ionous/gblocks/dom"
 	"github.com/ionous/gblocks/option"
 )
 
 // descriptions of the mutable inputs for a given type of block.
 type BlockMutations struct {
 	Inputs    []string            // ordered input names (b/c golang maps are unordered)
-	Mutations map[string]Mutation // input name to mutation data
+	Mutations map[string]Mutation // input name to mutation info interface
+}
+
+func (m *BlockMutations) AddMutation(inputName string, arch Mutation) {
+	if m.Mutations == nil {
+		m.Mutations = make(map[string]Mutation)
+	}
+	m.Inputs = append(m.Inputs, inputName)
+	m.Mutations[inputName] = arch
 }
 
 // does this block type have any mutations?
@@ -35,8 +41,8 @@ func (m *BlockMutations) Quarks(paletteOnly bool) (ret Quark, okay bool) {
 func (m *BlockMutations) DescribeContainer(containerName string) (ret block.Dict) {
 	var args block.Args
 	for _, in := range m.Inputs {
-		min := m.Mutations[in] // Mutation
-		l := min.Limits()
+		arch := m.Mutations[in] // Mutation
+		l := arch.Limits()
 		arg := block.Dict{
 			option.Name: in,
 			option.Type: block.StatementInput,
@@ -66,71 +72,6 @@ func (m *BlockMutations) Preregister(blockType string, p block.Project) (err err
 		err = e
 	} else if e := RegisterQuarks(p, m); e != nil {
 		err = e
-	}
-	return
-}
-
-// aka "decompose" -- Populate the mutator popup with this block's components.
-func (m *BlockMutations) CreateMui(mui block.Workspace, src *mutatedBlock) (ret block.Shape, err error) {
-	containerName := src.ContainerName()
-	if container, e := mui.NewBlock(containerName); e != nil {
-		err = e
-	} else {
-		l := muiBuilder{m, container, src}
-		if e := l.fillContainer(); e != nil {
-			container.Dispose()
-			err = e
-		} else {
-			ret = container
-		}
-	}
-	return
-}
-
-// aka. compose -- turn the mui into new workspace inputs
-// adds new inputs to target, returns the atoms for those inputs
-func (m *BlockMutations) DistillMui(target *mutatedBlock, muiContainer block.Shape, db Atomizer) (ret AtomizedInputs, err error) {
-	// remove all the dynamic inputs from the blocks; we're about to recreate/recompose them.
-	// note: the connections for those inputs have already been saved in cs.
-	target.RemoveAtoms()
-	mp := muiParser{m, target, db}
-	if atoms, e := mp.expandInputs(muiContainer); e != nil {
-		err = errutil.New("DistillMui()", e)
-	} else {
-		target.RestoreConnections() // no return value
-		ret = atoms
-	}
-	return
-}
-
-// aka. domToMutation
-func (m *BlockMutations) LoadMutation(b block.Shape, items Atomizer, mutationEls dom.BlockMutation) (ret AtomizedInputs, err error) {
-	dp := domParser{m, items, b, MakeAtomizedInputs()}
-	if e := dp.parseDom(&mutationEls); e != nil {
-		err = errutil.New("LoadMutation()", e)
-	} else {
-		ret = dp.inputs
-	}
-	return
-}
-
-// serialize the mutation to xml friendly data
-// we use a structured intermediary to simplify testing in go.
-func (m *BlockMutations) SaveMutation(inputs AtomizedInputs) (ret dom.BlockMutation) {
-	for _, inputName := range m.Inputs {
-		if atoms, ok := inputs.GetAtomsForInput(inputName); ok {
-			// if there are atoms, create a node for the data.
-			if numAtoms := len(atoms); numAtoms > 0 {
-				ret.Append(&dom.Mutation{inputName, dom.Atoms{atoms}})
-			} else {
-				// no explict atoms? there might be an implicit first block
-				in := m.Mutations[inputName]
-				if first, ok := in.FirstBlock(); ok {
-					atoms := []string{first.Name()}
-					ret.Append(&dom.Mutation{inputName, dom.Atoms{atoms}})
-				}
-			}
-		}
 	}
 	return
 }

@@ -24,14 +24,18 @@ func (cb *toolboxHelper) OnError(err error) {
 }
 
 // return a toolbox builder which registers blocks to this maker
-func (tc *TypeCollector) NewBlocks(ids toolbox.Ids) *toolbox.Builder {
-	return tc.NewShadows(ids, toolbox.SubShadow)
+func (tc *TypeCollector) NewBlocks() *toolbox.Builder {
+	// FIX: nested shadowing doesnt provide a nice user experience
+	// need some sort of listener convert a whole placed shadow chain with an unshadowed equivalent
+	// whenever a user ties to edit or place something into one of the nested element
+	shadowing := toolbox.NoShadow //toolbox.SubShadow
+	return tc.NewShadows(shadowing)
 }
 
 // return a toolbox builder which registers blocks to this maker
 // same as: TypeCollector.NewBlocks(toolbox.SubShadow)
-func (tc *TypeCollector) NewShadows(ids toolbox.Ids, s toolbox.Shadowing) *toolbox.Builder {
-	return toolbox.NewBlocks(s, ids, &toolboxHelper{tc})
+func (tc *TypeCollector) NewShadows(s toolbox.Shadowing) *toolbox.Builder {
+	return toolbox.NewBlocks(s, &toolboxHelper{tc})
 }
 
 // you're either a term, which can contain input statements;

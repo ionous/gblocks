@@ -1,87 +1,43 @@
 package mutant
 
-import (
-	"strings"
+import "github.com/ionous/gblocks/block"
 
-	"github.com/ionous/gblocks/block"
-)
+// FIX: storing fields
+type Store struct {
+	connections []block.Connection
+}
 
-// map pending mui block inputs to workspace connections
-// so rearranging mui blocks can rearrange the workspace.
-type SavedConnections map[string]block.Connection
-
-func (cs SavedConnections) saveInput(in block.Input) {
-	if c := in.Connection(); c != nil && c.IsConnected() {
-		name := in.InputName()
-		cs[name] = c.TargetConnection()
+func (s *Store) SaveConnection(in block.Input) {
+	if c := in.Connection(); c != nil {
+		var tgt block.Connection
+		if c.IsConnected() {
+			tgt = c.TargetConnection()
+		}
+		s.connections = append(s.connections, tgt)
 	}
 }
 
-// generates a mapping of atom inputs to workspace targets.
-func SaveConnections(main, mui block.Inputs) SavedConnections {
-	out := make(SavedConnections)
-	// for each input in the mutation ui
-	for i, cnt := 0, mui.NumInputs(); i < cnt; i++ {
-		// visit every mui block connected to this mui container input
-		muiInput := mui.Input(i)
-		block.VisitStack(muiInput, func(muiBlock block.Shape) bool {
-			// name helper:
-			muiBlockId := muiBlock.BlockId()
-			// inputs names created from existing data ( via atomParser.parseAtom ):
-			//    input= "a, wsBlockId, INPUT, atomNum, FIELD"
-			//
-			// mui block ids created from existing data ( via muiBuilder.createBlock ):
-			//    muiBlockId= "wsBlockId, INPUT, atomNum"
-			//
-			// if the user placed the mui block themselves, the id will be random:
-			//    muiBlockId= "auto-generated"
-			//
-			// re/creating workspace inputs from the mui ( via muiParser.createAtomsAt ) yields:
-			// 	  input= "a, <muiBlockId>, FIELD"
-			//
-			// when we save/restore an input here, we use: "a, <muiBlockId>, FIELD":
-			//    save slot= "a, wsBlockId, INPUT, atomNum, FIELD" or
-			//               "a, auto-generated, FIELD"
-			//
-			// note: the blockId is used to differentiate blocks when multiple popups are open
-			//
-			atomPrefix := block.Scope("a", muiBlockId)
-			for i, cnt := 0, main.NumInputs(); i < cnt; i++ {
-				in := main.Input(i)
-				name := in.InputName()
-				if strings.HasPrefix(name, atomPrefix) {
-					out.saveInput(in)
-				}
-			}
-			return true
-		})
-
+// FIX: this isnt going to be right for fields, etc.
+func (s *Store) Restore(b block.Shape, start, numInputs int) {
+	for i := 0; i < numInputs && i < len(s.connections); i++ {
+		wsinput := b.Input(start + i)
+		c := s.connections[i]
+		reconnect(b, wsinput, c)
 	}
-	return out
-}
-
-func (cs SavedConnections) RestoreConnections(block block.Shape) {
-	// we expect names like: "a$ muiBlockId $ FIELD"
-	for atomInput, oldDst := range cs {
-		Reconnect(oldDst, block, atomInput)
-	}
-	return
 }
 
 // ported from blockly
-func Reconnect(connectionChild block.Connection, block block.Shape, inputName string) (okay bool) {
+func reconnect(b block.Shape, in block.Input, connectionChild block.Connection) (okay bool) {
 	if isConnectionValid(connectionChild) {
-		if in, dex := block.InputByName(inputName); dex >= 0 {
-			if connectionParent := in.Connection(); connectionParent != nil {
-				currentParent := connectionChild.TargetBlock()
-				if currentParent == nil || currentParent == block {
-					if connectionParent.TargetConnection() != connectionChild {
-						if connectionParent.IsConnected() {
-							connectionParent.Disconnect()
-						}
-						connectionParent.Connect(connectionChild)
-						okay = true
+		if connectionParent := in.Connection(); connectionParent != nil {
+			currentParent := connectionChild.TargetBlock()
+			if currentParent == nil || currentParent == b {
+				if connectionParent.TargetConnection() != connectionChild {
+					if connectionParent.IsConnected() {
+						connectionParent.Disconnect()
 					}
+					connectionParent.Connect(connectionChild)
+					okay = true
 				}
 			}
 		}
