@@ -10,10 +10,23 @@ import (
 type TypeCollector struct {
 	types     []*tin.TypeInfo
 	lastError error
+	names     UniqueNames
+}
+
+type UniqueNames interface{ GenerateUniqueName() string }
+
+func NewTypeCollector(names UniqueNames) *TypeCollector {
+	return &TypeCollector{names: names}
 }
 
 // golang pimpl
-type toolboxHelper struct{ collector *TypeCollector }
+type toolboxHelper struct {
+	collector *TypeCollector
+}
+
+func (cb *toolboxHelper) GenerateUniqueName() string {
+	return cb.collector.names.GenerateUniqueName()
+}
 
 func (cb *toolboxHelper) OnBlock(t *tin.TypeInfo) {
 	cb.collector.addOnce(t)
@@ -35,7 +48,7 @@ func (tc *TypeCollector) NewBlocks() *toolbox.Builder {
 // return a toolbox builder which registers blocks to this maker
 // same as: TypeCollector.NewBlocks(toolbox.SubShadow)
 func (tc *TypeCollector) NewShadows(s toolbox.Shadowing) *toolbox.Builder {
-	return toolbox.NewBlocks(s, &toolboxHelper{tc})
+	return toolbox.NewBlocks(s, &toolboxHelper{tc}, tc.names)
 }
 
 // you're either a term, which can contain input statements;

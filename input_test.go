@@ -24,7 +24,7 @@ func TestInputs(t *testing.T) {
 	} else if mutation, ok := ms.GetMutationInfo("block_mutation"); !ok {
 		t.Fatal("cant find mutation")
 	} else {
-		if types, e := new(TypeCollector).
+		if types, e := NewTypeCollector(&test.TestNames{}).
 			AddTerm(row).
 			AddStatement(in).
 			GetTypes(); e != nil {

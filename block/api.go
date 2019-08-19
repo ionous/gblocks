@@ -4,6 +4,7 @@ type Project interface {
 	IsBlockRegistered(blockType string) bool
 	RegisterBlock(blockType string, desc Dict) error
 	RegisterMutator(name string, mutator Mutator) error
+	GenerateUniqueName() string
 }
 
 type Workspace interface {

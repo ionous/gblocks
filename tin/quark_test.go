@@ -12,7 +12,8 @@ import (
 // verify the mui block names and descriptions generated for test.BlockMutation
 func TestQuarks(t *testing.T) {
 	var ms Mutations
-	mut, e := ms.addMutation((*test.BlockMutation)(nil),
+	mut, e := ms.addMutation(
+		(*test.BlockMutation)(nil),
 		(*test.AtomTest)(nil),
 		(*test.AtomAltTest)(nil))
 	require.NoError(t, e)
@@ -27,14 +28,7 @@ func TestQuarks(t *testing.T) {
 	for q, ok := mut.Quarks(false); ok; q, ok = q.NextQuark() {
 		pal = append(pal, mutant.DescribeQuark(q))
 	}
-
 	expected := []interface{}{
-		block.Dict{
-			"type":              block.Scope("mui", "block_mutation"),
-			"message0":          "block",
-			"previousStatement": block.Scope("block_mutation"),
-			"nextStatement":     []string{"atom_test", "atom_alt_test"},
-		},
 		block.Dict{
 			"type":              block.Scope("mui", "block_mutation", "atom_test"),
 			"message0":          "atom test",
@@ -48,6 +42,7 @@ func TestQuarks(t *testing.T) {
 			"nextStatement":     []string{"atom_test", "atom_alt_test"},
 		},
 	}
+	require.Len(t, pal, len(expected))
 	require.Equal(t, expected, pal)
 
 	mins := mutant.BlockMutations{
@@ -62,7 +57,7 @@ func TestQuarks(t *testing.T) {
 			{
 				"name":  "IN",
 				"type":  "input_statement",
-				"check": block.Scope("block_mutation"),
+				"check": []string{"atom_test", "atom_alt_test"},
 			},
 		},
 	}

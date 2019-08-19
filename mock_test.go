@@ -19,7 +19,7 @@ func TestMockBlock(t *testing.T) {
 	if e := ms.AddMutation(mutation); e != nil {
 		t.Fatal(e)
 	}
-	if types, e := new(TypeCollector).
+	if types, e := NewTypeCollector(&test.TestNames{}).
 		AddTerm(row).
 		AddStatement(in).
 		GetTypes(); e != nil {

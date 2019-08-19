@@ -2,6 +2,7 @@ package toolbox_test
 
 import (
 	"github.com/ionous/errutil"
+	"github.com/ionous/gblocks/test"
 	"github.com/ionous/gblocks/tin"
 	"github.com/ionous/gblocks/toolbox"
 )
@@ -16,7 +17,7 @@ type testCollector struct {
 // return a toolbox builder which registers blocks to this maker
 // same as: Maker.NewBlocks(toolbox.SubShadow)
 func (m *testCollector) NewBlocks(shadowing toolbox.Shadowing) *toolbox.Builder {
-	return toolbox.NewBlocks(shadowing, m, &atomTestNames{})
+	return toolbox.NewBlocks(shadowing, m, &test.TestNames{})
 }
 
 func (m *testCollector) OnBlock(t *tin.TypeInfo) {

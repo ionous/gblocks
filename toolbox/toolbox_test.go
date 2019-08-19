@@ -2,23 +2,12 @@ package toolbox_test
 
 import (
 	"encoding/xml"
-	"strconv"
 	"testing"
 
 	. "github.com/ionous/gblocks/test"
 	"github.com/ionous/gblocks/toolbox"
 	"github.com/stretchr/testify/require"
 )
-
-type atomTestNames struct {
-	a int
-}
-
-func (a *atomTestNames) NewAtom() string {
-	x := strconv.Itoa(a.a)
-	a.a++
-	return "atom" + x
-}
 
 func TestStack(t *testing.T) {
 	// text generated from blockly developer tools
@@ -36,7 +25,7 @@ func TestStack(t *testing.T) {
 		`</block>`
 
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &TestNames{}).
 		AddStatement(
 			&StackBlock{
 				NextStatement: &StackBlock{
@@ -71,7 +60,7 @@ func TestRow(t *testing.T) {
 		/* */ `</block>`
 
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &TestNames{}).
 		AddTerm(
 			&RowBlock{
 				Input: &RowBlock{
@@ -103,7 +92,7 @@ func TestFieldBlock(t *testing.T) {
 		/**/ `</block>`
 
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &TestNames{}).
 		AddTerm(&FieldBlock{0}).
 		AddTerm(&FieldBlock{10}).
 		Blocks()
@@ -148,17 +137,17 @@ func TestMutations(t *testing.T) {
 		/**/ `<block type="mutable_block">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
-		/*   */ `<atom name="atom0" type="atom_test"></atom>` +
-		/*   */ `<atom name="atom1" type="atom_alt_test"></atom>` +
-		/*   */ `<atom name="atom2" type="atom_test"></atom>` +
+		/*   */ `<atom name="name0" type="atom_test"></atom>` +
+		/*   */ `<atom name="name1" type="atom_alt_test"></atom>` +
+		/*   */ `<atom name="name2" type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
-		/* */ `<field name="a atom1 ATOM_FIELD">Text</field>` + // from AtomAltTest
-		/* */ `<value name="a atom2 ATOM_INPUT">` + // from AtomTest
+		/* */ `<field name="a name1 ATOM_FIELD">Text</field>` + // from AtomAltTest
+		/* */ `<value name="a name2 ATOM_INPUT">` + // from AtomTest
 		/*  */ `<block type="mutable_block">` +
 		/*   */ `<mutation>` +
 		/*    */ `<pin name="MUTANT">` +
-		/*     */ `<atom name="atom3" type="atom_test"></atom>` +
+		/*     */ `<atom name="name3" type="atom_test"></atom>` +
 		/*    */ `</pin>` +
 		/*   */ `</mutation>` +
 		/*  */ `</block>` +
@@ -168,7 +157,7 @@ func TestMutations(t *testing.T) {
 		/**/ `<block type="block_extraless">` +
 		/* */ `<mutation>` +
 		/*  */ `<pin name="MUTANT">` +
-		/*   */ `<atom name="atom4" type="atom_test"></atom>` +
+		/*   */ `<atom name="name4" type="atom_test"></atom>` +
 		/*  */ `</pin>` +
 		/* */ `</mutation>` +
 		/**/ `</block>` +
@@ -184,7 +173,7 @@ func TestMutations(t *testing.T) {
 		/**/ `</block>`
 
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &TestNames{}).
 		AddTerm(
 			&MutableBlock{
 				Mutant: &BlockMutation{
@@ -245,7 +234,7 @@ func TestStatement(t *testing.T) {
 		/**/ `</block>`
 
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.SubShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.SubShadow, types, &TestNames{}).
 		AddStatement(
 			&StatementBlock{
 				Do: &StackBlock{NextStatement: &StackBlock{}},
@@ -268,7 +257,7 @@ func TestEnum(t *testing.T) {
 		/* */ `<field name="ENUM">AlternativeChoice</field>` +
 		/**/ `</block>`
 	types := &testCollector{}
-	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &atomTestNames{}).
+	blocks := toolbox.NewBlocks(toolbox.NoShadow, types, &TestNames{}).
 		AddStatement(&EnumStatement{AlternativeChoice}).
 		Blocks()
 	if collected, e := types.Collected(); e != nil {

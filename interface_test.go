@@ -17,7 +17,7 @@ func TestInterface(t *testing.T) {
 		(*test.AtomWithInterface)(nil),
 	); e != nil {
 		t.Fatal("add the test mutation", e)
-	} else if types, e := new(TypeCollector).
+	} else if types, e := NewTypeCollector(&test.TestNames{}).
 		AddTerm((*test.InterfacingTerm)(nil)).
 		AddTerm((*test.MutableBlock)(nil)).
 		GetTypes(); e != nil {

@@ -11,4 +11,5 @@ type Blockly struct {
 	blocks     *js.Object `js:"Blocks"`
 	xml        *js.Object `js:"Xml"`
 	extensions *js.Object `js:"Extensions"`
+	utils      *js.Object `js:"utils"`
 }

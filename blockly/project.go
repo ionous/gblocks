@@ -11,6 +11,7 @@ type Globals struct {
 	Blockly    *Blockly
 	Extensions *Extensions
 	Xml        *Xml
+	Utils      *Utils
 }
 
 func Project() *Globals {
@@ -33,8 +34,20 @@ func (p *Globals) init() (okay bool) {
 			if obj := p.Blockly.Get("Xml"); obj.Bool() {
 				p.Xml = &Xml{Object: obj}
 			}
+			if obj := p.Blockly.Get("utils"); obj.Bool() {
+				p.Utils = &Utils{Object: obj}
+			}
 			okay = true
 		}
+	}
+	return
+}
+
+func (p *Globals) GenerateUniqueName() (ret string) {
+	if uid := p.Utils.GenUid(); len(uid) > 0 {
+		ret = uid
+	} else {
+		panic("invalid id")
 	}
 	return
 }

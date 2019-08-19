@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"fmt"
+
 	"github.com/ionous/errutil"
 	"github.com/ionous/gblocks/block"
 )
@@ -8,6 +10,13 @@ import (
 type Registry struct {
 	Blocks   map[string]block.Dict
 	Mutators map[string]block.Mutator
+	Uniquer  int
+}
+
+func (reg *Registry) GenerateUniqueName() string {
+	n := reg.Uniquer
+	reg.Uniquer++
+	return fmt.Sprintf("unique-%05d", n)
 }
 
 func (reg *Registry) IsBlockRegistered(blockType string) bool {

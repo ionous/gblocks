@@ -17,7 +17,7 @@ func TestDescWithEnum(t *testing.T) {
 		test.AlternativeChoice: "alt",
 	})
 	require.NoError(t, e)
-	if types, e := new(TypeCollector).
+	if types, e := NewTypeCollector(&test.TestNames{}).
 		AddTopStatement((*test.EnumStatement)(nil)).
 		GetTypes(); e != nil {
 		t.Fatal(e)

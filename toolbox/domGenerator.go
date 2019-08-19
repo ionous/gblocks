@@ -17,13 +17,13 @@ type Events interface {
 	OnError(error)
 }
 
-type AtomNames interface {
-	NewAtom() string
+type UniqueNames interface {
+	GenerateUniqueName() string
 }
 
 type domGenerator struct {
 	events Events
-	names  AtomNames
+	names  UniqueNames
 }
 
 // v should be a kind of struct
@@ -213,14 +213,14 @@ func (g *blockGen) addBlock(model tin.Model, fieldVal r.Value, fieldType r.Type)
 }
 
 // generate dom.Atom(s) from the passed go values
-func newAtoms(names AtomNames, mval r.Value, mtype r.Type) []*dom.Atom {
+func newAtoms(names UniqueNames, mval r.Value, mtype r.Type) []*dom.Atom {
 	var out []*dom.Atom
 	if next, ok := mval, mval.IsValid(); ok {
 		for {
 			if next, ok = nextField(next); !ok {
 				break
 			} else {
-				atomName := names.NewAtom()
+				atomName := names.GenerateUniqueName()
 				atomType := pascal.ToUnderscore(next.Type().Name())
 				atom := &dom.Atom{Name: atomName, Type: atomType}
 				out = append(out, atom)

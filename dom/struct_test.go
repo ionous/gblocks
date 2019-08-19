@@ -32,8 +32,8 @@ var common = struct {
 		/* */ `<block type="mutable_block">` +
 		/*  */ `<mutation>` +
 		/*   */ `<pin name="MUTANT">` +
-		/*    */ `<atom name="atom1" type="atom1"></atom>` +
-		/*    */ `<atom name="atom2" type="atom2"></atom>` +
+		/*    */ `<atom name="name1" type="atom1"></atom>` +
+		/*    */ `<atom name="name2" type="atom2"></atom>` +
 		/*   */ `</pin>` +
 		/*  */ `</mutation>` +
 		/* */ `</block>` +
@@ -83,8 +83,8 @@ var common = struct {
 					&Mutation{
 						Input: "MUTANT",
 						Atoms: Atoms{
-							&Atom{"atom1", "atom1"},
-							&Atom{"atom2", "atom2"},
+							&Atom{"name1", "atom1"},
+							&Atom{"name2", "atom2"},
 						},
 					},
 				}},
@@ -99,7 +99,6 @@ func TestMarshal(t *testing.T) {
 		html = common.data.OuterHTML()
 	})
 	require.Equal(t, common.xml, html)
-
 }
 
 func TestUnmarshalIndent(t *testing.T) {
