@@ -9,10 +9,10 @@ type MutatedInput struct {
 }
 
 type AtomizedInput struct {
-	Id   string // mui block guid
+	Name string // mui block guid
 	Type string // type that was created
 }
 
 func (a *AtomizedInput) String() string {
-	return a.Id + ":" + a.Type
+	return a.Name + ":" + a.Type
 }

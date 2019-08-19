@@ -1,23 +1,22 @@
 package toolbox
 
 import (
-	"strconv"
-
 	"github.com/ionous/gblocks/block"
 	"github.com/ionous/gblocks/dom"
 )
 
-func (g *blockGen) newMutationGenerator(itemName string) *blockGen {
-	scope := block.Scope("a", itemName)
-	return &blockGen{g.block, g.domGenerator, g.shadowing, scope, g.atomNum}
+func (g *blockGen) newMutationGenerator(itemName string, atoms []*dom.Atom) *blockGen {
+	mgen := &mutatorGen{atoms: atoms, atomIndex: -1}
+	return &blockGen{g.block, g.domGenerator, g.shadowing, mgen}
 }
 
-// path for atom.
+func (g *blockGen) isMutating() bool {
+	return g.mutating != nil
+}
+
+// next atom in a list of atoms
 func (g *blockGen) newAtomGenerator() *blockGen {
-	// place the inputs of atoms inside the same block
-	// increase the shadowing depth for sub-blocks
-	// MOD-stravis: this was g.atomNum+1 -- but if we do that then the paths arent zero indexed
-	return &blockGen{g.block, g.domGenerator, g.shadowing.Children(), g.scope, g.atomNum}
+	return &blockGen{g.block, g.domGenerator, g.shadowing.Children(), g.mutating.nextAtom()}
 }
 
 func (g *blockGen) newStatement(itemName string, block *dom.Block) *dom.Statement {
@@ -35,17 +34,13 @@ func (g *blockGen) newField(itemName string, val string) *dom.Field {
 	return &dom.Field{pathName, val}
 }
 
-func (g *blockGen) mutating() bool {
-	return len(g.scope) > 0
-}
-
 func (g *blockGen) newInput(item string) (ret string) {
-	if !g.mutating() {
+	if !g.isMutating() {
 		ret = item
+	} else if a, ok := g.mutating.currentAtom(); !ok {
+		ret = item // still handling the mutation struct
 	} else {
-		zeroIndexed := strconv.Itoa(g.atomNum)
-		g.atomNum++
-		ret = block.Scope(g.scope, zeroIndexed, item)
+		ret = block.Scope("a", a.Name, item)
 	}
 	return
 }

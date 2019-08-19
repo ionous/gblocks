@@ -16,7 +16,7 @@ type testCollector struct {
 // return a toolbox builder which registers blocks to this maker
 // same as: Maker.NewBlocks(toolbox.SubShadow)
 func (m *testCollector) NewBlocks(shadowing toolbox.Shadowing) *toolbox.Builder {
-	return toolbox.NewBlocks(shadowing, m)
+	return toolbox.NewBlocks(shadowing, m, &atomTestNames{})
 }
 
 func (m *testCollector) OnBlock(t *tin.TypeInfo) {

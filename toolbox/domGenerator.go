@@ -17,8 +17,13 @@ type Events interface {
 	OnError(error)
 }
 
+type AtomNames interface {
+	NewAtom() string
+}
+
 type domGenerator struct {
 	events Events
+	names  AtomNames
 }
 
 // v should be a kind of struct
@@ -36,19 +41,37 @@ type blockGen struct {
 	block *dom.Block
 	*domGenerator
 	shadowing Shadowing
-	scope     string // mutation field name
-	atomNum   int
+	mutating  *mutatorGen
+}
+
+type mutatorGen struct {
+	atoms     []*dom.Atom // generated atoms ( for generating input names )
+	atomIndex int         // <0 handling the mutator struct, not the atoms
+}
+
+func (b *mutatorGen) currentAtom() (ret *dom.Atom, okay bool) {
+	if b.atomIndex >= 0 && b.atomIndex < len(b.atoms) {
+		ret, okay = b.atoms[b.atomIndex], true
+	}
+	return
+}
+
+func (b *mutatorGen) nextAtom() *mutatorGen {
+	return &mutatorGen{b.atoms, b.atomIndex + 1}
 }
 
 func (g *blockGen) onInputPin(model tin.Model, ptrType r.Type) {
-	if g.events != nil && !g.mutating() {
-		// skip trying to auto-register pins defined by an interface
-		// we need a struct to create a block
-		if ptrType.Kind() != r.Interface {
-			if t, e := model.TypeInfo(ptrType); e != nil {
-				g.events.OnError(e)
-			} else {
-				g.events.OnBlock(t)
+	if g.events != nil {
+		// skip registering atoms
+		if !g.isMutating() {
+			// skip trying to auto-register pins defined by an interface
+			// we need a struct to create a block
+			if ptrType.Kind() != r.Interface {
+				if t, e := model.TypeInfo(ptrType); e != nil {
+					g.events.OnError(e)
+				} else {
+					g.events.OnBlock(t)
+				}
 			}
 		}
 	}
@@ -70,18 +93,18 @@ func (g *blockGen) fieldsOf(containerValue r.Value, containerType r.Type) {
 					g.block.Items.Append(item)
 				}
 			case block.NextStatement:
-				// process the pin ( the type of the NextStatement )
+				// process the pin ( the type of the NextStatement field )
 				g.onInputPin(tin.MidBlock, f.Type)
 				// process the value attached to the pin
 				if fieldVal.IsValid() && !fieldVal.IsNil() {
 					// struct under the value
 					nv := unpackValue(fieldVal)
 					// visiting a chain of pointers in a mutation
-					if g.mutating() {
+					if g.isMutating() {
 						sub := g.newAtomGenerator()
 						sub.fieldsOf(nv, nv.Type())
 					} else {
-						// visiting a statement block
+						// visiting a statement block instance
 						next := g.genBlock(nv, g.shadowing.Children())
 						g.onInputPin(tin.MidBlock, r.PtrTo(nv.Type()))
 						g.block.Next = dom.BlockLink{next} // toolbox dom
@@ -139,7 +162,7 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 					ret = g.newStatement(itemName, b)
 				}
 			case block.DummyInput:
-				if g.mutating() {
+				if g.isMutating() {
 					if g.events != nil {
 						e := errutil.New("can't handle mutations inside mutations")
 						g.events.OnError(e)
@@ -150,16 +173,18 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 						// write the atom names to a dom.Mutation
 						nv = fieldVal.Elem()
 					}
-					// add the <mutation></mutation> el
+					// add the <mutation></mutation> container
 					if g.block.Mutation == nil {
 						g.block.Mutation = new(dom.BlockMutation)
 					}
-					if m, ok := newMutation(itemName, nv, f.Type.Elem()); ok {
+					// fill with atom names/types for each mutating input
+					atoms := newAtoms(g.names, nv, f.Type.Elem())
+					if len(atoms) > 0 {
+						m := &dom.Mutation{itemName, atoms}
 						g.block.Mutation.Append(m)
 					}
 					// expand the fields directly into the current dom node.
-					// a, blockId, IN, 0, FIELD
-					sub := g.newMutationGenerator(itemName)
+					sub := g.newMutationGenerator(itemName, atoms)
 					sub.fieldsOf(nv, f.Type.Elem())
 				}
 			}
@@ -167,6 +192,10 @@ func (g *blockGen) toolboxField(f r.StructField, fieldVal r.Value) (ret dom.Item
 	}
 	return
 }
+
+// for the toolbox we need unique, predictable input ids for the atoms
+// they dont need to be guids here; and they can reset for every block
+// or even every mutation if the inputs are scoped to the mutation
 
 func (g *blockGen) addBlock(model tin.Model, fieldVal r.Value, fieldType r.Type) (ret *dom.Block, okay bool) {
 	// notify caller we are seeing a new pin
@@ -183,29 +212,22 @@ func (g *blockGen) addBlock(model tin.Model, fieldVal r.Value, fieldType r.Type)
 	return
 }
 
-// adds a dom.Mutation ( input mutation record ) based on the atoms from the passed mutation struct
-// name of the input field
-func newMutation(name string, mval r.Value, mtype r.Type) (ret *dom.Mutation, okay bool) {
-	var types []string
-	if tin.HasContent(mtype) {
-		typeName := pascal.ToUnderscore(mtype.Name())
-		types = append(types, typeName)
-	}
+// generate dom.Atom(s) from the passed go values
+func newAtoms(names AtomNames, mval r.Value, mtype r.Type) []*dom.Atom {
+	var out []*dom.Atom
 	if next, ok := mval, mval.IsValid(); ok {
 		for {
 			if next, ok = nextField(next); !ok {
 				break
 			} else {
-				typeName := pascal.ToUnderscore(next.Type().Name())
-				types = append(types, typeName)
+				atomName := names.NewAtom()
+				atomType := pascal.ToUnderscore(next.Type().Name())
+				atom := &dom.Atom{Name: atomName, Type: atomType}
+				out = append(out, atom)
 			}
 		}
 	}
-	if len(types) > 0 {
-		ret = &dom.Mutation{name, dom.Atoms{types}}
-		okay = true
-	}
-	return
+	return out
 }
 
 // return the value of the passed struct NextStatement

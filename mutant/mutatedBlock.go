@@ -83,7 +83,7 @@ func (mb *MutatedBlock) CreateMui(mui block.Workspace) (ret block.Shape, err err
 				// walk existing atoms
 				for _, atom := range min.Atoms {
 					// create blocks named after the atom
-					if muiBlock, e := mui.NewBlockWithId(atom.Id, atom.Type); e != nil {
+					if muiBlock, e := mui.NewBlockWithId(atom.Name, atom.Type); e != nil {
 						err = errutil.Append(err, e)
 					} else {
 						// link the new block into the stack
@@ -133,7 +133,7 @@ func (mb *MutatedBlock) CreateFromMui(muiContainer block.Shape) (err error) {
 				} else {
 					atomType := q.Name()
 					atoms = append(atoms, &AtomizedInput{
-						Id:   atomId,
+						Name: atomId,
 						Type: atomType,
 					})
 				}
@@ -160,10 +160,10 @@ func (mb *MutatedBlock) LoadMutation(els *dom.BlockMutation) (err error) {
 				err = errutil.Append(err, e)
 			} else {
 				var atoms []*AtomizedInput
-				for _, atomType := range el.Atoms.Types {
+				for _, atom := range el.Atoms {
 					atoms = append(atoms, &AtomizedInput{
-						Id:   TempNewId(),
-						Type: atomType,
+						Name: atom.Name,
+						Type: atom.Type,
 					})
 				}
 				min.Atoms = atoms
@@ -181,18 +181,13 @@ func (mb *MutatedBlock) LoadMutation(els *dom.BlockMutation) (err error) {
 func (mb *MutatedBlock) SaveMutation() (ret dom.BlockMutation) {
 	for inputName, min := range mb.inputs {
 		// if there are atoms, create a node for the data.
-		var atomTypes []string
+		var out []*dom.Atom
 		for _, a := range min.Atoms {
-			atomTypes = append(atomTypes, a.Type)
+			atom := &dom.Atom{Name: a.Name, Type: a.Type}
+			out = append(out, atom)
 		}
-		if len(atomTypes) == 0 {
-			// no explicit atoms? there might be an implicit first block
-			if first, ok := min.Arch.FirstBlock(); ok {
-				atomTypes = append(atomTypes, first.Name())
-			}
-		}
-		if len(atomTypes) != 0 {
-			ret.Append(&dom.Mutation{inputName, dom.Atoms{atomTypes}})
+		if len(out) != 0 {
+			ret.Append(&dom.Mutation{inputName, out})
 		}
 	}
 	return
@@ -214,14 +209,14 @@ func (mb *MutatedBlock) expandAtoms() (err error) {
 					e := errutil.New("unknown atom", atom)
 					err = errutil.Append(err, e)
 				} else {
-					scope := block.Scope("a", atom.Id)
+					scope := block.Scope("a", atom.Name)
 					if args, e := q.Atomize(scope, mb.atomizer); e != nil {
 						err = errutil.Append(err, e)
 					} else {
 						start := mb.block.NumInputs()
 						numInputs := j.inject(args)
 						// restore connections
-						if store, ok := mb.store[atom.Id]; ok {
+						if store, ok := mb.store[atom.Name]; ok {
 							store.Restore(mb.block, start, numInputs)
 						}
 					}

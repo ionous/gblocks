@@ -32,8 +32,8 @@ var common = struct {
 		/* */ `<block type="mutable_block">` +
 		/*  */ `<mutation>` +
 		/*   */ `<pin name="MUTANT">` +
-		/*    */ `<atom type="atom1"></atom>` +
-		/*    */ `<atom type="atom2"></atom>` +
+		/*    */ `<atom name="atom1" type="atom1"></atom>` +
+		/*    */ `<atom name="atom2" type="atom2"></atom>` +
 		/*   */ `</pin>` +
 		/*  */ `</mutation>` +
 		/* */ `</block>` +
@@ -83,7 +83,8 @@ var common = struct {
 					&Mutation{
 						Input: "MUTANT",
 						Atoms: Atoms{
-							[]string{"atom1", "atom2"},
+							&Atom{"atom1", "atom1"},
+							&Atom{"atom2", "atom2"},
 						},
 					},
 				}},
@@ -115,10 +116,10 @@ func TestUnmarshalMutation(t *testing.T) {
 	str := `` +
 		/*  */ `<mutation>` +
 		/*   */ `<pin name="A">` +
-		/*    */ `<atom type="atom"/>` +
+		/*    */ `<atom name="one" type="atom"/>` +
 		/*   */ `</pin>` +
 		/*   */ `<pin name="B">` +
-		/*    */ `<atom type="atom"/>` +
+		/*    */ `<atom name="two" type="atom"/>` +
 		/*   */ `</pin>` +
 		/*  */ `</mutation>`
 
@@ -130,13 +131,13 @@ func TestUnmarshalMutation(t *testing.T) {
 				&Mutation{
 					Input: "A",
 					Atoms: Atoms{
-						Types: []string{"atom"},
+						&Atom{"one", "atom"},
 					},
 				},
 				&Mutation{
 					Input: "B",
 					Atoms: Atoms{
-						Types: []string{"atom"},
+						&Atom{"two", "atom"},
 					},
 				},
 			},

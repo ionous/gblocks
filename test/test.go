@@ -62,7 +62,6 @@ type MutableBlock struct {
 }
 
 type BlockMutation struct {
-	ExtraField    int
 	NextStatement NextAtom
 }
 
