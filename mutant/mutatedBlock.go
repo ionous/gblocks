@@ -42,6 +42,7 @@ func (mb *MutatedBlock) GetMutatedInput(inputName string) (ret *MutatedInput, ok
 // SaveConnections happens before any mui transformation
 func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) {
 	// 1. walk mutable inputs
+	storage := make(map[string]Store)
 	for mi, mcnt := 0, muiContainer.NumInputs(); mi < mcnt; mi++ {
 		muiInput := muiContainer.Input(mi)
 		// 2. walk the mui blocks attached to the mutable input
@@ -58,10 +59,11 @@ func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) {
 					store.SaveConnection(in)
 				}
 			}
-			mb.store[atomId] = store
+			storage[atomId] = store
 			return true
 		})
 	}
+	mb.store = storage
 }
 
 // CreateMui from existing workspace blocks. ( aka decompose )
@@ -213,15 +215,13 @@ func (mb *MutatedBlock) expandAtoms() (err error) {
 					if args, e := q.Atomize(scope, mb.atomizer); e != nil {
 						err = errutil.Append(err, e)
 					} else {
-						start := mb.block.NumInputs()
-						numInputs := j.inject(args)
-						// restore connections
-						if store, ok := mb.store[atom.Name]; ok {
-							store.Restore(mb.block, start, numInputs)
-						}
+						mb.block.NumInputs()
+						j.inject(args)
 					}
 				}
 			}
+			// sort the inputs which were added into the right spot.
+			j.finalizeInputs()
 		}
 	}
 	return // err

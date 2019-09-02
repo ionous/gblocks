@@ -19,11 +19,8 @@ func NewMutator(arch *BlockMutations, db Atomizer, mbs *MutatedBlocks) *Mutator 
 	return &Mutator{arch, db, mbs}
 }
 
-func (a *Mutator) Delete(id string) {
-	a.blockPool.OnDelete(id)
-}
-
 func (a *Mutator) MutationToDom(main block.Shape) (ret string, err error) {
+	//	println("saving mutation")
 	if src, ok := a.blockPool.GetMutatedBlock(main); ok {
 		dom := src.SaveMutation()
 		ret, err = dom.MarshalMutation()
@@ -35,6 +32,7 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 	if els, e := dom.UnmarshalMutation(str); e != nil {
 		err = e
 	} else {
+		//	pretty.Println("loading mutation", els)
 		target := a.blockPool.CreateMutatedBlock(main, a.arch, a.atomizer)
 		err = target.LoadMutation(&els)
 	}
@@ -43,12 +41,14 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 
 // create the mui container from workspace data.
 func (a *Mutator) Decompose(main block.Shape, popup block.Workspace) (block.Shape, error) {
+	//println("create mui")
 	src := a.blockPool.CreateMutatedBlock(main, a.arch, a.atomizer)
 	return src.CreateMui(popup)
 }
 
 // create workspace inputs from the atoms the user selected and arranged in the mui popup
 func (a *Mutator) Compose(main, mui block.Shape) (err error) {
+	//println("create from mui")
 	if target, ok := a.blockPool.GetMutatedBlock(main); !ok {
 		err = errutil.New("couldnt find block", main)
 	} else if e := target.CreateFromMui(mui); e != nil {
@@ -59,6 +59,7 @@ func (a *Mutator) Compose(main, mui block.Shape) (err error) {
 
 func (a *Mutator) SaveConnections(main, mui block.Shape) (err error) {
 	// note: can be missing the first call.
+	//println("save connections")
 	if target, ok := a.blockPool.GetMutatedBlock(main); ok {
 		target.SaveConnections(mui)
 	}

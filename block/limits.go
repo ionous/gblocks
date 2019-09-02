@@ -33,6 +33,7 @@ func MakeUnlimited() Limits {
 	return Limits{nil, true}
 }
 
+// list of type names allowed for a connection
 func MakeLimits(types []string) Limits {
 	return Limits{types, true}
 }

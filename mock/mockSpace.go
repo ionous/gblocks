@@ -9,15 +9,20 @@ import (
 
 // created by NewMockSpace
 type MockSpace struct {
-	*Registry
+	blocks map[string]block.Dict // block description lookup
+	wsid   string
 	Shapes map[string]block.Shape
 	ids    map[string]int
 	ondel  []block.OnDelete
 }
 
+func (ws *MockSpace) WorkspaceId() string {
+	return ws.wsid
+}
+
 func (ws *MockSpace) Delete(id string) {
 	for _, ondel := range ws.ondel {
-		ondel.OnDelete(id)
+		ondel.OnDelete(ws.wsid, id)
 	}
 }
 
@@ -26,7 +31,7 @@ func (ws *MockSpace) OnDelete(ondel block.OnDelete) {
 }
 
 func (ws *MockSpace) NewBlockWithId(blockId, blockType string) (ret block.Shape, err error) {
-	if desc, ok := ws.Blocks[blockType]; !ok {
+	if desc, ok := ws.blocks[blockType]; !ok {
 		err = errutil.New("unknown block", blockType)
 	} else {
 		b := CreateBlock(blockId, desc)

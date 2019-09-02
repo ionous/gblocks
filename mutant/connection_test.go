@@ -6,7 +6,7 @@ package mutant_test
 // we need to test the save, verify it, muck it up, restore -- verify the restore.
 // func TestSaveConnections(t *testing.T) {
 // 	// create a workspace block with some expanded atoms
-// 	var reg mock.Registry
+// 	var reg mock.MockProject
 // 	ws := reg.NewMockSpace()
 // 	// input 1 has two atoms
 // 	desc := mock.MakeDesc("mockType", common.expandedInputs)

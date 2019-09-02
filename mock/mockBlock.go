@@ -32,11 +32,8 @@ func (b *MockBlock) String() string {
 }
 
 func (b *MockBlock) HasWorkspace() bool { return true }
-func (b *MockBlock) BlockWorkspace() (ret block.Workspace) {
-	if b.Workspace != nil {
-		ret = b.Workspace
-	}
-	return
+func (b *MockBlock) BlockWorkspace() block.Workspace {
+	return &MockSpace{wsid: "none"}
 }
 func (b *MockBlock) InitSvg() {}
 

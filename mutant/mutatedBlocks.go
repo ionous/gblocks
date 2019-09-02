@@ -15,8 +15,9 @@ type MutatedBlocks struct {
 }
 
 func (mbs *MutatedBlocks) CreateMutatedBlock(main block.Shape, arch *BlockMutations, atomizer Atomizer) (ret *MutatedBlock) {
-	wid := main.BlockId()
-	ret, ok := mbs.blocks[wid]
+	wsId, blockId := main.BlockWorkspace().WorkspaceId(), main.BlockId()
+	uid := block.Scope(wsId, blockId)
+	ret, ok := mbs.blocks[uid]
 	if !ok {
 		ret = &MutatedBlock{
 			block:    main,
@@ -25,17 +26,19 @@ func (mbs *MutatedBlocks) CreateMutatedBlock(main block.Shape, arch *BlockMutati
 			inputs:   make(map[string]*MutatedInput),
 			store:    make(map[string]Store),
 		}
-		mbs.blocks[wid] = ret
+		mbs.blocks[uid] = ret
 	}
 	return
 }
 
 func (mbs *MutatedBlocks) GetMutatedBlock(main block.Shape) (*MutatedBlock, bool) {
-	wid := main.BlockId()
-	ret, ok := mbs.blocks[wid]
+	wsId, blockId := main.BlockWorkspace().WorkspaceId(), main.BlockId()
+	uid := block.Scope(wsId, blockId)
+	ret, ok := mbs.blocks[uid]
 	return ret, ok
 }
 
-func (mbs *MutatedBlocks) OnDelete(wid string) {
-	delete(mbs.blocks, wid)
+func (mbs *MutatedBlocks) OnDelete(wsId, blockId string) {
+	uid := block.Scope(wsId, blockId)
+	delete(mbs.blocks, uid)
 }

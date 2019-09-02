@@ -51,7 +51,7 @@ func (ws *Workspace) onEvent(evt interface{}) {
 		for i := 0; i < evt.Ids.Length(); i++ {
 			id := evt.Ids.Index(i).String()
 			for _, ondel := range ws.onDel {
-				ondel.OnDelete(id)
+				ondel.OnDelete(ws.Id, id)
 			}
 		}
 	}
@@ -115,6 +115,9 @@ func (ws *Workspace) onEvent(evt interface{}) {
 //  return ws.Call("getWidth")
 // }
 
+func (ws *Workspace) WorkspaceId() string {
+	return ws.Id
+}
 func (ws *Workspace) NewBlock(blockType string) (block.Shape, error) {
 	return ws.NewBlockWithId("", blockType)
 }

@@ -1,5 +1,10 @@
 package mutant_test
 
+import (
+	"github.com/ionous/gblocks/block"
+	"github.com/ionous/gblocks/mock"
+)
+
 //
 //import (
 //	"sort"
@@ -11,72 +16,75 @@ package mutant_test
 //	"github.com/stretchr/testify/require"
 //)
 //
-//var common = struct {
-//	inputs, quarks []string
-//	inputAtoms     map[string][]mutant.AtomizedInput
-//	muiContainer   block.Dict
-//	atomProducts   map[string][]mock.MockAtom
-//	// workspace inputs after expanding the mutable input atoms
-//	expandedInputs []string
-//}{
-//	inputs: []string{"M1:input_dummy", "M2:input_dummy", "M3:input_dummy"},
-//	quarks: []string{"A", "B", "C"},
-//	inputAtoms: map[string][]mutant.AtomizedInput{
-//		"M1": []mutant.AtomizedInput{
-//			{"A", 1},
-//			{"A", 1},
-//		},
-//		"M2": []mutant.AtomizedInput{
-//			{"B", 1},
-//		},
-//		"M3": []mutant.AtomizedInput{
-//			{"A", 1},
-//			{"B", 1},
-//			{"C", 2}, // it should really be just one;
-//			// but mock doesnt collapse the fields into inputs
-//			// the same way blockly does
-//		},
-//	},
-//	muiContainer: block.Dict{
-//		"type":     block.Scope("mui", "test"),
-//		"message0": "%1 %2 %3",
-//		"args0": []block.Dict{{
-//			"name":  "M1",
-//			"type":  "input_statement",
-//			"check": "A",
-//		}, {
-//			"type":  "input_statement",
-//			"name":  "M2",
-//			"check": "A",
-//		}, {
-//			"name":  "M3",
-//			"type":  "input_statement",
-//			"check": "A",
-//		}},
-//	},
-//	atomProducts: map[string][]mock.MockAtom{
-//		"A": []mock.MockAtom{{Name: "TERM", Type: block.ValueInput}},
-//		"B": []mock.MockAtom{{Name: "NUM", Type: block.NumberField}},
-//		"C": []mock.MockAtom{
-//			{Name: "TEXT", Type: block.TextField},
-//			{Name: "STATE", Type: block.StatementInput},
-//		},
-//	},
-//	expandedInputs: []string{
-//		// a, blockId, INPUT, atomNum, FIELD:type
-//		"M1:input_dummy",
-//		/*A*/ block.Scope("a", "M1", "0", "TERM:input_value"),
-//		/*A*/ block.Scope("a", "M1", "1", "TERM:input_value"),
-//		"M2:input_dummy",
-//		/*B*/ block.Scope("a", "M2", "0", "NUM:field_number"),
-//		"M3:input_dummy",
-//		/*A*/ block.Scope("a", "M3", "0", "TERM:input_value"),
-//		/*B*/ block.Scope("a", "M3", "1", "NUM:field_number"),
-//		/*C*/ block.Scope("a", "M3", "2", "TEXT:field_input"),
-//		/*C*/ block.Scope("a", "M3", "2", "STATE:input_statement"),
-//	},
-//}
-//
+var common = struct {
+	inputs, quarks []string
+	// inputAtoms     map[string][]mutant.AtomizedInput
+	// muiContainer   block.Dict
+	atomProducts map[string][]mock.MockAtom
+	// // workspace inputs after expanding the mutable input atoms
+	// expandedInputs []string
+}{
+	// list of {input name, input type}
+	inputs: []string{"M1:input_dummy", "M2:input_dummy", "M3:input_dummy"},
+	// atom type names
+	quarks: []string{"A", "B", "C"},
+	// inputAtoms: map[string][]mutant.AtomizedInput{
+	// 	"M1": []mutant.AtomizedInput{
+	// 		{"A", 1},
+	// 		{"A", 1},
+	// 	},
+	// 	"M2": []mutant.AtomizedInput{
+	// 		{"B", 1},
+	// 	},
+	// 	"M3": []mutant.AtomizedInput{
+	// 		{"A", 1},
+	// 		{"B", 1},
+	// 		{"C", 2}, // it should really be just one;
+	// 		// but mock doesnt collapse the fields into inputs
+	// 		// the same way blockly does
+	// 	},
+	// },
+	// muiContainer: block.Dict{
+	// 	"type":     block.Scope("mui", "test"),
+	// 	"message0": "%1 %2 %3",
+	// 	"args0": []block.Dict{{
+	// 		"name":  "M1",
+	// 		"type":  "input_statement",
+	// 		"check": "A",
+	// 	}, {
+	// 		"type":  "input_statement",
+	// 		"name":  "M2",
+	// 		"check": "A",
+	// 	}, {
+	// 		"name":  "M3",
+	// 		"type":  "input_statement",
+	// 		"check": "A",
+	// 	}},
+	// },
+	// each atom creates one or more workspace inputs/fields
+	atomProducts: map[string][]mock.MockAtom{
+		"A": []mock.MockAtom{{Name: "TERM", Type: block.ValueInput}},
+		"B": []mock.MockAtom{{Name: "NUM", Type: block.NumberField}},
+		"C": []mock.MockAtom{
+			{Name: "TEXT", Type: block.TextField},
+			{Name: "STATE", Type: block.StatementInput},
+		},
+	},
+	// expandedInputs: []string{
+	// 	// a, blockId, INPUT, atomNum, FIELD:type
+	// 	"M1:input_dummy",
+	// 	/*A*/ block.Scope("a", "M1", "0", "TERM:input_value"),
+	// 	/*A*/ block.Scope("a", "M1", "1", "TERM:input_value"),
+	// 	"M2:input_dummy",
+	// 	/*B*/ block.Scope("a", "M2", "0", "NUM:field_number"),
+	// 	"M3:input_dummy",
+	// 	/*A*/ block.Scope("a", "M3", "0", "TERM:input_value"),
+	// 	/*B*/ block.Scope("a", "M3", "1", "NUM:field_number"),
+	// 	/*C*/ block.Scope("a", "M3", "2", "TEXT:field_input"),
+	// 	/*C*/ block.Scope("a", "M3", "2", "STATE:input_statement"),
+	// },
+}
+
 //func TestCreateMockBlock(t *testing.T) {
 //	// create a workspace block where we will be writing data to
 //	b := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
@@ -91,7 +99,7 @@ package mutant_test
 //}
 //
 //func TestPreregister(t *testing.T) {
-//	var reg mock.Registry
+//	var reg mock.MockProject
 //	arch := mock.NewMutations(common.inputs, common.quarks)
 //	require.NoError(t, arch.Preregister("test", &reg))
 //	var keys []string
@@ -119,7 +127,7 @@ package mutant_test
 //}
 //
 //func TestCreateMui(t *testing.T) {
-//	var reg mock.Registry
+//	var reg mock.MockProject
 //	muispace := reg.NewMockSpace()
 //	blocks := mutant.NewMutatedBlocks()
 //	arch := mock.NewMutations(common.inputs, common.quarks)
@@ -161,19 +169,20 @@ package mutant_test
 //	}
 //	return
 //}
-//
-//// list every named input of b
-//// note: with the mock implementation, every field gets promoted to a connectionless input.
-//func listInputs(b block.Shape) (ret []string) {
-//	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
-//		in := b.Input(i)
-//		ret = append(ret, in.(interface{ String() string }).String())
-//	}
-//	return
-//}
+
+// list every named input of b
+// note: with the mock implementation, every field gets promoted to a connectionless input.
+func listInputs(b block.Shape) (ret []string) {
+	for i, cnt := 0, b.NumInputs(); i < cnt; i++ {
+		in := b.Input(i)
+		ret = append(ret, in.(interface{ String() string }).String())
+	}
+	return
+}
+
 //
 //func TestCreateFromMui(t *testing.T) {
-//	var reg mock.Registry
+//	var reg mock.MockProject
 //	// create a workspace block where we will be writing data to
 //	b := mock.CreateBlock("mock", mock.MakeDesc("mockType", common.inputs))
 //	// first create a container and give it some fake atom data.

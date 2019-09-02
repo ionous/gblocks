@@ -14,8 +14,7 @@ type MockMutation struct {
 	quarks []string
 }
 
-// create unique mutations for every input
-// based on one common set of quarks.
+// create unique mutations for every input based on one common set of quarks.
 func NewMutations(inputs []string, quarks []string) *mutant.BlockMutations {
 	mutations := make(map[string]mutant.Mutation)
 	var names []string
@@ -23,9 +22,9 @@ func NewMutations(inputs []string, quarks []string) *mutant.BlockMutations {
 		parts := strings.Split(input, ":")
 		inputName := parts[0]
 		mutation := &MockMutation{
-			inputName,
-			block.MakeLimits([]string{quarks[0]}),
-			quarks,
+			inputName,                // name of the mutating input
+			block.MakeLimits(quarks), // anything can attach
+			quarks,                   // pool of quarks for this this input
 		}
 		mutations[inputName] = mutation
 		names = append(names, inputName)

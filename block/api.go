@@ -8,12 +8,15 @@ type Project interface {
 }
 
 type Workspace interface {
+	WorkspaceId() string
 	NewBlock(blockType string) (Shape, error)
 	NewBlockWithId(blockId, blockType string) (Shape, error)
 	OnDelete(OnDelete)
 }
 
-type OnDelete interface{ OnDelete(blockId string) }
+type OnDelete interface {
+	OnDelete(workspaceId, blockId string)
+}
 
 // input access
 type Inputs interface {
@@ -46,6 +49,7 @@ type Flags interface {
 
 // an instance of a block
 type Shape interface {
+	// unique only within the workspace
 	BlockId() string
 	BlockType() string
 
