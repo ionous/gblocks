@@ -85,7 +85,10 @@ func (mb *MutatedBlock) CreateMui(mui block.Workspace) (ret block.Shape, err err
 				// walk existing atoms
 				for _, atom := range min.Atoms {
 					// create blocks named after the atom
-					if muiBlock, e := mui.NewBlockWithId(atom.Name, atom.Type); e != nil {
+					if q, ok := FindQuark(min.Arch, atom.Type); !ok {
+						e := errutil.New("couldnt find quark for atom", atom.Type)
+						err = errutil.New(err, e)
+					} else if muiBlock, e := mui.NewBlockWithId(atom.Name, q.BlockType()); e != nil {
 						err = errutil.Append(err, e)
 					} else {
 						// link the new block into the stack
@@ -184,9 +187,9 @@ func (mb *MutatedBlock) SaveMutation() (ret dom.BlockMutation) {
 	for inputName, min := range mb.inputs {
 		// if there are atoms, create a node for the data.
 		var out []*dom.Atom
-		for _, a := range min.Atoms {
-			atom := &dom.Atom{Name: a.Name, Type: a.Type}
-			out = append(out, atom)
+		for _, atom := range min.Atoms {
+			diatom := &dom.Atom{Name: atom.Name, Type: atom.Type}
+			out = append(out, diatom)
 		}
 		if len(out) != 0 {
 			ret.Append(&dom.Mutation{inputName, out})
