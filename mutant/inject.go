@@ -22,12 +22,13 @@ func newInjector(mb *MutatedBlock, min *MutatedInput) (ret *injector, err error)
 	return
 }
 
-func (j *injector) inject(args block.Args) int {
+// returns the point where the injection occurred and the number of inputs added
+func (j *injector) inject(args block.Args) (int, int) {
 	b := j.target.block
 	was := b.NumInputs()
 	b.Interpolate(args.Message(), args.List())
 	now := b.NumInputs()
-	return now - was
+	return was, now - was
 }
 
 // reorder inputs so that the atom's inputs follow the mutation's inputs.

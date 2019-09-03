@@ -18,7 +18,6 @@ type MutatedBlock struct {
 	inputs   map[string]*MutatedInput
 	// muiblock id / atom id to array of connections
 	// note: the store cant live with the atom b/c the atom can get destroyed
-	// FIX: when to purge the store? ex. close mui, delete mui block, or maybe after a compose.
 	store map[string]Store
 }
 
@@ -40,9 +39,9 @@ func (mb *MutatedBlock) GetMutatedInput(inputName string) (ret *MutatedInput, ok
 }
 
 // SaveConnections happens before any mui transformation
-func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) {
+func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) Storage {
 	// 1. walk mutable inputs
-	storage := make(map[string]Store)
+	storage := make(Storage)
 	for mi, mcnt := 0, muiContainer.NumInputs(); mi < mcnt; mi++ {
 		muiInput := muiContainer.Input(mi)
 		// 2. walk the mui blocks attached to the mutable input
@@ -64,6 +63,7 @@ func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) {
 		})
 	}
 	mb.store = storage
+	return storage
 }
 
 // CreateMui from existing workspace blocks. ( aka decompose )
@@ -175,6 +175,8 @@ func (mb *MutatedBlock) LoadMutation(els *dom.BlockMutation) (err error) {
 			}
 		}
 	}
+	// we're refreshing from xml, no connections need saving
+	mb.store = nil
 	// make ws inputs from atoms
 	if e := mb.expandAtoms(); e != nil {
 		err = errutil.Append(err, e)
@@ -218,8 +220,12 @@ func (mb *MutatedBlock) expandAtoms() (err error) {
 					if args, e := q.Atomize(scope, mb.atomizer); e != nil {
 						err = errutil.Append(err, e)
 					} else {
-						mb.block.NumInputs()
-						j.inject(args)
+						// args appear at the end
+						if start, cnt := j.inject(args); cnt > 0 {
+							if store, ok := mb.store[atom.Name]; ok {
+								store.Restore(mb.block, start, cnt)
+							}
+						}
 					}
 				}
 			}

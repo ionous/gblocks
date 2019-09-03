@@ -49,6 +49,22 @@ func (c *Connection) TargetConnection() block.Connection {
 	return jsConnection(c.targetConnection)
 }
 
+func (c *Connection) String() string {
+	src := "??? "
+	if b := c.SourceBlock(); b != nil {
+		src = b.BlockId()
+	}
+
+	tgt := "not connected"
+	if c.IsConnected() {
+		if b := c.TargetBlock(); b != nil {
+			tgt = " to " + b.BlockId()
+		}
+	}
+
+	return src + tgt
+}
+
 //func (c*Connection) setCheck(c[]string) {// array or value
 // func (c*Connection) getCheck() *js.Object {// array
 // func (c*Connection) setShadowDom(el)

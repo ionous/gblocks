@@ -7,6 +7,12 @@ type Store struct {
 	connections []block.Connection
 }
 
+type Storage map[string]Store
+
+func (s *Store) Connections() []block.Connection {
+	return s.connections
+}
+
 func (s *Store) SaveConnection(in block.Input) {
 	if c := in.Connection(); c != nil {
 		var tgt block.Connection
