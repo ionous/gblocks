@@ -40,8 +40,12 @@ func (mb *MutatedBlock) GetMutatedInput(inputName string) (ret *MutatedInput, ok
 
 // SaveConnections happens before any mui transformation
 func (mb *MutatedBlock) SaveConnections(muiContainer block.Shape) Storage {
+	// initialize storage, dont destroy old storage we may need it ( ex. to drag old mui blocks into place )T
+	storage := mb.store
+	if storage == nil {
+		storage = make(Storage)
+	}
 	// 1. walk mutable inputs
-	storage := make(Storage)
 	for mi, mcnt := 0, muiContainer.NumInputs(); mi < mcnt; mi++ {
 		muiInput := muiContainer.Input(mi)
 		// 2. walk the mui blocks attached to the mutable input
@@ -108,6 +112,8 @@ func (mb *MutatedBlock) CreateMui(mui block.Workspace) (ret block.Shape, err err
 	return
 }
 
+//var TEMP = make(map[string]bool)
+
 // aka. compose -- turn the mui into new workspace inputs
 // adds new inputs to target, returns the atoms for those inputs
 func (mb *MutatedBlock) CreateFromMui(muiContainer block.Shape) (err error) {
@@ -130,6 +136,9 @@ func (mb *MutatedBlock) CreateFromMui(muiContainer block.Shape) (err error) {
 				// FIX? consider storing the blockId as atomType, atomId instead of searching by quark
 				// FIX? better, why cant the block type *be* the atom type?
 				atomId := muiBlock.BlockId()
+				//if !TEMP[atomId] {
+				//	println("creating new atom", atomId)
+				//}
 				blockType := muiBlock.BlockType()
 				// translate the block type into atom Type
 				if q, ok := FindQuark(min.Arch, blockType); !ok {
@@ -166,6 +175,7 @@ func (mb *MutatedBlock) LoadMutation(els *dom.BlockMutation) (err error) {
 			} else {
 				var atoms []*AtomizedInput
 				for _, atom := range el.Atoms {
+					//TEMP[atom.Name] = true
 					atoms = append(atoms, &AtomizedInput{
 						Name: atom.Name,
 						Type: atom.Type,
