@@ -22,6 +22,14 @@ func NewMutator(arch *BlockMutations, db Atomizer, mbs *MutatedBlocks) *Mutator 
 
 var Trace bool = true
 
+func toString(i interface{}) (ret string) {
+	type stringer interface{ String() string }
+	if stringer, ok := i.(stringer); ok {
+		ret = stringer.String()
+	}
+	return
+}
+
 func (a *Mutator) MutationToDom(main block.Shape) (ret string, err error) {
 	if Trace {
 		println("saving mutation")
@@ -39,7 +47,6 @@ func (a *Mutator) DomToMutation(main block.Shape, str string) (err error) {
 	} else {
 		if Trace {
 			pretty.Println("loading mutation", els)
-
 		}
 		target := a.blockPool.CreateMutatedBlock(main, a.arch, a.atomizer)
 		err = target.LoadMutation(&els)
@@ -76,12 +83,9 @@ func (a *Mutator) SaveConnections(main, mui block.Shape) (err error) {
 		if Trace {
 			println("saved connections:")
 			for x, store := range res {
-				println(" atom", x)
+				println(" atom", toString(x))
 				for _, c := range store.Connections() {
-					type stringer interface{ String() string }
-					if stringer, ok := c.(stringer); ok {
-						println("  ", stringer.String())
-					}
+					println("  ", toString(c))
 				}
 			}
 		}

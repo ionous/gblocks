@@ -55,7 +55,7 @@ func (c *Connection) String() string {
 		src = b.BlockId()
 	}
 
-	tgt := "not connected"
+	tgt := " not connected"
 	if c.IsConnected() {
 		if b := c.TargetBlock(); b != nil {
 			tgt = " to " + b.BlockId()
