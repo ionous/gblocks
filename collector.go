@@ -53,6 +53,7 @@ func (tc *TypeCollector) NewShadows(s toolbox.Shadowing) *toolbox.Builder {
 
 // you're either a term, which can contain input statements;
 // or you're statement, which can contain input terms.
+// fix: used for testing only; public b/c system tests are in a different package
 func (tc *TypeCollector) AddTerm(ptr interface{}) *TypeCollector {
 	tc.addType(ptr, tin.TermBlock)
 	return tc
@@ -60,12 +61,14 @@ func (tc *TypeCollector) AddTerm(ptr interface{}) *TypeCollector {
 
 // you're either a statement, which can contain input terms;
 // or you're a term, which can contain input statements.
+// fix: used for testing only; public b/c system tests are in a different package
 func (tc *TypeCollector) AddStatement(ptr interface{}) *TypeCollector {
 	tc.addType(ptr, tin.MidBlock)
 	return tc
 }
 
 // a top statement is a statement with no previous connection.
+// fix: used for testing only; public b/c system tests are in a different package
 func (tc *TypeCollector) AddTopStatement(ptr interface{}) *TypeCollector {
 	tc.addType(ptr, tin.TopBlock)
 	return tc

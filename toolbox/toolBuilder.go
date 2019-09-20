@@ -27,6 +27,10 @@ func (l *Builder) Blocks() dom.BlockList {
 
 func (l *Builder) AddTerm(ptr interface{}) *Builder {
 	ptrVal := r.ValueOf(ptr)
+	if _, ok := ptrVal.Elem().Type().FieldByName(block.NextStatement); ok {
+		e := errutil.New("terms shouldnt have next statements", ptrVal.String())
+		panic(e)
+	}
 	return l.addPtrVal(ptrVal, tin.TermBlock)
 }
 
