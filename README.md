@@ -4,6 +4,8 @@ A [gopherjs](https://github.com/gopherjs) wrapper for [Blockly](https://develope
 The impetuous for this library is to provide a visual editor for [iffy](https://github.com/ionous/iffy) - an interactive fiction engine.
 Gblocks, the editor, and iffy are all works in progress.
 
+**NOTE**: I've archived this project. After working with Blockly for quite a while, and on this adapter, I don't feel it's the best match for iffy. If i had the time for both projects, I would love to make this more usable. Blockly is a great tool for certain uses.
+
 ## Goals
 
 1. Define [blocks](https://developers.google.com/blockly/guides/create-custom-blocks/define-blocks) using Go-lang types.
